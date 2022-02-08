@@ -11,8 +11,8 @@ Copy this folder to `<config_dir>/custom_components/renpho_weight/`.
 
 - `email` is **mandatory** and represent the email you use to log in the app
 - `password_hash` is **mandatory** and represent the hash of your password.  See note below to get it.
-- `refresh` is **optional** and represent the time to check for update.  Default value is 60
-- `weight_units` is **optional** and represent the unit of every MASS sensor.  Possible values are 'kg' or 'lb'.  Default value is 'kg'
+- `refresh` is **mandatory** and represent the time to check for update. 
+- `weight_units` is **mandatory** and represent the unit of every MASS sensor.  Possible values are 'kg' or 'lb'.
 
 For example, add the following entry in your `configuration.yaml`:
 
@@ -39,3 +39,8 @@ Be aware that for Android, you need to have Android 6 or less as web certificate
 ### Important information
 - Bear in mind everytime you log in it logs you out of the app, so in my example it gives me ten minutes between checking in case I ever wish to browse the app.
 - The MASS data are stored in Kg on the renpho API.  So, if you select the weight_units, in lb, a conversion will be made by a factor of 2.2046226218
+
+
+### RoadMap / What's to come
+
+Change the config value to make refresh and weight_units optional with default value (Use CONFIG_SCHEMA ?)
