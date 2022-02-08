@@ -13,6 +13,7 @@ renpho_weight:
   email: <email address>
   password_hash: <password hash>
   refresh: 600
+  weight_units: kg / lb
 
 sensor:
   platform: renpho_weight

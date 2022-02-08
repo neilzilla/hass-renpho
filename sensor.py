@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 from homeassistant.components.sensor import SensorEntity
-from homeassistant.const import MASS_KILOGRAMS, TIME_SECONDS
+from homeassistant.const import MASS_KILOGRAMS, PERCENTAGE
+from .const import KG_TO_LB_MULTIPLICATOR
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
@@ -45,13 +46,17 @@ class WeightSensor(SensorEntity):
     @property
     def unit_of_measurement(self) -> str:
         """Return the unit of measurement."""
-        return MASS_KILOGRAMS
+        return self._renpho.unit_of_measurements
 
     def update(self) -> None:
         """Fetch new state data for the sensor.
         This is the only method that should fetch new data for Home Assistant.
         """
+
         self._state = self._renpho.weight
+        if self._renpho.unit_of_measurements != MASS_KILOGRAMS : 
+            self._state = round(self._renpho.weight * KG_TO_LB_MULTIPLICATOR, 1)
+        
 
 class TimeSensor(SensorEntity):
     """Representation of a sensor."""
@@ -82,6 +87,7 @@ class TimeSensor(SensorEntity):
         """
         self._state = self._renpho.created_at
         
+
 class FatFreeWeightSensor(SensorEntity):
     """Representation of a sensor."""
 
@@ -103,13 +109,16 @@ class FatFreeWeightSensor(SensorEntity):
     @property
     def unit_of_measurement(self) -> str:
         """Return the unit of measurement."""
-        return MASS_KILOGRAMS
+        return self._renpho.unit_of_measurements
 
     def update(self) -> None:
         """Fetch new state data for the sensor.
         This is the only method that should fetch new data for Home Assistant.
         """
+
         self._state = self._renpho.fat_free_weight
+        if self._renpho.unit_of_measurements != MASS_KILOGRAMS : 
+            self._state = round(self._renpho.fat_free_weight * KG_TO_LB_MULTIPLICATOR, 1)
 
 
 class SkeletalMuscalSensor(SensorEntity):
@@ -133,7 +142,7 @@ class SkeletalMuscalSensor(SensorEntity):
     @property
     def unit_of_measurement(self) -> str:
         """Return the unit of measurement."""
-        return '%'
+        return PERCENTAGE
 
     def update(self) -> None:
         """Fetch new state data for the sensor.
@@ -163,7 +172,7 @@ class ProteinSensor(SensorEntity):
     @property
     def unit_of_measurement(self) -> str:
         """Return the unit of measurement."""
-        return '%'
+        return PERCENTAGE
 
     def update(self) -> None:
         """Fetch new state data for the sensor.
@@ -192,13 +201,15 @@ class SinewSensor(SensorEntity):
     @property
     def unit_of_measurement(self) -> str:
         """Return the unit of measurement."""
-        return MASS_KILOGRAMS
+        return self._renpho.unit_of_measurements
 
     def update(self) -> None:
         """Fetch new state data for the sensor.
         This is the only method that should fetch new data for Home Assistant.
         """
         self._state = self._renpho.sinew
+        if self._renpho.unit_of_measurements != MASS_KILOGRAMS : 
+            self._state = round(self._renpho.sinew * KG_TO_LB_MULTIPLICATOR, 1)
 
 class BmiSensor(SensorEntity):
     """Representation of a sensor."""
@@ -250,7 +261,7 @@ class SubFatSensor(SensorEntity):
     @property
     def unit_of_measurement(self) -> str:
         """Return the unit of measurement."""
-        return '%'
+        return PERCENTAGE
 
     def update(self) -> None:
         """Fetch new state data for the sensor.
@@ -279,7 +290,7 @@ class VisceralFatSensor(SensorEntity):
     @property
     def unit_of_measurement(self) -> str:
         """Return the unit of measurement."""
-        return '%'
+        return PERCENTAGE
 
     def update(self) -> None:
         """Fetch new state data for the sensor.
@@ -309,13 +320,15 @@ class BoneSensor(SensorEntity):
     @property
     def unit_of_measurement(self) -> str:
         """Return the unit of measurement."""
-        return MASS_KILOGRAMS
+        return self._renpho.unit_of_measurements
 
     def update(self) -> None:
         """Fetch new state data for the sensor.
         This is the only method that should fetch new data for Home Assistant.
         """
         self._state = self._renpho.bone
+        if self._renpho.unit_of_measurements != MASS_KILOGRAMS : 
+            self._state = round(self._renpho.bone * KG_TO_LB_MULTIPLICATOR, 1)
 
 
 class BodyAgeSensor(SensorEntity):
@@ -399,7 +412,7 @@ class WaterSensor(SensorEntity):
     @property
     def unit_of_measurement(self) -> str:
         """Return the unit of measurement."""
-        return '%'
+        return PERCENTAGE
 
     def update(self) -> None:
         """Fetch new state data for the sensor.
@@ -429,7 +442,7 @@ class BodyfatSensor(SensorEntity):
     @property
     def unit_of_measurement(self) -> str:
         """Return the unit of measurement."""
-        return '%'
+        return PERCENTAGE
 
     def update(self) -> None:
         """Fetch new state data for the sensor.

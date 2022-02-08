@@ -2,6 +2,7 @@ import requests
 import json
 import time
 import datetime
+from homeassistant.const import MASS_KILOGRAMS, MASS_POUNDS
 from threading import Timer
 
 import logging
@@ -14,9 +15,17 @@ class Interval(Timer):
       self.function(*self.args, **self.kwargs)
 
 class RenphoWeight():
-    def __init__ (self, email, password_hash):
+    def __init__ (self, email, password_hash, unit_of_measurements):
         self.email = email
         self.password = password_hash
+        
+        self.unit_of_measurements = MASS_KILOGRAMS
+        if unit_of_measurements != MASS_KILOGRAMS:
+            self.unit_of_measurements = MASS_POUNDS
+
+
+
+
         self.weight = None
         self.created_at = None
         self.bodyfat = None
