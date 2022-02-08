@@ -15,16 +15,13 @@ class Interval(Timer):
       self.function(*self.args, **self.kwargs)
 
 class RenphoWeight():
-    def __init__ (self, email, password_hash, unit_of_measurements):
+    def __init__ (self, email, password_hash, unit_of_measurements = MASS_KILOGRAMS):
         self.email = email
         self.password = password_hash
         
         self.unit_of_measurements = MASS_KILOGRAMS
         if unit_of_measurements != MASS_KILOGRAMS:
             self.unit_of_measurements = MASS_POUNDS
-
-
-
 
         self.weight = None
         self.created_at = None
