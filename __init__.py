@@ -65,5 +65,6 @@ async def async_setup(hass: core.HomeAssistant, config: dict) -> bool:
         "coordinator": coordinator,
     }
     
-    hass.async_create_task(async_load_platform(hass, "sensor", DOMAIN, {}, conf))
+    #Seems to be creating every sensor a second time with an index at the end of the entity id
+    #hass.async_create_task(async_load_platform(hass, "sensor", DOMAIN, {}, conf))
     return True
