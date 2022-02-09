@@ -1,26 +1,28 @@
+"""Init Renpho sensor."""
+
 import logging
-
 import voluptuous as vol
-
 from homeassistant import core
-from homeassistant.const import CONF_SCAN_INTERVAL
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
-import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.discovery import async_load_platform
+import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .const import CONF_COUNTRY, CONF_WISHLIST, DEFAULT_SCAN_INTERVAL, DOMAIN
-from .eshop import Country, EShop
+from .const import DOMAIN, CONF_EMAIL, CONF_PASSWORD_HASH, CONF_REFRESH, CONF_WEIGHT_UNITS, DEFAULT_CONF_WEIGHT_UNITS, DEFAULT_CONF_REFRESH
+from .RenphoWeight import RenphoWeight
 
 _LOGGER = logging.getLogger(__name__)
 CONFIG_SCHEMA = vol.Schema(
     {
         DOMAIN: vol.Schema(
             {
-                vol.Required(CONF_WISHLIST): cv.ensure_list,
-                vol.Required(CONF_COUNTRY): cv.enum(Country),
+                vol.Required(CONF_EMAIL): str,
+                vol.Required(CONF_PASSWORD_HASH): str,
                 vol.Optional(
-                    CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL
+                    CONF_WEIGHT_UNITS, default=CONF_WEIGHT_UNITS
+                ): str,
+                vol.Optional(
+                    CONF_REFRESH, default=DEFAULT_CONF_REFRESH
                 ): vol.All(cv.time_period, cv.positive_timedelta),
             }
         )
@@ -36,19 +38,23 @@ async def async_setup(hass: core.HomeAssistant, config: dict) -> bool:
     @NOTE: `config` is the full dict from `configuration.yaml`.
     :returns: A boolean to indicate that initialization was successful.
     """
+    
     conf = config[DOMAIN]
-    country = conf[CONF_COUNTRY].name
-    wishlist = conf[CONF_WISHLIST]
-    scan_interval = conf[CONF_SCAN_INTERVAL]
-    eshop = EShop(country, async_get_clientsession(hass), wishlist)
+    email = conf[CONF_EMAIL]
+    password_hash = conf[CONF_PASSWORD_HASH]
+    unit_of_measurements = conf[CONF_WEIGHT_UNITS]
+    refresh_interval = conf[CONF_REFRESH]
+    
+    renpho = RenphoWeight(email, password_hash, async_get_clientsession(hass), unit_of_measurements)
+    
     coordinator = DataUpdateCoordinator(
         hass,
         _LOGGER,
         # Name of the data. For logging purposes.
         name=DOMAIN,
-        update_method=eshop.fetch_on_sale,
+        update_method=renpho.async_getInfo,
         # Polling interval. Will only be polled if there are subscribers.
-        update_interval=scan_interval,
+        update_interval=refresh_interval,
     )
 
     # Fetch initial data so we have data when entities subscribe
@@ -58,6 +64,6 @@ async def async_setup(hass: core.HomeAssistant, config: dict) -> bool:
         "conf": conf,
         "coordinator": coordinator,
     }
+    
     hass.async_create_task(async_load_platform(hass, "sensor", DOMAIN, {}, conf))
-    hass.async_create_task(async_load_platform(hass, "binary_sensor", DOMAIN, {}, conf))
     return True

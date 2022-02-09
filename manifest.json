@@ -1,9 +1,9 @@
 {
   "domain": "renpho_weight",
   "name": "Renpho Weight",
-  "documentation": "https://github.com/neilzilla/hass-renpho-weight",
+  "documentation": "https://github.com/masteryodha/hass-renpho",
   "dependencies": [],
-  "codeowners": [],
+  "codeowners": ["@masteryodha"],
   "requirements": [],
   "iot_class": "local_polling",
   "version": "0.1.0"

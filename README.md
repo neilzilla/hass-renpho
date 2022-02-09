@@ -42,5 +42,5 @@ Be aware that for Android, you need to have Android 6 or less as web certificate
 
 
 ### RoadMap / What's to come
-
-Change the config value to make refresh and weight_units optional with default value (Use CONFIG_SCHEMA ?)
+Get All the users and create sensor for all of them
+Specify in the config which users to get
