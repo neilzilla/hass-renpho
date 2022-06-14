@@ -1,6 +1,6 @@
 # Renpho Weight
 
-This is a custom component to import weight and last weigh time from the Renpho app into Home Assistant.
+This is a custom component to import weight and last weight time from the Renpho app into Home Assistant.
 
 ### Installation
 
