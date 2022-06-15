@@ -6,7 +6,7 @@ from homeassistant.const import MASS_KILOGRAMS, TIME_SECONDS
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
-from .const import DOMAIN, CONF_EMAIL, CONF_PASSWORD_HASH
+from .const import DOMAIN, CONF_EMAIL, CONF_PASSWORD
 
 
 

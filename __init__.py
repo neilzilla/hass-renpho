@@ -1,16 +1,21 @@
 """Init Renpho sensor."""
-from .const import DOMAIN, CONF_EMAIL, CONF_PASSWORD_HASH, CONF_REFRESH
+from .const import DOMAIN, CONF_EMAIL, CONF_PASSWORD, CONF_REFRESH, CONF_PUBLIC_KEY
 from .RenphoWeight import RenphoWeight
 from homeassistant.const import EVENT_HOMEASSISTANT_START, EVENT_HOMEASSISTANT_STOP
+import logging
+
+_LOGGER = logging.getLogger(__name__)
 
 def setup(hass, config):
 
+  _LOGGER.debug("Starting hass-renpho")
+
   conf = config[DOMAIN]
   email = conf[CONF_EMAIL]
-  password_hash = conf[CONF_PASSWORD_HASH]
+  password = conf[CONF_PASSWORD]
   refresh = conf[CONF_REFRESH]
 
-  renpho = RenphoWeight(email, password_hash)
+  renpho = RenphoWeight(CONF_PUBLIC_KEY, email, password)
 
   def cleanup(event):
     renpho.stopPolling()

@@ -1,10 +1,10 @@
 {
-  "domain": "renpho_weight",
-  "name": "Renpho Weight",
-  "documentation": "https://github.com/neilzilla/hass-renpho-weight",
+  "domain": "renpho",
+  "name": "Renpho",
+  "documentation": "https://github.com/neilzilla/hass-renpho",
   "dependencies": [],
-  "codeowners": [],
-  "requirements": [],
+  "codeowners": ["@neilzilla"],
+  "requirements": ["pycryptodome==3.3.1"],
   "iot_class": "local_polling",
-  "version": "0.1.0"
+  "version": "0.2.0"
 }
