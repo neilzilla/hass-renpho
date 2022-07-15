@@ -4,7 +4,7 @@
   "documentation": "https://github.com/neilzilla/hass-renpho",
   "dependencies": [],
   "codeowners": ["@neilzilla"],
-  "requirements": ["pycryptodome==3.3.1"],
+  "requirements": ["pycryptodome>=3.3.1"],
   "iot_class": "local_polling",
   "version": "0.2.0"
 }
