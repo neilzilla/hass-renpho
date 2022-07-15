@@ -4,7 +4,7 @@ This is a custom component to import weight and last weight time from the Renpho
 
 ### Installation
 
-> :+1: Some things have changed, notably folder name (not sure if it makes a difference) and you noo longer have to sniff the hash as I reverse engineered the password hashing!
+> :+1: Some things have changed, notably folder name (not sure if it makes a difference) and you no longer have to sniff the hash as I reverse engineered the password hashing!
 
 Copy this folder to `<config_dir>/custom_components/hass_renpho/`.
 
@@ -27,7 +27,7 @@ Refresh is the time in seconds to check for updates, bear in mind everytime you 
 ### Updates
 Changed some of the naming conventions, so it might be best to just reinstall the component.
 
-I reversed engineered the apk and found the hashing/encryption methods for generating the hashes, this means we no longer have to sniff the hash and as such, makaing the component much more accessible.
+I reversed engineered the apk and found the hashing/encryption methods for generating the hashes, this means we no longer have to sniff the hash and as such, making the component much more accessible.
 
 ### Roadmap
 Some ideas as to where this is going.
