@@ -75,7 +75,7 @@ class RenphoWeight():
 
             return json.loads(r.text)['last_ary']
         except Exception as e:
-            _LOGGER.error("Error authenticating: " + str(e))
+            _LOGGER.error("Error getting measurements: " + str(e))
 
     def getInfo(self):
         try:
