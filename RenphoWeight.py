@@ -52,6 +52,9 @@ class RenphoWeight():
             r = requests.get(url = 'https://renpho.qnclouds.com/api/v3/scale_users/list_scale_user?locale=en&terminal_user_session_key=' + self.session_key)
             parsed = json.loads(r.text)
 
+            if not len(parsed['scale_users']):
+                _LOGGER.error("No users set up on scale")
+
             self.user_id = parsed['scale_users'][0]['user_id']
             return parsed['scale_users']
 
