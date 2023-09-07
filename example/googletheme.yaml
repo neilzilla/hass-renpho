@@ -1,0 +1,56 @@
+views:
+  - title: Me
+    icon: mdi:account
+    path: me
+    badges: []
+    cards:
+      - type: vertical-stack
+        title: Basic Metrics
+        cards:
+          - type: entities
+            title: Vital Stats
+            entities:
+              - entity: sensor.renpho_weight
+              - entity: sensor.renpho_bmi
+              - entity: sensor.renpho_bmr
+              - entity: sensor.renpho_body_age
+              - entity: sensor.renpho_heart_rate
+            state_color: false
+            theme: Google Theme
+          - type: sensor
+            entity: sensor.renpho_weight
+            graph: line
+            detail: 2
+            icon: mdi:weight
+            name: Weight Over Time
+            unit: kg
+      - type: horizontal-stack
+        title: Body Composition
+        cards:
+          - type: gauge
+            entity: sensor.renpho_body_fat
+            min: 0
+            max: 100
+            name: Body Fat
+            theme: Google Theme
+          - type: gauge
+            entity: sensor.renpho_muscle_mass
+            min: 0
+            max: 100
+            name: Muscle Mass
+          - type: gauge
+            entity: sensor.renpho_resistance
+            min: 0
+            max: 1000
+            name: Resistance
+            theme: Google Theme
+      - type: entities
+        title: Other Metrics
+        entities:
+          - entity: sensor.renpho_visceral_fat
+          - entity: sensor.renpho_subcutaneous_fat
+          - entity: sensor.renpho_protein_content
+          - entity: sensor.renpho_cardiac_index
+          - entity: sensor.renpho_sport_flag
+        state_color: true
+        theme: Google Theme

@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from homeassistant.components.sensor import SensorEntity
+from homeassistant.util import slugify
 
 from homeassistant.const import MASS_KILOGRAMS, TIME_SECONDS
 from homeassistant.core import HomeAssistant
@@ -24,294 +25,94 @@ def setup_platform(
 
     renpho = hass.data[DOMAIN]
 
-    # Adding entities with categories and labels
     add_entities(
         [
-            # Measurements - Physical Metrics
-            RenphoSensor(
-                renpho,
-                "weight",
-                "Weight",
-                MASS_KILOGRAMS,
-                category="Measurements",
-                label="Physical Metrics",
-            ),
-            RenphoSensor(
-                renpho,
-                "bmi",
-                "BMI",
-                "",
-                category="Measurements",
-                label="Physical Metrics",
-            ),
-            RenphoSensor(
-                renpho,
-                "muscle",
-                "Muscle Mass",
-                "%",
-                category="Measurements",
-                label="Physical Metrics",
-            ),
-            RenphoSensor(
-                renpho,
-                "bone",
-                "Bone Mass",
-                "%",
-                category="Measurements",
-                label="Physical Metrics",
-            ),
-            RenphoSensor(
-                renpho,
-                "waistline",
-                "Waistline",
-                "cm",
-                category="Measurements",
-                label="Physical Metrics",
-            ),
-            RenphoSensor(
-                renpho,
-                "hip",
-                "Hip",
-                "cm",
-                category="Measurements",
-                label="Physical Metrics",
-            ),
-            RenphoSensor(
-                renpho,
-                "stature",
-                "Stature",
-                "cm",
-                category="Measurements",
-                label="Physical Metrics",
-            ),
-            # Measurements - Body Composition
-            RenphoSensor(
-                renpho,
-                "bodyfat",
-                "Body Fat",
-                "%",
-                category="Measurements",
-                label="Body Composition",
-            ),
-            RenphoSensor(
-                renpho,
-                "water",
-                "Water Content",
-                "%",
-                category="Measurements",
-                label="Body Composition",
-            ),
-            RenphoSensor(
-                renpho,
-                "subfat",
-                "Subcutaneous Fat",
-                "%",
-                category="Measurements",
-                label="Body Composition",
-            ),
-            RenphoSensor(
-                renpho,
-                "visfat",
-                "Visceral Fat",
-                "Level",
-                category="Measurements",
-                label="Body Composition",
-            ),
-            RenphoSensor(
-                renpho,
-                "bodyfat_left_arm",
-                "Body Fat Left Arm",
-                "%",
-                category="Measurements",
-                label="Body Composition",
-            ),
-            RenphoSensor(
-                renpho,
-                "bodyfat_right_arm",
-                "Body Fat Right Arm",
-                "%",
-                category="Measurements",
-                label="Body Composition",
-            ),
-            RenphoSensor(
-                renpho,
-                "bodyfat_left_leg",
-                "Body Fat Left Leg",
-                "%",
-                category="Measurements",
-                label="Body Composition",
-            ),
-            RenphoSensor(
-                renpho,
-                "bodyfat_right_leg",
-                "Body Fat Right Leg",
-                "%",
-                category="Measurements",
-                label="Body Composition",
-            ),
-            RenphoSensor(
-                renpho,
-                "bodyfat_trunk",
-                "Body Fat Trunk",
-                "%",
-                category="Measurements",
-                label="Body Composition",
-            ),
-            # Measurements - Metabolic Metrics
-            RenphoSensor(
-                renpho,
-                "bmr",
-                "BMR",
-                "kcal/day",
-                category="Measurements",
-                label="Metabolic Metrics",
-            ),
-            RenphoSensor(
-                renpho,
-                "protein",
-                "Protein Content",
-                "%",
-                category="Measurements",
-                label="Metabolic Metrics",
-            ),
-            # Measurements - Age Metrics
-            RenphoSensor(
-                renpho,
-                "bodyage",
-                "Body Age",
-                "Years",
-                category="Measurements",
-                label="Age Metrics",
-            ),
+            # Physical Metrics
+            RenphoSensor(renpho, "weight", "Weight", "kg", category="Measurements", label="Physical Metrics"),
+            RenphoSensor(renpho, "bmi", "BMI", "", category="Measurements", label="Physical Metrics"),
+            RenphoSensor(renpho, "muscle", "Muscle Mass", "%", category="Measurements", label="Physical Metrics"),
+            RenphoSensor(renpho, "bone", "Bone Mass", "%", category="Measurements", label="Physical Metrics"),
+            RenphoSensor(renpho, "waistline", "Waistline", "cm", category="Measurements", label="Physical Metrics"),
+            RenphoSensor(renpho, "hip", "Hip", "cm", category="Measurements", label="Physical Metrics"),
+            RenphoSensor(renpho, "stature", "Stature", "cm", category="Measurements", label="Physical Metrics"),
+
+            # Body Composition
+            RenphoSensor(renpho, "bodyfat", "Body Fat", "%", category="Measurements", label="Body Composition"),
+            RenphoSensor(renpho, "water", "Water Content", "%", category="Measurements", label="Body Composition"),
+            RenphoSensor(renpho, "subfat", "Subcutaneous Fat", "%", category="Measurements", label="Body Composition"),
+            RenphoSensor(renpho, "visfat", "Visceral Fat", "Level", category="Measurements", label="Body Composition"),
+
+            # Metabolic Metrics
+            RenphoSensor(renpho, "bmr", "BMR", "kcal/day", category="Measurements", label="Metabolic Metrics"),
+            RenphoSensor(renpho, "protein", "Protein Content", "%", category="Measurements", label="Metabolic Metrics"),
+
+            # Age Metrics
+            RenphoSensor(renpho, "bodyage", "Body Age", "Years", category="Measurements", label="Age Metrics"),
+
             # Device Information
-            RenphoSensor(
-                renpho,
-                "mac",
-                "MAC Address",
-                "",
-                category="Device",
-                label="Device Information",
-            ),
-            RenphoSensor(
-                renpho,
-                "scale_type",
-                "Scale Type",
-                "",
-                category="Device",
-                label="Device Information",
-            ),
-            RenphoSensor(
-                renpho,
-                "scale_name",
-                "Scale Name",
-                "",
-                category="Device",
-                label="Device Information",
-            ),
-            RenphoSensor(
-                renpho,
-                "internal_model",
-                "Internal Model",
-                "",
-                category="Device",
-                label="Device Information",
-            ),
-            RenphoSensor(
-                renpho,
-                "time_zone",
-                "Time Zone",
-                "",
-                category="Device",
-                label="Device Information",
-            ),
+            RenphoSensor(renpho, "mac", "MAC Address", "", category="Device", label="Device Information"),
+            RenphoSensor(renpho, "scale_type", "Scale Type", "", category="Device", label="Device Information"),
+            RenphoSensor(renpho, "scale_name", "Scale Name", "", category="Device", label="Device Information"),
+
             # Miscellaneous
-            RenphoSensor(
-                renpho,
-                "method",
-                "Measurement Method",
-                "",
-                category="Miscellaneous",
-                label="Additional Metrics",
-            ),
-            RenphoSensor(
-                renpho,
-                "pregnant_flag",
-                "Pregnant Flag",
-                "",
-                category="Miscellaneous",
-                label="Additional Metrics",
-            ),
-            RenphoSensor(
-                renpho,
-                "sport_flag",
-                "Sport Flag",
-                "",
-                category="Miscellaneous",
-                label="Additional Metrics",
-            ),
-            RenphoSensor(
-                renpho,
-                "score",
-                "Score",
-                "",
-                category="Miscellaneous",
-                label="Additional Metrics",
-            ),
-            RenphoSensor(
-                renpho,
-                "remark",
-                "Remark",
-                "",
-                category="Miscellaneous",
-                label="Additional Metrics",
-            ),
-            RenphoSensor(
-                renpho,
-                "category",
-                "Category",
-                "",
-                category="Miscellaneous",
-                label="Additional Metrics",
-            ),
-            RenphoSensor(
-                renpho,
-                "category_type",
-                "Category Type",
-                "",
-                category="Miscellaneous",
-                label="Additional Metrics",
-            ),
-            RenphoSensor(
-                renpho,
-                "person_type",
-                "Person Type",
-                "",
-                category="Miscellaneous",
-                label="Additional Metrics",
-            ),
-            RenphoSensor(
-                renpho,
-                "height_unit",
-                "Height Unit",
-                "",
-                category="Miscellaneous",
-                label="Additional Metrics",
-            ),
-            RenphoSensor(
-                renpho,
-                "weight_unit",
-                "Weight Unit",
-                "",
-                category="Miscellaneous",
-                label="Additional Metrics",
-            ),
+            RenphoSensor(renpho, "method", "Measurement Method", "", category="Miscellaneous", label="Additional Metrics"),
+            RenphoSensor(renpho, "pregnant_flag", "Pregnant Flag", "", category="Miscellaneous", label="Additional Metrics"),
+            RenphoSensor(renpho, "sport_flag", "Sport Flag", "", category="Miscellaneous", label="Additional Metrics"),
+            RenphoSensor(renpho, "score", "Score", "", category="Miscellaneous", label="Additional Metrics"),
+            RenphoSensor(renpho, "remark", "Remark", "", category="Miscellaneous", label="Additional Metrics"),
+
+            # Meta Information
+            RenphoSensor(renpho, "id", "Record ID", "", category="Meta", label="Meta Information"),
+            RenphoSensor(renpho, "b_user_id", "User ID", "", category="Meta", label="Meta Information"),
+            RenphoSensor(renpho, "time_stamp", "Time Stamp", "UNIX Time", category="Meta", label="Meta Information"),
+            RenphoSensor(renpho, "created_at", "Created At", "", category="Meta", label="Meta Information"),
+
+            # User Profile
+            RenphoSensor(renpho, "gender", "Gender", "", category="User", label="User Profile"),
+            RenphoSensor(renpho, "height", "Height", "cm", category="User", label="User Profile"),
+            RenphoSensor(renpho, "birthday", "Birthday", "", category="User", label="User Profile"),
+
+            # Electrical Measurements
+            RenphoSensor(renpho, "resistance", "Electrical Resistance", "Ohms", category="Measurements", label="Electrical Measurements"),
+            RenphoSensor(renpho, "sec_resistance", "Secondary Electrical Resistance", "Ohms", category="Measurements", label="Electrical Measurements"),
+            RenphoSensor(renpho, "actual_resistance", "Actual Electrical Resistance", "Ohms", category="Measurements", label="Electrical Measurements"),
+            RenphoSensor(renpho, "actual_sec_resistance", "Actual Secondary Electrical Resistance", "Ohms", category="Measurements", label="Electrical Measurements"),
+            RenphoSensor(renpho, "resistance20_left_arm", "Resistance20 Left Arm", "Ohms", category="Measurements", label="Electrical Measurements"),
+            RenphoSensor(renpho, "resistance20_left_leg", "Resistance20 Left Leg", "Ohms", category="Measurements", label="Electrical Measurements"),
+            RenphoSensor(renpho, "resistance20_right_arm", "Resistance20 Right Arm", "Ohms", category="Measurements", label="Electrical Measurements"),
+            RenphoSensor(renpho, "resistance20_right_leg", "Resistance20 Right Leg", "Ohms", category="Measurements", label="Electrical Measurements"),
+            RenphoSensor(renpho, "resistance20_trunk", "Resistance20 Trunk", "Ohms", category="Measurements", label="Electrical Measurements"),
+            RenphoSensor(renpho, "resistance100_left_arm", "Resistance100 Left Arm", "Ohms", category="Measurements", label="Electrical Measurements"),
+            RenphoSensor(renpho, "resistance100_left_leg", "Resistance100 Left Leg", "Ohms", category="Measurements", label="Electrical Measurements"),
+            RenphoSensor(renpho, "resistance100_right_arm", "Resistance100 Right Arm", "Ohms", category="Measurements", label="Electrical Measurements"),
+            RenphoSensor(renpho, "resistance100_right_leg", "Resistance100 Right Leg", "Ohms", category="Measurements", label="Electrical Measurements"),
+            RenphoSensor(renpho, "resistance100_trunk", "Resistance100 Trunk", "Ohms", category="Measurements", label="Electrical Measurements"),
+
+
+            # Cardiovascular Metrics
+            RenphoSensor(renpho, "heart_rate", "Heart Rate", "bpm", category="Measurements", label="Cardiovascular Metrics"),
+            RenphoSensor(renpho, "cardiac_index", "Cardiac Index", "", category="Measurements", label="Cardiovascular Metrics"),
+
+            # Other Metrics
+            RenphoSensor(renpho, "method", "Method Used", "", category="Miscellaneous", label="Other Metrics"),
+            RenphoSensor(renpho, "sport_flag", "Sports Flag", "", category="Miscellaneous", label="Other Metrics"),
+            RenphoSensor(renpho, "left_weight", "Left Weight", "kg", category="Measurements", label="Other Metrics"),
+            RenphoSensor(renpho, "right_weight", "Right Weight", "kg", category="Measurements", label="Other Metrics"),
+            RenphoSensor(renpho, "local_created_at", "Local Created At", "", category="Meta", label="Other Metrics"),
+            RenphoSensor(renpho, "time_zone", "Time Zone", "", category="Device", label="Other Metrics"),
+            RenphoSensor(renpho, "remark", "Additional Remarks", "", category="Miscellaneous", label="Other Metrics"),
+            RenphoSensor(renpho, "score", "Health Score", "", category="Miscellaneous", label="Other Metrics"),
+            RenphoSensor(renpho, "pregnant_flag", "Pregnancy Flag", "", category="Miscellaneous", label="Other Metrics"),
+            RenphoSensor(renpho, "stature", "Stature Information", "cm", category="Measurements", label="Other Metrics"),
+            RenphoSensor(renpho, "category", "Category Identifier", "", category="Miscellaneous", label="Other Metrics"),
         ]
     )
 
 
+
 class RenphoSensor(SensorEntity):
     def __init__(
-        self, renpho, metric, name, unit_of_measurement, category="Renpho", label="Data", convert_unit=False) -> None:
+            self, renpho, metric, name, unit_of_measurement, category="Renpho", label="Data", convert_unit=False) -> None:
         self._renpho = renpho
         self._metric = metric
         self._name = f"Renpho {name}"
@@ -321,6 +122,20 @@ class RenphoSensor(SensorEntity):
         self._state = None
         self._convert_unit = convert_unit
         self._timestamp = None
+
+    @property
+    def unique_id(self) -> str:
+        """Return a unique ID."""
+        return f"renpho_{slugify(self._name)}"
+
+    @property
+    def device_state_attributes(self):
+        """Return the state attributes."""
+        return {
+            'timestamp': self._timestamp,
+            'category': self._category,
+            'label': self._label
+        }
 
     # Conversion method for kg to lbs
     def kg_to_lbs(self, kg):
@@ -373,7 +188,18 @@ class RenphoSensor(SensorEntity):
     def update(self) -> None:
         """ Update the sensor. """
         try:
-            self._state = self._renpho.getSpecificMetric(self._metric)
-            self._timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            metric_value = self._renpho.getSpecificMetric(self._metric)
+            if metric_value is not None:  # Add validation here
+                self._state = metric_value
+                self._timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                _LOGGER.info(f"Successfully updated {self._name}")
+            else:
+                _LOGGER.warning(
+                    f"{self._metric} returned None. Not updating {self._name}.")
+        except ConnectionError:
+            _LOGGER.error(f"Connection error updating {self._name}")
+        except TimeoutError:
+            _LOGGER.error(f"Timeout error updating {self._name}")
         except Exception as e:
-            _LOGGER.error(f"Error updating {self._name} sensor: {e}")
+            _LOGGER.error(
+                f"An unexpected error occurred updating {self._name}: {e}")
