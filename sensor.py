@@ -9,8 +9,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
-from src.RenphoWeight import _LOGGER
-from src.const import CM_TO_INCH, DOMAIN, CONF_EMAIL, CONF_PASSWORD, KG_TO_LBS
+from RenphoWeight import _LOGGER
+from const import CM_TO_INCH, DOMAIN, CONF_EMAIL, CONF_PASSWORD, KG_TO_LBS
 
 
 # Existing setup_platform function
