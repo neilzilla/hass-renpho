@@ -60,6 +60,13 @@ class RenphoWeight:
         """
         Authenticate with the Renpho API to obtain a session key.
         """
+
+        if not self.email:
+            raise Exception("Email must be provided")
+
+        if not self.password:
+            raise Exception("Password must be provided")
+
         # Encrypt the password using RSA encryption
         key = RSA.importKey(self.public_key)
         cipher = PKCS1_v1_5.new(key)
@@ -70,6 +77,10 @@ class RenphoWeight:
         data = {'secure_flag': 1, 'email': self.email,
                 'password': encrypted_password}
         parsed = self._request('POST', API_AUTH_URL, data=data)
+
+        if 'terminal_user_session_key' not in parsed:
+            raise Exception("Authentication failed. Please check your username and password.")
+
 
         # Store the session key
         self.session_key = parsed['terminal_user_session_key']
