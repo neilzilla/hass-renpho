@@ -1,30 +1,23 @@
-"""Init Renpho sensor."""
-from .const import DOMAIN, CONF_EMAIL, CONF_PASSWORD, CONF_REFRESH, CONF_PUBLIC_KEY
-from .RenphoWeight import RenphoWeight
-from homeassistant.const import EVENT_HOMEASSISTANT_START, EVENT_HOMEASSISTANT_STOP
-import logging
+from src.__init__ import setup
 
-_LOGGER = logging.getLogger(__name__)
 
 def setup(hass, config):
+    return src.setup(hass, config)
 
-  _LOGGER.debug("Starting hass-renpho")
-
-  conf = config[DOMAIN]
-  email = conf[CONF_EMAIL]
-  password = conf[CONF_PASSWORD]
-  refresh = conf[CONF_REFRESH]
-
-  renpho = RenphoWeight(CONF_PUBLIC_KEY, email, password)
-
-  def cleanup(event):
+if __name__ == "__main__":
+    # This code is executed when running this file directly
+    # It is used for testing purposes
+    import sys
+    import os
+    sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+    from src.RenphoWeight import RenphoWeight
+    from src.const import CONF_PUBLIC_KEY
+    import logging
+    logging.basicConfig(level=logging.DEBUG)
+    renpho = RenphoWeight(CONF_PUBLIC_KEY, '', '')
+    renpho.startPolling(10)
+    print(renpho.getScaleUsers())
+    print(renpho.getSpecificMetricFromUserID("bodyfat", ""))
+    print(renpho.getInfo())
+    input("Press Enter to stop polling")
     renpho.stopPolling()
-
-  def prepare(event):
-    renpho.startPolling(refresh)
-    hass.bus.listen_once(EVENT_HOMEASSISTANT_STOP, cleanup)
-
-  hass.bus.listen_once(EVENT_HOMEASSISTANT_START, prepare)
-  hass.data[DOMAIN] = renpho
-
-  return True

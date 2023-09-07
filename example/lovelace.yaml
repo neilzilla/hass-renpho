@@ -1,0 +1,16 @@
+views:
+  - title: Me
+    icon: mdi:account
+    path: me
+    badges: []
+    cards:
+      - type: entities
+        entities:
+          - entity: sensor.renpho_weight
+      - graph: line
+        type: sensor
+        entity: sensor.renpho_weight
+        detail: 2
+        icon: mdi:weight
+        name: Weight
+        unit: kg

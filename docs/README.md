@@ -1,22 +1,23 @@
-# Renpho Weight Home Assistant Component
+# Renpho Weight Scale Integration for Home Assistant
 
-![Version](https://img.shields.io/badge/version-0.2.0-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
-![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
-![IoT Class](https://img.shields.io/badge/IoT%20Class-local_polling-yellow)
+[![Python](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+
+> This project is inspired by the original Renpho integration. Check it out [here](https://github.com/neilzilla/hass-renpho/tree/master)
+> Download the [Renpho Android App](https://play.google.com/store/apps/details?id=com.qingniu.renpho&hl=en&gl=US).
 
 ## Overview
 
 This custom component allows you to integrate Renpho's weight scale data into Home Assistant. It fetches weight and various other health metrics and displays them as sensors in Home Assistant.
-![Weight Sensor](docs/images/weight.png)
 
 ## Table of Contents
 - [Prerequisites](#prerequisites)
+- [File Structure](#file-structure)
+- [Supported Metrics](#supported-metrics)
 - [Installation](#installation)
 - [Configuration](#configuration)
-- [Updates](#updates)
-- [Roadmap](#roadmap)
-- [License](#license)
+- [API Documentation](#api-documentation)
+- [API endpoints](#api-endpoints)
 
 
 ## Prerequisites
@@ -27,33 +28,30 @@ This custom component allows you to integrate Renpho's weight scale data into Ho
 5. You must have the [Home Assistant Community Store (HACS)](https://hacs.xyz/) installed and running.
 6. Visual Studio Code is recommended for editing the files.
 
-## Installation
+## File Structure
+
+The following shows the organization of the project's files and directories:
+
 ```
-git clone https://github.com/antoinebou12/hass_renpho
+.
+├── .gitignore                # To ignore files that should not be committed
+├── README.md                 # Project overview and setup guide
+├── SECURITY.md               # Security policy
+├── __init__.py               # Main file to initialize the component
+├── docs
+│   └── README.md             # Detailed documentation
+├── example
+│   ├── configuration.yaml    # Example Home Assistant configuration
+│   └── lovelace.yaml         # Example Lovelace UI configuration
+├── manifest.json             # Information about the component
+├── requirements.txt          # List of Python packages required
+└── src
+    ├── RenphoWeight.py       # Core logic for the Renpho weight scale
+    ├── __init__.py           # Initialization within src folder
+    ├── const.py              # Constants used in the component
+    ├── sensor.py             # Sensor-related code
+    └── tests.py              # Unit tests
 ```
-Copy this folder to `<config_dir>/custom_components/hass_renpho/`.
-
-## Configuration
-Add the following entry in your `configuration.yaml`:
-
-```yaml
-renpho:
-  email: test@test.com       # email address
-  password: MySecurePassword # password
-  user_id: 123456789         # user id (optional)
-  refresh: 600               # time to poll (ms)
-```
-
-And then add the sensor platform:
-
-```yaml
-sensor:
-  platform: renpho
-```
-
-> :warning: Note: Refresh is the time in seconds to check for updates. Keep in mind that logging in will log you out of the app.
-
-Restart home assistant and you should see the sensors:
 
 ## Supported Metrics
 
@@ -166,16 +164,189 @@ Certainly, you can expand the existing table to include the "Unit of Measurement
 | stature         | Stature information                | Numeric   | cm                  |
 | category        | Category identifier                | Numeric   | N/A                 |
 
+## Installation
 
-## Roadmap
-1. Add support for all user information.
-   ```yaml
-   sensor:
-     platform: renpho
-     user: your_username  # username, email, or something identifiable
-   ```
-2. Find a way to prevent logging out from the mobile app upon every login from Home Assistant (if feasible).
+1. Copy this folder to `<config_dir>/custom_components/hass_renpho/`.
+2. Add the necessary configuration to your `configuration.yaml` file.
 
-## License
-MIT License. See `LICENSE` for more information.
+## Configuration
+
+Add the following entry in your `configuration.yaml`:
+
+```yaml
+renpho:
+  email: your_email@example.com  # email address
+  password: YourSecurePassword   # password
+  refresh: 600                   # time to poll (ms)
+  user_id: 123456789             # user ID (optional)
 ```
+
+Then add the sensor platform:
+
+```yaml
+sensor:
+  platform: renpho
+```
+
+## API Documentation
+
+The `RenphoWeight` class is the core of this integration, providing methods to interact with the Renpho API. Below are detailed explanations of the methods available in this class.
+
+### `auth()`
+
+#### Description
+Authenticates the user with the Renpho API and fetches a session key. The session key is stored within the class and is used for subsequent API calls.
+
+#### Parameters
+None
+
+#### Returns
+- `dict`: Parsed JSON response from the API containing the session key and other authentication details.
+
+### `getScaleUsers()`
+
+#### Description
+Fetches the list of users associated with the Renpho scale.
+
+#### Parameters
+None
+
+#### Returns
+- `list`: A list of dictionaries, each containing details of a user (e.g., user ID, name).
+
+### `getMeasurements()`
+
+#### Description
+Retrieves the latest weight measurements for the user specified by `user_id`. This method updates the `weight` and `time_stamp` attributes of the class.
+
+#### Parameters
+None
+
+#### Returns
+- `list`: A list of dictionaries containing the latest measurements.
+
+### `getSpecificMetric(metric)`
+
+#### Description
+Retrieves a specific metric from the most recent weight measurement.
+
+#### Parameters
+- `metric (str)`: The specific metric to retrieve (e.g., 'weight', 'bmi').
+
+#### Returns
+- `float`: The value of the specified metric.
+- `None`: If the metric is not found.
+
+### `getSpecificMetricFromUserID(metric, user_id=None)`
+
+#### Description
+Retrieves a specific metric for a particular user ID from the most recent weight measurement.
+
+#### Parameters
+- `metric (str)`: The metric to fetch (e.g., 'bodyfat', 'water').
+- `user_id (str, optional)`: The user ID for whom the metric should be fetched. Defaults to the object's `user_id` if not provided.
+
+#### Returns
+- `float`: Value of the specified metric.
+- `None`: If an error occurs or the metric is not found.
+
+### `startPolling(polling_interval=60)`
+
+#### Description
+Starts polling for weight data at a given interval. The polling will automatically call `getMeasurements()` at the specified interval.
+
+#### Parameters
+- `polling_interval (int)`: Time in seconds between each polling call. Defaults to 60 seconds.
+
+#### Returns
+None
+
+### `stopPolling()`
+
+#### Description
+Stops the ongoing polling for weight data.
+
+#### Parameters
+None
+
+#### Returns
+None
+
+
+## API endpoints
+
+This document describes the API endpoints and methods utilized by the `RenphoWeight` class in the Home Assistant custom component for Renpho weight scales. It outlines the endpoints, expected parameters, and returned data.
+
+---
+
+## Authentication
+
+### API_AUTH_URL
+
+#### Endpoint
+`https://renpho.qnclouds.com/api/v3/users/sign_in.json?app_id=Renpho`
+
+#### HTTP Method
+`POST`
+
+#### Parameters
+- `app_id`: Application identifier (fixed as "Renpho").
+- `email`: User's email address for Renpho account.
+- `password`: Encrypted password for the Renpho account.
+
+#### Returns
+JSON payload containing:
+- `session_key`: Session key for future API calls.
+
+#### Usage in Code
+This URL is used in the `auth()` method to authenticate the user and fetch the session key.
+
+---
+
+## User Information
+
+### API_SCALE_USERS_URL
+
+#### Endpoint
+`https://renpho.qnclouds.com/api/v3/scale_users/list_scale_user`
+
+#### HTTP Method
+`GET`
+
+#### Parameters
+- `locale`: Language/locale setting, usually "en".
+- `terminal_user_session_key`: Session key obtained from authentication.
+
+#### Returns
+JSON payload containing:
+- `users`: Array of user objects containing user details like user ID, scale user ID, MAC address, and more.
+
+#### Usage in Code
+This URL is used in the `getScaleUsers()` method to fetch the list of users associated with the scale.
+
+---
+
+## Measurements
+
+### API_MEASUREMENTS_URL
+
+#### Endpoint
+`https://renpho.qnclouds.com/api/v2/measurements/list.json`
+
+#### HTTP Method
+`GET`
+
+#### Parameters
+- `user_id`: (Optional) User ID for fetching weight data.
+- `last_at`: Unix timestamp for the oldest data to fetch.
+- `locale`: Language/locale setting, usually "en".
+- `terminal_user_session_key`: Session key obtained from authentication.
+
+#### Returns
+JSON payload containing:
+- `last_ary`: Array of most recent measurements for the user.
+
+#### Usage in Code
+This URL is used in the `getMeasurements()` method to fetch the most recent weight measurements for the user.
+
+

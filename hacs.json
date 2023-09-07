@@ -1,0 +1,8 @@
+{
+    "name": "Renpho Weight Scale Integration",
+    "domains": ["sensor", "renpho"],
+    "documentation": "https://github.com/antoinebou12/hass_renpho/blob/main/README.md",
+    "codeowners": ["antoinebou12"],
+    "icon": "https://raw.githubusercontent.com/antoinebou12/hass_renpho/main/icon.png",
+    "country": ["ca"]
+}
