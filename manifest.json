@@ -1,10 +1,11 @@
 {
   "domain": "renpho",
-  "name": "Renpho Smart Health Weight Scale",
+  "name": "Renpho Smart Scale",
   "documentation": "https://github.com/antoinebou12/hass_renpho",
   "dependencies": [],
   "codeowners": ["@antoinebou12"],
   "requirements": ["pycryptodome>=3.3.1", "requests"],
   "iot_class": "local_polling",
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "config_flow": true
 }

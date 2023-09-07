@@ -3,6 +3,7 @@
 # Import necessary modules and classes
 from const import CONF_USER_ID, DOMAIN, CONF_EMAIL, CONF_PASSWORD, CONF_REFRESH, CONF_PUBLIC_KEY, EVENT_HOMEASSISTANT_START, EVENT_HOMEASSISTANT_STOP, EVENT_HOMEASSISTANT_CLOSE
 from RenphoWeight import RenphoWeight
+from config_flow import RenphoConfigFlow
 import logging
 import sys
 import os

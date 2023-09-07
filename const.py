@@ -5,7 +5,7 @@ from typing import Final
 
 
 DOMAIN: Final = "renpho"
-
+VERSION: Final = "1.0.0"
 EVENT_HOMEASSISTANT_CLOSE: Final = "homeassistant_close"
 EVENT_HOMEASSISTANT_START: Final = "homeassistant_start"
 EVENT_HOMEASSISTANT_STARTED: Final = "homeassistant_started"
