@@ -2,7 +2,8 @@ from src.__init__ import setup
 
 
 def setup(hass, config):
-    return src.setup(hass, config)
+    return setup(hass, config)
+
 
 if __name__ == "__main__":
     # This code is executed when running this file directly
@@ -14,7 +15,8 @@ if __name__ == "__main__":
     from src.const import CONF_PUBLIC_KEY
     import logging
     logging.basicConfig(level=logging.DEBUG)
-    renpho = RenphoWeight(CONF_PUBLIC_KEY, '<username>', '<password>', '<user_id>')
+    renpho = RenphoWeight(CONF_PUBLIC_KEY, '<username>',
+                          '<password>', '<user_id>')
     renpho.startPolling(10)
     print(renpho.getScaleUsers())
     print(renpho.getSpecificMetricFromUserID("bodyfat"))
