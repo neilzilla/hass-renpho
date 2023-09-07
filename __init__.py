@@ -1,16 +1,12 @@
 """Initialization for the Renpho sensor component."""
 
 # Import necessary modules and classes
-from const import CONF_USER_ID, DOMAIN, CONF_EMAIL, CONF_PASSWORD, CONF_REFRESH, CONF_PUBLIC_KEY, EVENT_HOMEASSISTANT_START, EVENT_HOMEASSISTANT_STOP
-from RenphoWeight import RenphoWeight
+from .const import CONF_USER_ID, DOMAIN, CONF_EMAIL, CONF_PASSWORD, CONF_REFRESH, CONF_PUBLIC_KEY, EVENT_HOMEASSISTANT_START, EVENT_HOMEASSISTANT_STOP, EVENT_HOMEASSISTANT_CLOSE
+from .RenphoWeight import RenphoWeight
 import logging
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from src.__init__ import setup
-from RenphoWeight import RenphoWeight
-from const import CONF_PUBLIC_KEY
-import logging
 logging.basicConfig(level=logging.DEBUG)
 
 # Initialize logger

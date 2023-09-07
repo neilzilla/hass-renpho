@@ -5,9 +5,10 @@ from Crypto.Cipher import PKCS1_v1_5
 from base64 import b64decode, b64encode
 
 import requests
-from sensor import RenphoSensor, WeightSensor, TimeSensor, setup_platform
-from RenphoWeight import RenphoWeight
-from __init__ import setup
+from ..sensor import RenphoSensor, WeightSensor, TimeSensor, setup_platform
+from ..RenphoWeight import RenphoWeight
+from .. import setup
+from ..const import CONF_EMAIL, CONF_PASSWORD, CONF_REFRESH, DOMAIN
 
 
 class TestEncryption(unittest.TestCase):
