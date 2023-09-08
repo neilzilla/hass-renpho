@@ -10,6 +10,7 @@ from base64 import b64encode
 import logging
 import time
 import aiohttp
+from typing import Optional, List, Dict
 
 # Initialize logging
 _LOGGER = logging.getLogger(__name__)
@@ -100,13 +101,20 @@ class RenphoWeight:
         Synchronous method to fetch the most recent weight measurements for the user.
         """
         try:
-            # Replace this with your actual synchronous request code using `requests`
-            response = requests.get('your_sync_api_endpoint_here')
+            today = datetime.date.today()
+            week_ago = today - datetime.timedelta(days=7)
+            week_ago_timestamp = int(time.mktime(week_ago.timetuple()))
+            url = f"{API_MEASUREMENTS_URL}?user_id={self.user_id}&last_at={week_ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
+            
+            response = requests.get(url)
+            response.raise_for_status()
             parsed = response.json()
+            
             last_measurement = parsed['last_ary'][0]
             self.weight = last_measurement['weight']
             self.time_stamp = last_measurement['time_stamp']
             return parsed['last_ary']
+
         except Exception as e:
             _LOGGER.error(f"An error occurred: {e}")
             return None
