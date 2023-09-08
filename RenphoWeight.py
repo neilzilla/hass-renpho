@@ -86,6 +86,20 @@ class RenphoWeight:
         self.session_key = parsed['terminal_user_session_key']
         return parsed
 
+    def validate_credentials(self):
+        """
+        Validate the current credentials by attempting to authenticate.
+
+        Returns:
+            bool: True if authentication succeeds, False otherwise.
+        """
+        try:
+            self.auth()
+            return True
+        except Exception as e:
+            _LOGGER.error(f"Validation failed: {e}")
+            return False
+
     def getScaleUsers(self):
         """
         Fetch the list of users associated with the scale.
