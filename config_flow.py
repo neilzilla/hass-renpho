@@ -23,7 +23,7 @@ async def async_validate_input(hass: HomeAssistant, data: dict) -> dict[str, Any
     renpho = RenphoWeight(CONF_PUBLIC_KEY, data[CONF_EMAIL], data[CONF_PASSWORD], data.get(CONF_USER_ID, None))
     is_valid = await renpho.validate_credentials()
     if not is_valid:
-        raise raise CannotConnect(reason="Invalid credentials", details={"email": data[CONF_EMAIL], "user_id"=data.get(CONF_USER_ID, None)})
+        raise CannotConnect(reason="Invalid credentials", details={"email": data[CONF_EMAIL], "user_id"=data.get(CONF_USER_ID, None)})
     return {"title": data[CONF_EMAIL]}
 
 class RenphoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
