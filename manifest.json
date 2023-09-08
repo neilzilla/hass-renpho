@@ -7,5 +7,6 @@
   "requirements": ["pycryptodome>=3.3.1", "requests"],
   "iot_class": "local_polling",
   "version": "1.0.0",
+  "icon": "https://raw.githubusercontent.com/antoinebou12/hass_renpho/master/renpho.png",
   "config_flow": true
 }
