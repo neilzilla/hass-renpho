@@ -11,7 +11,6 @@ from .RenphoWeight import RenphoWeight
 
 _LOGGER = logging.getLogger(__name__)
 
-# Define the data schema with suggested values for better user experience
 DATA_SCHEMA = vol.Schema({
     vol.Required(CONF_EMAIL, description={"suggested_value": "example@email.com"}): str,
     vol.Required(CONF_PASSWORD, description={"suggested_value": "YourPasswordHere"}): str,
@@ -23,7 +22,7 @@ async def async_validate_input(hass: HomeAssistant, data: dict) -> dict[str, Any
     renpho = RenphoWeight(CONF_PUBLIC_KEY, data[CONF_EMAIL], data[CONF_PASSWORD], data.get(CONF_USER_ID, None))
     is_valid = await renpho.validate_credentials()
     if not is_valid:
-        raise CannotConnect(reason="Invalid credentials", details={"email": data[CONF_EMAIL], "user_id"=data.get(CONF_USER_ID, None)})
+        raise CannotConnect(reason="Invalid credentials", details={"email": data[CONF_EMAIL], "user_id": data.get(CONF_USER_ID, None)})
     return {"title": data[CONF_EMAIL]}
 
 class RenphoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -31,7 +30,6 @@ class RenphoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
 
     async def async_step_user(self, user_input=None):
-        """Handle the user step."""
         _LOGGER.debug("Handling user step. Input received: %s", user_input)
         
         errors = {}
@@ -42,7 +40,7 @@ class RenphoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 _LOGGER.debug("User input validated. Creating entry.")
                 
                 return self.async_create_entry(title=info["title"], data=user_input)
-            except CannotConnect:
+            except CannotConnect as e:
                 _LOGGER.error("Cannot connect: %s, details: %s", e.reason, e.get_details())
                 errors["base"] = f"CannotConnect: {e.reason}"
             except exceptions.HomeAssistantError as e:
@@ -61,8 +59,6 @@ class RenphoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
 class CannotConnect(exceptions.HomeAssistantError):
-    """Error to indicate we cannot connect."""
-    
     def __init__(self, reason: str = "", details: dict = None):
         super().__init__(self)
         self.reason = reason
