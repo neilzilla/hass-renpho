@@ -5,7 +5,7 @@
   "issue_tracker": "https://github.com/antoinebou12/hass_renpho/issues",
   "dependencies": [],
   "codeowners": ["@antoinebou12"],
-  "requirements": ["pycryptodome>=3.3.1", "requests", "aiohttp>=3.6.1", "voluptuous>=0.11.7"],
+  "requirements": ["pycryptodome>=3.3.1", "requests>=2.25.0", "aiohttp>=3.6.1", "voluptuous>=0.11.7"],
   "iot_class": "cloud_polling",
   "version": "1.0.0",
   "config_flow": true
