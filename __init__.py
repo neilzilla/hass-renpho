@@ -39,18 +39,6 @@ def setup(hass, config):
     # Store the Renpho instance
     hass.data[DOMAIN] = renpho
 
-    # Reload configuration function
-    def reload_config(call):
-        """Reload the Renpho component."""
-        # Unload the current configuration
-        await hass.services.async_call('homeassistant', 'reload', {})
-
-        # Load the new configuration
-        setup(hass, config)
-
-    # Register the reload service
-    hass.services.register(DOMAIN, 'reload', reload_config)
-
     return True
 
 if __name__ == "__main__":

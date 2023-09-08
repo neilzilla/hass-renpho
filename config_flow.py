@@ -13,7 +13,7 @@ _LOGGER = logging.getLogger(__name__)
 
 DATA_SCHEMA = vol.Schema({
     vol.Required(CONF_EMAIL, description={"suggested_value": "example@email.com"}): str,
-    vol.Required(CONF_PASSWORD, description={"suggested_value": "YourPasswordHere"}): str,
+    vol.Required(CONF_PASSWORD, description={"suggested_value": "Password"}): str,
     vol.Optional(CONF_USER_ID, description={"suggested_value": "OptionalUserID"}): str,
 })
 
