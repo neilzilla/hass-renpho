@@ -25,6 +25,10 @@ def setup_platform(
 
     renpho = hass.data[DOMAIN]
 
+    # sensor_configurations = []
+    # entities = [RenphoSensor(renpho, *config) for config in sensor_configurations]
+    # add_entities(entities)
+
     add_entities(
         [
             # Physical Metrics
@@ -188,18 +192,16 @@ class RenphoSensor(SensorEntity):
     def update(self) -> None:
         """ Update the sensor. """
         try:
-            metric_value = self._renpho.getSpecificMetric(self._metric)
-            if metric_value is not None:  # Add validation here
+            metric_value = self._renpho.getSpecificMetricSync(self._metric)
+            if metric_value is not None:
+                # Add validation here, for example:
+                # if isinstance(metric_value, (int, float)):
                 self._state = metric_value
                 self._timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 _LOGGER.info(f"Successfully updated {self._name}")
             else:
-                _LOGGER.warning(
-                    f"{self._metric} returned None. Not updating {self._name}.")
-        except ConnectionError:
-            _LOGGER.error(f"Connection error updating {self._name}")
-        except TimeoutError:
-            _LOGGER.error(f"Timeout error updating {self._name}")
+                _LOGGER.warning(f"{self._metric} returned None. Not updating {self._name}.")
+        except (ConnectionError, TimeoutError) as e:
+            _LOGGER.error(f"{type(e).__name__} updating {self._name}: {e}")
         except Exception as e:
-            _LOGGER.error(
-                f"An unexpected error occurred updating {self._name}: {e}")
+            _LOGGER.error(f"An unexpected error occurred updating {self._name}: {e}")

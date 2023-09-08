@@ -9,6 +9,7 @@ from Crypto.Cipher import PKCS1_v1_5
 from base64 import b64encode
 import logging
 import time
+import aiohttp
 
 # Initialize logging
 _LOGGER = logging.getLogger(__name__)
@@ -48,12 +49,10 @@ class RenphoWeight:
         """
         Asynchronous method to make an API request and handle errors.
         """
-        loop = asyncio.get_event_loop()
-        response = await loop.run_in_executor(
-            self.executor, requests.request, method, url, **kwargs
-        )
-        response.raise_for_status()
-        return response.json()
+        async with aiohttp.ClientSession() as session:
+            async with session.request(method, url, **kwargs) as response:
+                response.raise_for_status()
+                return await response.json()
 
     async def auth(self):
         """
@@ -96,7 +95,23 @@ class RenphoWeight:
         self.set_user_id(parsed['scale_users'][0]['user_id'])
         return parsed['scale_users']
 
-    async def getMeasurements(self):
+    def getMeasurementsSync(self) -> Optional[List[Dict]]:
+        """
+        Synchronous method to fetch the most recent weight measurements for the user.
+        """
+        try:
+            # Replace this with your actual synchronous request code using `requests`
+            response = requests.get('your_sync_api_endpoint_here')
+            parsed = response.json()
+            last_measurement = parsed['last_ary'][0]
+            self.weight = last_measurement['weight']
+            self.time_stamp = last_measurement['time_stamp']
+            return parsed['last_ary']
+        except Exception as e:
+            _LOGGER.error(f"An error occurred: {e}")
+            return None
+
+    async def getMeasurements(self) -> Optional[List[Dict]]:
         """
         Fetch the most recent weight measurements for the user.
         """
@@ -110,47 +125,64 @@ class RenphoWeight:
         self.time_stamp = last_measurement['time_stamp']
         return parsed['last_ary']
 
-    def getSpecificMetric(self, metric):
+    def getSpecificMetricSync(self, metric: str) -> Optional[float]:
+        """
+        Synchronous version of getSpecificMetric.
+        """
+        try:
+            last_measurement = self.getMeasurementsSync()  # Assuming you have a synchronous version of getMeasurements
+            if last_measurement:
+                return last_measurement[0].get(metric, None)
+            return None
+        except Exception as e:
+            _LOGGER.error(f"An error occurred: {e}")
+            return None
+
+    async def getSpecificMetric(self, metric: str) -> Optional[float]:
         """
         Fetch a specific metric from the most recent weight measurement.
         """
-        last_measurement = self.getMeasurements()[0]
-        # Return None if metric not found
-        return last_measurement.get(metric, None)
+        try:
+            last_measurement = await self.getMeasurements()
+            if last_measurement:
+                return last_measurement[0].get(metric, None)
+            return None
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return None
 
-    def getSpecificMetricFromUserID(self, metric, user_id=None):
+    async def getSpecificMetricFromUserID(self, metric: str, user_id: Optional[str] = None) -> Optional[float]:
         """
         Fetch a specific metric for a particular user ID from the most recent weight measurement.
-
-        Args:
-            metric (str): The metric to fetch (e.g., 'bodyfat', 'water', 'bmr').
-            user_id (str, optional): The user ID for whom the metric should be fetched.
-                                    Defaults to the object's user_id if not provided.
-
-        Returns:
-            float: Value of the specified metric, None if an error occurs or metric not found.
         """
-        if user_id:
-            self.set_user_id(user_id)  # Update the user_id if provided
+        try:
+            if user_id:
+                self.set_user_id(user_id)  # Update the user_id if provided
+            
+            last_measurement = await self.getMeasurements()
+            if last_measurement:
+                return last_measurement[0].get(metric, None)
+            return None
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return None
 
-        last_measurement = self.getMeasurements()[0]
-        return last_measurement.get(metric, None)  # Return None if metric not found
-
-    def getInfo(self):
+    async def getInfo(self):
         """
         Wrapper method to authenticate, fetch users, and get measurements.
         """
-        self.auth()
-        self.getScaleUsers()
-        self.getMeasurements()
+        await self.auth()
+        await self.getScaleUsers()
+        await self.getMeasurements()
 
-    def startPolling(self, polling_interval=60):
+    async def startPolling(self, polling_interval=60):
         """
         Start polling for weight data at a given interval.
         """
-        self.getInfo()
-        self.polling = Interval(polling_interval, self.getInfo)
-        self.polling.start()
+        await self.getInfo()
+        while True:
+            await asyncio.sleep(polling_interval)
+            await self.getInfo()
 
     def stopPolling(self):
         """

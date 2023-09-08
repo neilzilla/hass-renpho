@@ -10,7 +10,7 @@ import logging
 # Initialize logger
 _LOGGER = logging.getLogger(__name__)
 
-def setup(hass, config):
+async def async_setup(hass, config):
     """Set up the Renpho component."""
     _LOGGER.debug("Starting hass_renpho")
 
@@ -25,16 +25,16 @@ def setup(hass, config):
     renpho = RenphoWeight(CONF_PUBLIC_KEY, email, password, user_id)
 
     # Define a cleanup function
-    def cleanup(event):
-        renpho.stopPolling()
+    async def async_cleanup(event):
+        await renpho.stopPolling()
 
     # Define a prepare function
-    def prepare(event):
-        renpho.startPolling(refresh)
-        hass.bus.listen_once(EVENT_HOMEASSISTANT_STOP, cleanup)
+    async def async_prepare(event):
+        await renpho.startPolling(refresh)
+        hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, async_cleanup)
 
     # Register the prepare function
-    hass.bus.listen_once(EVENT_HOMEASSISTANT_START, prepare)
+    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_START, async_prepare)
 
     # Store the Renpho instance
     hass.data[DOMAIN] = renpho
@@ -42,11 +42,16 @@ def setup(hass, config):
     return True
 
 if __name__ == "__main__":
-    renpho = RenphoWeight(CONF_PUBLIC_KEY, '<username>', '<password>', '<user_id>')
-    renpho.startPolling(10)
-    print(renpho.getScaleUsers())
-    print(renpho.getSpecificMetricFromUserID("bodyfat"))
-    print(renpho.getSpecificMetricFromUserID("bodyfat", "<user_id>"))
-    print(renpho.getInfo())
-    input("Press Enter to stop polling")
-    renpho.stopPolling()
+    import asyncio
+
+    async def main():
+        renpho = RenphoWeight(CONF_PUBLIC_KEY, '<username>', '<password>', '<user_id>')
+        await renpho.startPolling(10)
+        print(await renpho.getScaleUsers())
+        print(await renpho.getSpecificMetricFromUserID("bodyfat"))
+        print(await renpho.getSpecificMetricFromUserID("bodyfat", "<user_id>"))
+        print(await renpho.getInfo())
+        input("Press Enter to stop polling")
+        await renpho.stopPolling()
+
+    asyncio.run(main())
