@@ -51,7 +51,7 @@ class RenphoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
             description_placeholders={
                 "additional_info": "Please provide your Renpho login details.",
-                "icon": "/local/your_icon.png",  # Replace with your actual icon path
+                "icon": "renpho.png",  # Replace with your actual icon path
                 "description": "This is a description of your Renpho integration."
             },
         )
