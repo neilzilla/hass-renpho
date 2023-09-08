@@ -86,7 +86,7 @@ class RenphoWeight:
         self.session_key = parsed['terminal_user_session_key']
         return parsed
 
-    def validate_credentials(self):
+    async def validate_credentials(self):
         """
         Validate the current credentials by attempting to authenticate.
 

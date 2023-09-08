@@ -11,10 +11,11 @@ from .RenphoWeight import RenphoWeight
 
 _LOGGER = logging.getLogger(__name__)
 
+# Define the data schema with suggested values for better user experience
 DATA_SCHEMA = vol.Schema({
-    vol.Required(CONF_EMAIL): str,
-    vol.Required(CONF_PASSWORD): str,
-    vol.Optional(CONF_USER_ID): str,
+    vol.Required(CONF_EMAIL, description={"suggested_value": "example@email.com"}): str,
+    vol.Required(CONF_PASSWORD, description={"suggested_value": "YourPasswordHere"}): str,
+    vol.Optional(CONF_USER_ID, description={"suggested_value": "OptionalUserID"}): str,
 })
 
 async def async_validate_input(hass: HomeAssistant, data: dict) -> dict[str, Any]:
@@ -30,20 +31,29 @@ class RenphoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input=None):
         """Handle the user step."""
+        _LOGGER.debug("Handling user step. Input received: %s", user_input)
+        
         errors = {}
         if user_input is not None:
             try:
+                _LOGGER.debug("Validating user input")
                 info = await async_validate_input(self.hass, user_input)
+                _LOGGER.debug("User input validated. Creating entry.")
+                
                 return self.async_create_entry(title=info["title"], data=user_input)
             except CannotConnect:
-                errors["base"] = "Invalid credentials or cannot connect to Renpho."
+                _LOGGER.error("Cannot connect or invalid credentials")
+                errors["base"] = "Could not connect to Renpho. Please check your credentials."
             except Exception as e:  # pylint: disable=broad-except
                 _LOGGER.exception("Unexpected exception: %s", e)
-                errors["base"] = "An unknown error occurred."
+                errors["base"] = f"An unexpected error occurred: {str(e)}"
+        
+        _LOGGER.debug("Showing form with errors: %s", errors)
         return self.async_show_form(
             step_id="user",
             data_schema=DATA_SCHEMA,
             errors=errors,
+            description_placeholders={"additional_info": "Please provide your Renpho login details."},
         )
 
 class CannotConnect(exceptions.HomeAssistantError):
