@@ -110,6 +110,14 @@ class RenphoWeight:
         self.time_stamp = last_measurement['time_stamp']
         return parsed['last_ary']
 
+    def getSpecificMetric(self, metric):
+        """
+        Fetch a specific metric from the most recent weight measurement.
+        """
+        last_measurement = self.getMeasurements()[0]
+        # Return None if metric not found
+        return last_measurement.get(metric, None)
+
     def getSpecificMetricFromUserID(self, metric, user_id=None):
         """
         Fetch a specific metric for a particular user ID from the most recent weight measurement.
