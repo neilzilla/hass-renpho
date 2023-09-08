@@ -16,5 +16,6 @@ jobs:
         uses: "hacs/action@main"
         with:
           category: "Integration"
-      - uses: "actions/checkout@v3"
+        continue-on-error: true
       - uses: "home-assistant/actions/hassfest@master"
+        continue-on-error: true

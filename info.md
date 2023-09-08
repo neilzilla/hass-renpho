@@ -19,10 +19,13 @@ This custom component allows you to seamlessly integrate Renpho's weight scale i
 
 - Make sure you have [HACS](https://hacs.xyz/) installed.
 
-### 2. Install the Custom Component
+### 2. Install the Custom Component Using Custom Repository
 
-- Go to HACS -> Integrations -> Explore & Add Repositories.
-- Search for "Renpho Weight Scale Integration" and click "Install".
+- Open HACS in your Home Assistant instance.
+- Click on "Integrations" from the sidebar.
+- Click on the "Custom Repositories" button in the top right corner.
+- Enter the URL of this GitHub repository, select "Integration" as the category, and then click "Add".
+- Once the repository is added, it will appear in the "Integrations" tab. Click "Install" to install the custom component.
 
 ### 3. Configuration
 
