@@ -27,35 +27,33 @@ async def async_validate_input(hass: HomeAssistant, data: dict) -> dict[str, Any
 
 class RenphoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
-    CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
+    CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL
 
     async def async_step_user(self, user_input=None):
-        _LOGGER.debug("Handling user step. Input received: %s", user_input)
-        
         errors = {}
         if user_input is not None:
             try:
-                _LOGGER.debug("Validating user input")
                 info = await async_validate_input(self.hass, user_input)
-                _LOGGER.debug("User input validated. Creating entry.")
-                
                 return self.async_create_entry(title=info["title"], data=user_input)
             except CannotConnect as e:
                 _LOGGER.error("Cannot connect: %s, details: %s", e.reason, e.get_details())
-                errors["base"] = f"CannotConnect: {e.reason}"
+                errors["base"] = "cannot_connect"
             except exceptions.HomeAssistantError as e:
                 _LOGGER.error("Home Assistant specific error: %s", str(e))
-                errors["base"] = "HomeAssistantError"
+                errors["base"] = "home_assistant_error"
             except Exception as e:  # pylint: disable=broad-except
                 _LOGGER.exception("Unexpected exception: %s", e)
-                errors["base"] = "UnknownError"
+                errors["base"] = "unknown_error"
         
-        _LOGGER.debug("Showing form with errors: %s", errors)
         return self.async_show_form(
             step_id="user",
-            data_schema=DATA_SCHEMA,
+            data_schema=DATA_SCHEMA.extend({vol.Set(user_input)} if user_input else {}),  # Prefill form
             errors=errors,
-            description_placeholders={"additional_info": "Please provide your Renpho login details."},
+            description_placeholders={
+                "additional_info": "Please provide your Renpho login details.",
+                "icon": "/local/your_icon.png",  # Replace with your actual icon path
+                "description": "This is a description of your Renpho integration."
+            },
         )
 
 class CannotConnect(exceptions.HomeAssistantError):
