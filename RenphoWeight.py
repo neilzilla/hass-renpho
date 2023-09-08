@@ -110,37 +110,6 @@ class RenphoWeight:
         self.time_stamp = last_measurement['time_stamp']
         return parsed['last_ary']
 
-    def set_user_id(self, user_id):
-        """
-        Set the user ID for whom the weight data should be fetched.
-        """
-        self.user_id = user_id
-
-    def get_user_id(self):
-        """
-        Get the current user ID for whom the weight data is being fetched.
-        """
-        return self.user_id
-
-    def close(self):
-        """
-        Shutdown the executor when you are done using the RenphoWeight instance.
-        """
-        self.executor.shutdown()
-
-
-class Interval(Timer):
-    """
-    A subclass of Timer to repeatedly run a function at a specified interval.
-    """
-
-    def run(self):
-        """
-        Run the function at the given interval.
-        """
-        while not self.finished.wait(self.interval):
-            self.function(*self.args, **self.kwargs)
-
     def getSpecificMetricFromUserID(self, metric, user_id=None):
         """
         Fetch a specific metric for a particular user ID from the most recent weight measurement.
@@ -182,6 +151,23 @@ class Interval(Timer):
         if hasattr(self, 'polling'):
             self.polling.cancel()
 
+    def set_user_id(self, user_id):
+        """
+        Set the user ID for whom the weight data should be fetched.
+        """
+        self.user_id = user_id
+
+    def get_user_id(self):
+        """
+        Get the current user ID for whom the weight data is being fetched.
+        """
+        return self.user_id
+
+    def close(self):
+        """
+        Shutdown the executor when you are done using the RenphoWeight instance.
+        """
+        self.executor.shutdown()
 
 class Interval(Timer):
     """
