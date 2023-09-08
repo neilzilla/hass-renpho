@@ -28,6 +28,7 @@ jobs:
         body: ${{ env.CHANGELOG }}
         draft: false
         prerelease: false
+        token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Zip custom_components/renpho directory
       run: zip -r renpho_custom_component.zip custom_components/renpho
