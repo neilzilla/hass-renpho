@@ -1,5 +1,4 @@
 from threading import Timer
-from concurrent.futures import ThreadPoolExecutor
 import requests
 import json
 import datetime
@@ -40,20 +39,57 @@ class RenphoWeight:
         self.public_key = public_key
         self.email = email
         self.password = password
+        if user_id == ""
+            self.user_id = None
         self.user_id = user_id
         self.weight = None
         self.time_stamp = None
-        self.session_key = None  # Initialize session_key
-        self.executor = ThreadPoolExecutor(max_workers=4)
+        self.session_key = None
 
     async def _request(self, method, url, **kwargs):
         """
         Asynchronous method to make an API request and handle errors.
         """
-        async with aiohttp.ClientSession() as session:
-            async with session.request(method, url, **kwargs) as response:
-                response.raise_for_status()
-                return await response.json()
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.request(method, url, **kwargs) as response:
+                    response.raise_for_status()
+                    return await response.json()
+        except Exception as e:
+            _LOGGER.error(f"Error in request: {e}")
+            raise  # Or raise a custom exception
+
+    def _requestSync(self, method, url, **kwargs):
+        """
+        Make a generic API request and handle errors.
+        """
+        try:
+            response = requests.request(method, url, **kwargs)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            _LOGGER.error(f"Error in request: {e}")
+            raise  # Or raise a custom exception
+
+    def authSync(self):
+        """
+        Authenticate with the Renpho API to obtain a session key.
+        """
+        if not self.email or not self.password:
+            raise Exception("Email and password must be provided")
+
+        key = RSA.importKey(self.public_key)
+        cipher = PKCS1_v1_5.new(key)
+        encrypted_password = b64encode(cipher.encrypt(self.password.encode("utf-8")))
+
+        data = {'secure_flag': 1, 'email': self.email, 'password': encrypted_password}
+        parsed = self._requestSync('POST', API_AUTH_URL, data=data)
+
+        if 'terminal_user_session_key' not in parsed:
+            raise Exception("Authentication failed.")
+
+        self.session_key = parsed['terminal_user_session_key']
+        return parsed
 
     async def auth(self):
         """
@@ -66,8 +102,8 @@ class RenphoWeight:
         cipher = PKCS1_v1_5.new(key)
         encrypted_password = b64encode(cipher.encrypt(self.password.encode("utf-8")))
 
-        data = {'secure_flag': 1, 'email': self.email, 'password': encrypted_password}
-        parsed = await self._request('POST', API_AUTH_URL, data=data)
+        data = {'secure_flag': '1', 'email': self.email, 'password': encrypted_password}
+        parsed = await self._request('POST', API_AUTH_URL, json=data)
 
         if 'terminal_user_session_key' not in parsed:
             raise Exception("Authentication failed.")
@@ -87,6 +123,15 @@ class RenphoWeight:
             _LOGGER.error(f"Validation failed: {e}")
             return False
 
+    def getScaleUsersSync(self):
+        """
+        Fetch the list of users associated with the scale.
+        """
+        url = f"{API_SCALE_USERS_URL}?locale=en&terminal_user_session_key={self.session_key}"
+        parsed = self._requestSync('GET', url)
+        self.set_user_id(parsed['scale_users'][0]['user_id'])
+        return parsed['scale_users']
+
     async def getScaleUsers(self):
         """
         Fetch the list of users associated with the scale.
@@ -98,40 +143,50 @@ class RenphoWeight:
 
     def getMeasurementsSync(self) -> Optional[List[Dict]]:
         """
-        Synchronous method to fetch the most recent weight measurements for the user.
+        Fetch the most recent weight measurements for the user.
         """
         try:
             today = datetime.date.today()
             week_ago = today - datetime.timedelta(days=7)
             week_ago_timestamp = int(time.mktime(week_ago.timetuple()))
             url = f"{API_MEASUREMENTS_URL}?user_id={self.user_id}&last_at={week_ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
+            parsed = self._requestSync('GET', url)
             
-            response = requests.get(url)
-            response.raise_for_status()
-            parsed = response.json()
-            
-            last_measurement = parsed['last_ary'][0]
-            self.weight = last_measurement['weight']
-            self.time_stamp = last_measurement['time_stamp']
-            return parsed['last_ary']
+            if 'last_ary' not in parsed:
+                _LOGGER.warning(f"Field 'last_ary' is not in the response: {parsed}")
+                return None
 
+            last_measurement = parsed['last_ary'][0]
+            self.weight = last_measurement.get('weight', None)
+            self.time_stamp = last_measurement.get('time_stamp', None)
+            return parsed['last_ary']
         except Exception as e:
             _LOGGER.error(f"An error occurred: {e}")
             return None
+
 
     async def getMeasurements(self) -> Optional[List[Dict]]:
         """
         Fetch the most recent weight measurements for the user.
         """
-        today = datetime.date.today()
-        week_ago = today - datetime.timedelta(days=7)
-        week_ago_timestamp = int(time.mktime(week_ago.timetuple()))
-        url = f"{API_MEASUREMENTS_URL}?user_id={self.user_id}&last_at={week_ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
-        parsed = await self._request('GET', url)
-        last_measurement = parsed['last_ary'][0]
-        self.weight = last_measurement['weight']
-        self.time_stamp = last_measurement['time_stamp']
-        return parsed['last_ary']
+        try:
+            today = datetime.date.today()
+            week_ago = today - datetime.timedelta(days=7)
+            week_ago_timestamp = int(time.mktime(week_ago.timetuple()))
+            url = f"{API_MEASUREMENTS_URL}?user_id={self.user_id}&last_at={week_ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
+            parsed = await self._request('GET', url)
+            
+            if 'last_ary' not in parsed:
+                _LOGGER.warning(f"Field 'last_ary' is not in the response: {parsed}")
+                return None
+
+            last_measurement = parsed['last_ary'][0]
+            self.weight = last_measurement.get('weight', None)
+            self.time_stamp = last_measurement.get('time_stamp', None)
+            return parsed['last_ary']
+        except Exception as e:
+            _LOGGER.error(f"An error occurred: {e}")
+            return None
 
     def getSpecificMetricSync(self, metric: str) -> Optional[float]:
         """
@@ -174,6 +229,14 @@ class RenphoWeight:
         except Exception as e:
             print(f"An error occurred: {e}")
             return None
+
+    def getInfoSync(self):
+        """
+        Wrapper method to authenticate, fetch users, and get measurements.
+        """
+        self.authSync()
+        self.getScaleUsersSync()
+        self.getMeasurementsSync()
 
     async def getInfo(self):
         """

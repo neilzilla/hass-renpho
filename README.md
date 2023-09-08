@@ -3,7 +3,7 @@
 ![Version](https://img.shields.io/badge/version-0.2.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
-![IoT Class](https://img.shields.io/badge/IoT%20Class-local_polling-yellow)
+![IoT Class](https://img.shields.io/badge/IoT%20Class-cloud_polling-blue)
 
 ## Overview
 

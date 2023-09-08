@@ -189,13 +189,31 @@ class RenphoSensor(SensorEntity):
         """ Return the label of the sensor. """
         return self._label
 
-    def update(self) -> None:
-        """ Update the sensor. """
+    def update(self):
+        """ Update the sensor using synchronous method. """
+        self.hass.async_add_executor_job(self._update_internal)
+    
+    def _update_internal(self):
+        """ Synchronous method to update sensor. """
         try:
-            metric_value = self._renpho.getSpecificMetricSync(self._metric)
+            metric_value = self._renpho.getSpecificMetricSync(self._metric)  # Assuming synchronous version
             if metric_value is not None:
-                # Add validation here, for example:
-                # if isinstance(metric_value, (int, float)):
+                self._state = metric_value
+                self._timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                _LOGGER.info(f"Successfully updated {self._name}")
+            else:
+                _LOGGER.warning(f"{self._metric} returned None. Not updating {self._name}.")
+        except (ConnectionError, TimeoutError) as e:
+            _LOGGER.error(f"{type(e).__name__} updating {self._name}: {e}")
+        except Exception as e:
+            _LOGGER.error(f"An unexpected error occurred updating {self._name}: {e}")
+
+    @callback
+    async def async_custom_update(self):
+        """ Asynchronous method to update sensor. """
+        try:
+            metric_value = await self._renpho.getSpecificMetric(self._metric)
+            if metric_value is not None:
                 self._state = metric_value
                 self._timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 _LOGGER.info(f"Successfully updated {self._name}")
