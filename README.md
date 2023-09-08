@@ -5,6 +5,8 @@
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
 ![IoT Class](https://img.shields.io/badge/IoT%20Class-cloud_polling-blue)
 
+![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge)
+
 ## Overview
 
 This custom component allows you to integrate Renpho's weight scale data into Home Assistant. It fetches weight and various other health metrics and displays them as sensors in Home Assistant.
