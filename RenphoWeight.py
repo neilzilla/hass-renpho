@@ -39,31 +39,43 @@ class RenphoWeight:
         self.public_key = public_key
         self.email = email
         self.password = password
-        if user_id == ""
+        if user_id == "":
             self.user_id = None
         self.user_id = user_id
         self.weight = None
         self.time_stamp = None
         self.session_key = None
 
+    def prepare_data(self, data):
+        if isinstance(data, bytes):
+            return data.decode('utf-8')
+        elif isinstance(data, dict):
+            return {key: self.prepare_data(value) for key, value in data.items()}
+        elif isinstance(data, list):
+            return [self.prepare_data(element) for element in data]
+        else:
+            return data
+
     async def _request(self, method, url, **kwargs):
-        """
-        Asynchronous method to make an API request and handle errors.
-        """
         try:
+            kwargs = self.prepare_data(kwargs)
             async with aiohttp.ClientSession() as session:
                 async with session.request(method, url, **kwargs) as response:
                     response.raise_for_status()
-                    return await response.json()
+                    parsed_response = await response.json()
+                    
+                    # Check for 40302 status code
+                    if parsed_response.get('status_code') == '40302':
+                        await self.auth()  # Assuming you have this method implemented
+                    
+                    return parsed_response
         except Exception as e:
             _LOGGER.error(f"Error in request: {e}")
             raise  # Or raise a custom exception
 
     def _requestSync(self, method, url, **kwargs):
-        """
-        Make a generic API request and handle errors.
-        """
         try:
+            kwargs = self.prepare_data(kwargs)  # Update this line
             response = requests.request(method, url, **kwargs)
             response.raise_for_status()
             return response.json()
@@ -136,10 +148,21 @@ class RenphoWeight:
         """
         Fetch the list of users associated with the scale.
         """
-        url = f"{API_SCALE_USERS_URL}?locale=en&terminal_user_session_key={self.session_key}"
-        parsed = await self._request('GET', url)
-        self.set_user_id(parsed['scale_users'][0]['user_id'])
-        return parsed['scale_users']
+        try:
+            url = f"{API_SCALE_USERS_URL}?locale=en&terminal_user_session_key={self.session_key}"
+            parsed = await self._request('GET', url)
+            
+            if not parsed or 'scale_users' not in parsed:
+                _LOGGER.warning("Invalid response or 'scale_users' not in the response.")
+                return None
+
+            self.set_user_id(parsed['scale_users'][0]['user_id'])
+            return parsed['scale_users']
+        except aiohttp.ClientError as e:
+            _LOGGER.error(f"Aiohttp client error: {e}")
+        except Exception as e:
+            _LOGGER.error(f"An unexpected error occurred: {e}")
+        return None
 
     def getMeasurementsSync(self) -> Optional[List[Dict]]:
         """
@@ -176,17 +199,20 @@ class RenphoWeight:
             url = f"{API_MEASUREMENTS_URL}?user_id={self.user_id}&last_at={week_ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
             parsed = await self._request('GET', url)
             
-            if 'last_ary' not in parsed:
-                _LOGGER.warning(f"Field 'last_ary' is not in the response: {parsed}")
+            if not parsed or 'last_ary' not in parsed:
+                _LOGGER.warning("Invalid response or 'last_ary' not in the response.")
                 return None
 
             last_measurement = parsed['last_ary'][0]
             self.weight = last_measurement.get('weight', None)
             self.time_stamp = last_measurement.get('time_stamp', None)
             return parsed['last_ary']
+        except aiohttp.ClientError as e:
+            _LOGGER.error(f"Aiohttp client error: {e}")
         except Exception as e:
-            _LOGGER.error(f"An error occurred: {e}")
-            return None
+            _LOGGER.error(f"An unexpected error occurred: {e}")
+        return None
+
 
     def getSpecificMetricSync(self, metric: str) -> Optional[float]:
         """
@@ -221,7 +247,7 @@ class RenphoWeight:
         try:
             if user_id:
                 self.set_user_id(user_id)  # Update the user_id if provided
-            
+            info = await self.getInfo()
             last_measurement = await self.getMeasurements()
             if last_measurement:
                 return last_measurement[0].get(metric, None)

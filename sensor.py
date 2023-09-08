@@ -4,6 +4,7 @@ from datetime import datetime
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.util import slugify
+from homeassistant.core import callback
 
 from homeassistant.const import MASS_KILOGRAMS, TIME_SECONDS
 from homeassistant.core import HomeAssistant
@@ -190,13 +191,14 @@ class RenphoSensor(SensorEntity):
         return self._label
 
     def update(self):
-        """ Update the sensor using synchronous method. """
-        self.hass.async_add_executor_job(self._update_internal)
-    
-    def _update_internal(self):
-        """ Synchronous method to update sensor. """
+        """ Update the sensor using the event loop for asynchronous code. """
+        self.hass.async_add_job(self._async_internal_update())
+
+    @callback
+    async def _async_internal_update(self):
+        """ Internal method to update the sensor asynchronously. """
         try:
-            metric_value = self._renpho.getSpecificMetricSync(self._metric)  # Assuming synchronous version
+            metric_value = await self._renpho.getSpecificMetric(self._metric)  # Assuming asynchronous version
             if metric_value is not None:
                 self._state = metric_value
                 self._timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -208,18 +210,3 @@ class RenphoSensor(SensorEntity):
         except Exception as e:
             _LOGGER.error(f"An unexpected error occurred updating {self._name}: {e}")
 
-    @callback
-    async def async_custom_update(self):
-        """ Asynchronous method to update sensor. """
-        try:
-            metric_value = await self._renpho.getSpecificMetric(self._metric)
-            if metric_value is not None:
-                self._state = metric_value
-                self._timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                _LOGGER.info(f"Successfully updated {self._name}")
-            else:
-                _LOGGER.warning(f"{self._metric} returned None. Not updating {self._name}.")
-        except (ConnectionError, TimeoutError) as e:
-            _LOGGER.error(f"{type(e).__name__} updating {self._name}: {e}")
-        except Exception as e:
-            _LOGGER.error(f"An unexpected error occurred updating {self._name}: {e}")
