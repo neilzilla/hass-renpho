@@ -20,10 +20,10 @@ DATA_SCHEMA = vol.Schema({
 
 async def async_validate_input(hass: HomeAssistant, data: dict) -> dict[str, Any]:
     _LOGGER.debug("Starting to validate input: %s", data)
-    renpho = RenphoWeight(data[CONF_EMAIL], data[CONF_PASSWORD], data.get(CONF_USER_ID, None))
+    renpho = RenphoWeight(CONF_PUBLIC_KEY, data[CONF_EMAIL], data[CONF_PASSWORD], data.get(CONF_USER_ID, None))
     is_valid = await renpho.validate_credentials()
     if not is_valid:
-        raise CannotConnect
+        raise raise CannotConnect(reason="Invalid credentials", details={"email": data[CONF_EMAIL], "user_id"=data.get(CONF_USER_ID, None)})
     return {"title": data[CONF_EMAIL]}
 
 class RenphoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -43,8 +43,8 @@ class RenphoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 
                 return self.async_create_entry(title=info["title"], data=user_input)
             except CannotConnect:
-                _LOGGER.error("Cannot connect or invalid credentials")
-                errors["base"] = "CannotConnect"
+                _LOGGER.error("Cannot connect: %s, details: %s", e.reason, e.get_details())
+                errors["base"] = f"CannotConnect: {e.reason}"
             except exceptions.HomeAssistantError as e:
                 _LOGGER.error("Home Assistant specific error: %s", str(e))
                 errors["base"] = "HomeAssistantError"
@@ -62,3 +62,14 @@ class RenphoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 class CannotConnect(exceptions.HomeAssistantError):
     """Error to indicate we cannot connect."""
+    
+    def __init__(self, reason: str = "", details: dict = None):
+        super().__init__(self)
+        self.reason = reason
+        self.details = details or {}
+    
+    def __str__(self):
+        return f"CannotConnect: {self.reason}"
+        
+    def get_details(self):
+        return self.details
