@@ -1,5 +1,5 @@
 from homeassistant.helpers import service
-from .const import (
+from .custom_components.renpho.const import (
     CONF_USER_ID, DOMAIN, CONF_EMAIL, CONF_PASSWORD,
     CONF_REFRESH, CONF_PUBLIC_KEY,
     EVENT_HOMEASSISTANT_START, EVENT_HOMEASSISTANT_STOP
