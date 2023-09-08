@@ -19,6 +19,7 @@ DATA_SCHEMA = vol.Schema({
 })
 
 async def async_validate_input(hass: HomeAssistant, data: dict) -> dict[str, Any]:
+    _LOGGER.debug("Starting to validate input: %s", data)
     renpho = RenphoWeight(data[CONF_EMAIL], data[CONF_PASSWORD], data.get(CONF_USER_ID, None))
     is_valid = await renpho.validate_credentials()
     if not is_valid:
@@ -43,10 +44,13 @@ class RenphoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return self.async_create_entry(title=info["title"], data=user_input)
             except CannotConnect:
                 _LOGGER.error("Cannot connect or invalid credentials")
-                errors["base"] = "Could not connect to Renpho. Please check your credentials."
+                errors["base"] = "CannotConnect"
+            except exceptions.HomeAssistantError as e:
+                _LOGGER.error("Home Assistant specific error: %s", str(e))
+                errors["base"] = "HomeAssistantError"
             except Exception as e:  # pylint: disable=broad-except
                 _LOGGER.exception("Unexpected exception: %s", e)
-                errors["base"] = f"An unexpected error occurred: {str(e)}"
+                errors["base"] = "UnknownError"
         
         _LOGGER.debug("Showing form with errors: %s", errors)
         return self.async_show_form(
