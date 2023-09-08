@@ -43,7 +43,7 @@ def setup(hass, config):
     def reload_config(call):
         """Reload the Renpho component."""
         # Unload the current configuration
-        hass.helpers.entity_component.async_unload_entities(DOMAIN)
+        await hass.services.async_call('homeassistant', 'reload', {})
 
         # Load the new configuration
         setup(hass, config)
