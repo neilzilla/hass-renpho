@@ -1,6 +1,5 @@
 {
     "name": "Renpho Weight Scale Integration",
-    "documentation": "https://github.com/antoinebou12/hass_renpho/blob/master/README.md",
     "codeowners": ["antoinebou12"],
     "country": ["ca"]
 }

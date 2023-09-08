@@ -17,5 +17,5 @@ jobs:
         with:
           category: "Integration"
         continue-on-error: true
-      - uses: "home-assistant/actions/hassfest@master"
+      - uses: "home-assistant/actions/hassfest@v1"
         continue-on-error: true
