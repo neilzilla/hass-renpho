@@ -40,7 +40,7 @@ This custom component allows you to integrate Renpho's weight scale data into Ho
 ```
 git clone https://github.com/antoinebou12/hass_renpho
 ```
-Copy this folder to `<config_dir>/custom_components/hass_renpho/`.
+Copy this folder to `<config_dir>/custom_components/renpho/`.
 
 ## Configuration
 Add the following entry in your `configuration.yaml`:
