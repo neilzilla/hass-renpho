@@ -1,3 +1,5 @@
+# config_flow.py
+
 from __future__ import annotations
 import logging
 from typing import Any
@@ -31,30 +33,45 @@ class RenphoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input=None):
         errors = {}
+        
         if user_input is not None:
             try:
                 info = await async_validate_input(self.hass, user_input)
                 return self.async_create_entry(title=info["title"], data=user_input)
+                
             except CannotConnect as e:
-                _LOGGER.error("Cannot connect: %s, details: %s", e.reason, e.get_details())
                 errors["base"] = "cannot_connect"
+                _LOGGER.error(f"Cannot connect due to {e.reason}. Details: {e.get_details()}")
+                
             except exceptions.HomeAssistantError as e:
-                _LOGGER.error("Home Assistant specific error: %s", str(e))
                 errors["base"] = "home_assistant_error"
+                _LOGGER.error(f"Home Assistant specific error: {str(e)}")
+                
             except Exception as e:  # pylint: disable=broad-except
-                _LOGGER.exception("Unexpected exception: %s", e)
                 errors["base"] = "unknown_error"
+                _LOGGER.exception(f"Unexpected exception: {e}")
         
+        # Use description_placeholders for dynamic info
+        placeholders = {
+            "additional_info": "Please provide your Renpho login details.",
+            "icon": "renpho.png",
+            "description": "This is a description of your Renpho integration."
+        }
+
         return self.async_show_form(
             step_id="user",
-            data_schema=DATA_SCHEMA.extend({vol.Set(user_input)} if user_input else {}),  # Prefill form
+            data_schema=DATA_SCHEMA,
             errors=errors,
-            description_placeholders={
-                "additional_info": "Please provide your Renpho login details.",
-                "icon": "renpho.png",  # Replace with your actual icon path
-                "description": "This is a description of your Renpho integration."
-            },
+            description_placeholders=placeholders
         )
+
+    async def async_step_advanced_options(self, user_input=None):
+        # Implement advanced options step here
+        pass
+
+    async def async_step_select_device(self, user_input=None):
+        # Implement device selection step here
+        pass
 
 class CannotConnect(exceptions.HomeAssistantError):
     def __init__(self, reason: str = "", details: dict = None):
