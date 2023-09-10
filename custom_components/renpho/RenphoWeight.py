@@ -31,7 +31,6 @@ class RenphoWeight:
         weight (float): The most recent weight measurement.
         time_stamp (int): The timestamp of the most recent weight measurement.
         session_key (str): The session key obtained after successful authentication.
-        executor (ThreadPoolExecutor): Executor for running synchronous requests.
     """
 
     def __init__(self, public_key, email, password, user_id=None):
@@ -45,6 +44,7 @@ class RenphoWeight:
         self.weight = None
         self.time_stamp = None
         self.session_key = None
+        self.session = aiohttp.ClientSession()
 
     def prepare_data(self, data):
         if isinstance(data, bytes):
@@ -59,19 +59,17 @@ class RenphoWeight:
     async def _request(self, method, url, **kwargs):
         try:
             kwargs = self.prepare_data(kwargs)
-            async with aiohttp.ClientSession() as session:
-                async with session.request(method, url, **kwargs) as response:
-                    response.raise_for_status()
-                    parsed_response = await response.json()
-                    
-                    # Check for 40302 status code
-                    if parsed_response.get('status_code') == '40302':
-                        await self.auth()  # Assuming you have this method implemented
-                    
-                    return parsed_response
+            async with self.session.request(method, url, **kwargs) as response:  # Reuse session
+                response.raise_for_status()
+                parsed_response = await response.json()
+                
+                if parsed_response.get('status_code') == '40302':
+                    await self.auth()
+                
+                return parsed_response
         except Exception as e:
             _LOGGER.error(f"Error in request: {e}")
-            raise  # Or raise a custom exception
+            raise APIError("API request failed")  # Raise a custom exception
 
     def _requestSync(self, method, url, **kwargs):
         try:
@@ -98,7 +96,7 @@ class RenphoWeight:
         parsed = self._requestSync('POST', API_AUTH_URL, data=data)
 
         if 'terminal_user_session_key' not in parsed:
-            raise Exception("Authentication failed.")
+            raise AuthenticationError("Authentication failed")
 
         self.session_key = parsed['terminal_user_session_key']
         return parsed
@@ -118,7 +116,7 @@ class RenphoWeight:
         parsed = await self._request('POST', API_AUTH_URL, json=data)
 
         if 'terminal_user_session_key' not in parsed:
-            raise Exception("Authentication failed.")
+            raise AuthenticationError("Authentication failed")
 
         self.session_key = parsed['terminal_user_session_key']
         return parsed
@@ -300,10 +298,11 @@ class RenphoWeight:
         """
         return self.user_id
 
-    def close(self):
+    async def close(self):
         """
         Shutdown the executor when you are done using the RenphoWeight instance.
         """
+        await self.session.close()
         self.executor.shutdown()
 
 class Interval(Timer):
@@ -317,3 +316,9 @@ class Interval(Timer):
         """
         while not self.finished.wait(self.interval):
             self.function(*self.args, **self.kwargs)
+
+class AuthenticationError(Exception):
+    pass
+
+class APIError(Exception):
+    pass
