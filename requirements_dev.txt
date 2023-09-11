@@ -4,3 +4,4 @@ black
 flake8
 pre-commit
 pylint
+python-dotenv

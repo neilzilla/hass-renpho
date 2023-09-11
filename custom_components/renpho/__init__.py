@@ -1,28 +1,36 @@
-import logging
 import asyncio
-from homeassistant.helpers import service
-from homeassistant.core import callback
+import logging
 
 from .const import (
-    CONF_USER_ID, DOMAIN, CONF_EMAIL, CONF_PASSWORD,
-    CONF_REFRESH, CONF_PUBLIC_KEY,
-    EVENT_HOMEASSISTANT_START, EVENT_HOMEASSISTANT_STOP
+    CONF_EMAIL,
+    CONF_PASSWORD,
+    CONF_PUBLIC_KEY,
+    CONF_REFRESH,
+    CONF_USER_ID,
+    DOMAIN,
+    EVENT_HOMEASSISTANT_STOP,
 )
-from .RenphoWeight import RenphoWeight
+from .renpho import RenphoWeight
+
+# from homeassistant.helpers import service
+# from homeassistant.core import callback
+
 
 # Initialize logger
 _LOGGER = logging.getLogger(__name__)
 
 # ------------------- Setup Methods -------------------
 
+
 async def async_setup(hass, config):
     """Set up the Renpho component from YAML configuration."""
     _LOGGER.debug("Starting hass_renpho")
-    
+
     conf = config.get(DOMAIN)
     if conf:
         await setup_renpho(hass, conf)
     return True
+
 
 async def async_setup_entry(hass, entry):
     """Set up Renpho from a config entry."""
@@ -31,8 +39,9 @@ async def async_setup_entry(hass, entry):
     hass.async_create_task(
         hass.config_entries.async_forward_entry_setup(entry, "sensor")
     )
-    
+
     return True
+
 
 async def async_unload_entry(hass, entry):
     """Unload a config entry."""
@@ -42,7 +51,9 @@ async def async_unload_entry(hass, entry):
         del hass.data[DOMAIN]
         return True
 
+
 # ------------------- Helper Methods -------------------
+
 
 async def setup_renpho(hass, conf):
     """Common setup logic for YAML and UI."""
@@ -50,36 +61,70 @@ async def setup_renpho(hass, conf):
     password = conf[CONF_PASSWORD]
     user_id = conf.get(CONF_USER_ID, None)
     refresh = conf.get(CONF_REFRESH, 600)
-    
-    renpho = RenphoWeight(CONF_PUBLIC_KEY, email, password, user_id)
+    renpho = RenphoWeight(CONF_PUBLIC_KEY, email, password, user_id, refresh)
 
-    @callback
-    def async_on_start(event):
-        hass.async_create_task(async_prepare(hass, renpho, refresh))
-    
-    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_START, async_on_start)
+    # @callback
+    # def async_on_start(event):
+    #     hass.async_create_task(async_prepare(hass, renpho, refresh))
+
+    # hass.bus.async_listen_once(EVENT_HOMEASSISTANT_START, async_on_start)
     hass.data[DOMAIN] = renpho
+
 
 async def async_prepare(hass, renpho, refresh):
     """Prepare and start polling."""
-    await renpho.startPolling(refresh)
+    await renpho.start_polling(refresh)
     hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, async_cleanup(renpho))
+
 
 async def async_cleanup(renpho):
     """Cleanup logic."""
-    await renpho.stopPolling()
+    await renpho.stop_polling()
+
 
 # ------------------- Main Method for Testing -------------------
 
 if __name__ == "__main__":
+
     async def main():
-        renpho = RenphoWeight(CONF_PUBLIC_KEY, '<username>', '<password>', '<user_id>')
-        await renpho.startPolling(10)
-        print(await renpho.getScaleUsers())
-        print(await renpho.getSpecificMetricFromUserID("bodyfat"))
-        print(await renpho.getSpecificMetricFromUserID("bodyfat", "<user_id>"))
-        print(await renpho.getInfo())
+        import os
+
+        from dotenv import load_dotenv
+
+        load_dotenv()
+        email = os.environ.get("EMAIL")
+        password = os.environ.get("PASSWORD")
+        user_id = os.environ.get("USER_ID", None)
+        try:
+            renpho = RenphoWeight(CONF_PUBLIC_KEY, email, password, user_id)
+            print("Before polling")
+            renpho.start_polling(10)
+            print("After polling")
+            renpho.get_info_sync()
+            users = await renpho.get_scale_users()
+            print("Fetched scale users:", users)
+            metric = await renpho.get_specific_metric_from_user_ID("bodyfat")
+            print("Fetched specific metric:", metric)
+            metric_for_user = await renpho.get_specific_metric_from_user_ID(
+                "bodyfat", "<user_id>"
+            )
+            print("Fetched specific metric for user:", metric_for_user)
+            get_device_info = await renpho.get_device_info()
+            print("Fetched device info:", get_device_info)
+            list_growth_record = await renpho.list_growth_record()
+            print("Fetched list growth record:", list_growth_record)
+            list_girth = await renpho.list_girth()
+            print("Fetched list girth:", list_girth)
+            list_girth_goal = await renpho.list_girth_goal()
+            print("Fetched list girth goal:", list_girth_goal)
+            message_list = await renpho.message_list()
+            print("Fetched message list:", message_list)
+            info = await renpho.get_info()
+            print("Fetched info:", info)
+        except Exception as e:
+            print(f"An exception occurred: {e}")
+
         input("Press Enter to stop polling")
-        await renpho.stopPolling()
+        renpho.stop_polling()
 
     asyncio.run(main())

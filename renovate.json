@@ -1,33 +1,17 @@
 {
-    "extends": [
-        "config:base"
-    ],
-    "schedule": [
-        "at any time"
-    ],
-    "baseBranches": [
-        "master"
-    ],
-    "packageRules": [
-        {
-            "depTypeList": [
-                "dependencies"
-            ],
-            "updateTypes": [
-                "minor",
-                "patch"
-            ],
-            "automerge": true
-        },
-        {
-            "depTypeList": [
-                "devDependencies"
-            ],
-            "updateTypes": [
-                "minor",
-                "patch"
-            ],
-            "automerge": true
-        }
-    ]
+  "extends": ["config:base"],
+  "schedule": ["at any time"],
+  "baseBranches": ["master"],
+  "packageRules": [
+    {
+      "depTypeList": ["dependencies"],
+      "updateTypes": ["minor", "patch"],
+      "automerge": true
+    },
+    {
+      "depTypeList": ["devDependencies"],
+      "updateTypes": ["minor", "patch"],
+      "automerge": true
+    }
+  ]
 }
