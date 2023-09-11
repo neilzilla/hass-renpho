@@ -298,6 +298,22 @@ class RenphoWeight:
         """
         return self.user_id
 
+    async def get_device_info(self):
+        response = await self._request("https://renpho.qnclouds.com/api/v3/device_binds/get_device.json")
+        return response
+
+    async def list_latest_model(self):
+        response = await self.generic_request("https://renpho.qnclouds.com/api/v3/devices/list_lastest_model.json")
+        return response
+
+    async def list_girth(self):
+        response = await self.generic_request("https://renpho.qnclouds.com/api/v3/girths/list_girth.json")
+        return response
+
+    async def list_growth_record(self):
+        response = await self.generic_request("https://renpho.qnclouds.com/api/v3/growth_record/list_growth_record.json")
+        return response
+
     async def close(self):
         """
         Shutdown the executor when you are done using the RenphoWeight instance.
