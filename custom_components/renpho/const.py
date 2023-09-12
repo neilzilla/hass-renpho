@@ -103,7 +103,6 @@ GIRTH_METRICS: Final = [
     "custom_unit5",
 ]
 
-# Constants for Girth Goals
 GIRTH_GOALS: Final = [
     "girth_type",
     "setup_goal_at",
@@ -115,6 +114,10 @@ GIRTH_GOALS: Final = [
     "finish_value",
     "finish_unit",
 ]
+
+METRIC_TYPE_WEIGHT: Final = "weight"
+METRIC_TYPE_GROWTH_GOAL: Final = "growth_goal"
+METRIC_TYPE_GROWTH: Final = "growth"
 
 # Public key for encrypting the password
 CONF_PUBLIC_KEY: Final = """-----BEGIN PUBLIC KEY-----

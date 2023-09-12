@@ -10,10 +10,7 @@ from .const import (
     DOMAIN,
     EVENT_HOMEASSISTANT_STOP,
 )
-from .renpho import RenphoWeight
-
-# from homeassistant.helpers import service
-# from homeassistant.core import callback
+from .api_renpho import RenphoWeight
 
 
 # Initialize logger
@@ -26,8 +23,7 @@ async def async_setup(hass, config):
     """Set up the Renpho component from YAML configuration."""
     _LOGGER.debug("Starting hass_renpho")
 
-    conf = config.get(DOMAIN)
-    if conf:
+    if conf := config.get(DOMAIN):
         await setup_renpho(hass, conf)
     return True
 
@@ -103,10 +99,10 @@ if __name__ == "__main__":
             renpho.get_info_sync()
             users = await renpho.get_scale_users()
             print("Fetched scale users:", users)
-            metric = await renpho.get_specific_metric_from_user_ID("bodyfat")
+            metric = await renpho.get_specific_metric_from_user_ID("weight", "bodyfat")
             print("Fetched specific metric:", metric)
             metric_for_user = await renpho.get_specific_metric_from_user_ID(
-                "bodyfat", "<user_id>"
+                "weight", "bodyfat", "<user_id>"
             )
             print("Fetched specific metric for user:", metric_for_user)
             get_device_info = await renpho.get_device_info()
@@ -118,6 +114,8 @@ if __name__ == "__main__":
             list_girth_goal = await renpho.list_girth_goal()
             print("Fetched list girth goal:", list_girth_goal)
             message_list = await renpho.message_list()
+            list_growth_record = await renpho.list_growth_record()
+            print("Fetched list growth record:", list_growth_record)
             print("Fetched message list:", message_list)
             info = await renpho.get_info()
             print("Fetched info:", info)

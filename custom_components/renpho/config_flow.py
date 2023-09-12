@@ -10,7 +10,7 @@ from homeassistant import config_entries, exceptions
 from homeassistant.core import HomeAssistant
 
 from .const import CONF_EMAIL, CONF_PASSWORD, CONF_PUBLIC_KEY, CONF_USER_ID, DOMAIN
-from .renpho import RenphoWeight
+from .api_renpho import RenphoWeight
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -23,6 +23,7 @@ DATA_SCHEMA = vol.Schema(
         vol.Optional(
             CONF_USER_ID, description={"suggested_value": "OptionalUserID"}
         ): str,
+        vol.Optional(CONF_REFRESH, description={"suggested_value": 60}): int,
     }
 )
 
@@ -35,6 +36,7 @@ async def async_validate_input(hass: HomeAssistant, data: dict) -> dict[str, Any
         data[CONF_EMAIL],
         data[CONF_PASSWORD],
         data.get(CONF_USER_ID),
+        data.get(CONF_REFRESH,60),
     )
     is_valid = await renpho.validate_credentials()
     if not is_valid:
@@ -42,7 +44,6 @@ async def async_validate_input(hass: HomeAssistant, data: dict) -> dict[str, Any
             reason="Invalid credentials",
             details={
                 "email": data[CONF_EMAIL],
-                "user_id": data.get(CONF_USER_ID, None),
             },
         )
     return {"title": data[CONF_EMAIL]}

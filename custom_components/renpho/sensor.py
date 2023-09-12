@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Optional
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
@@ -12,7 +13,7 @@ from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from homeassistant.util import slugify
 
 from .const import CM_TO_INCH, DOMAIN, KG_TO_LBS
-from .renpho import _LOGGER, RenphoWeight
+from .api_renpho import _LOGGER, RenphoWeight
 
 
 async def sensors_list(
@@ -709,7 +710,8 @@ class RenphoSensor(SensorEntity):
             "label": self._label,
         }
 
-    def convert_unit(self, value, unit):
+    def convert_unit(self, value: Optional[float], unit: str) -> Optional[float]:
+        """Convert unit based on the conversion mapping."""
         conversions = {"kg": value * KG_TO_LBS, "cm": value * CM_TO_INCH}
         return conversions.get(unit, value)
 
@@ -753,23 +755,31 @@ class RenphoSensor(SensorEntity):
         """Return the label of the sensor."""
         return self._label
 
+    async def async_update(self) -> None:
+        """Update the sensor using the event loop for asynchronous code."""
+        METRIC_TYPES = ["weight", "growth", "growth_goal", ]  # Define all the types of metrics
+        for metric_type in METRIC_TYPES:
+            try:
+                metric_value = await self._renpho.get_specific_metric(
+                    metric_type=metric_type,
+                    metric=self._metric,
+                    user_id=None
+                )
 
-async def async_update(self):
-    """Update the sensor using the event loop for asynchronous code."""
-    try:
-        metric_value = await self._renpho.get_specific_metric(self._metric)
+                if metric_value is not None:
+                    self._state = metric_value  # Update the state if a new value is received
 
-        # Update state with the new metric_value
-        self._state = metric_value if metric_value is not None else self._state
+                    # Convert the unit if necessary
+                    self._state = self.convert_unit(self._state, self._unit_of_measurement)
 
-        # Convert the unit if necessary
-        self._state = self.convert_unit(self._state, self._unit_of_measurement)
+                    # Update the timestamp
+                    self._timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        # Update the timestamp
-        self._timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    _LOGGER.info(f"Successfully updated {self._name} for metric type {metric_type}")
 
-        _LOGGER.info(f"Successfully updated {self._name}")
-    except (ConnectionError, TimeoutError) as e:
-        _LOGGER.error(f"{type(e).__name__} updating {self._name}: {e}")
-    except Exception as e:
-        _LOGGER.error(f"An unexpected error occurred updating {self._name}: {e}")
+            except (ConnectionError, TimeoutError) as e:
+                _LOGGER.error(f"{type(e).__name__} occurred while updating {self._name} for metric type {metric_type}: {e}")
+
+            except Exception as e:
+                _LOGGER.critical(f"An unexpected error occurred while updating {self._name} for metric type {metric_type}: {e}")
+

@@ -12,6 +12,8 @@ import requests
 from Crypto.Cipher import PKCS1_v1_5
 from Crypto.PublicKey import RSA
 
+from .const import METRIC_TYPE_GROWTH, METRIC_TYPE_GROWTH_GOAL, METRIC_TYPE_WEIGHT
+
 # Initialize logging
 _LOGGER = logging.getLogger(__name__)
 
@@ -26,6 +28,10 @@ GIRTH_GOAL_URL = "https://renpho.qnclouds.com/api/v3/girth_goals/list_girth_goal
 GROWTH_RECORD_URL = (
     "https://renpho.qnclouds.com/api/v3/growth_records/list_growth_record.json"
 )
+GROWTH_GOAL_URL = (
+    "https://renpho.qnclouds.com/api/v3/growth_goals/list_growth_goal.json"
+)
+MESSAGE_LIST_URL = "https://renpho.qnclouds.com/api/v2/messages/list.json"
 
 
 class RenphoWeight:
@@ -56,6 +62,18 @@ class RenphoWeight:
         if refresh is None:
             self.refresh = 60
         self.session = aiohttp.ClientSession()
+
+    def set_user_id(self, user_id):
+        """
+        Set the user ID for whom the weight data should be fetched.
+        """
+        self.user_id = user_id
+
+    def get_user_id(self):
+        """
+        Get the current user ID for whom the weight data is being fetched.
+        """
+        return self.user_id
 
     @staticmethod
     def get_week_ago_timestamp() -> int:
@@ -229,109 +247,7 @@ class RenphoWeight:
             _LOGGER.error(f"An unexpected error occurred: {e}")
         return None
 
-    def get_specific_metric_sync(
-        self, metric_type: str, metric: str, user_id: Optional[str] = None
-    ) -> Optional[float]:
-        """
-        Synchronous version of get_specific_metric based on the type specified (weight, growth goal, or growth metric).
-
-        Parameters:
-            metric_type (str): The type of metric to fetch ('weight', 'growth_goal', 'growth').
-            metric (str): The specific metric to fetch (e.g., "height", "growth_rate", "weight").
-            user_id (str, optional): The user ID for whom to fetch the metric. Defaults to None.
-
-        Returns:
-            float, None: The fetched metric value, or None if it couldn't be fetched.
-        """
-        try:
-            if user_id:
-                self.set_user_id(user_id)  # Update the user_id if provided
-
-            if metric_type == "weight":
-                last_measurement = self.get_measurements_sync()
-                return (
-                    last_measurement[0].get(metric, None) if last_measurement else None
-                )
-
-            elif metric_type == "growth_goal":
-                growth_goal_info = self.list_growth_goal_sync()
-                last_goal = (
-                    growth_goal_info.get("growth_goals", [])[0]
-                    if growth_goal_info.get("growth_goals")
-                    else None
-                )
-                return last_goal.get(metric, None) if last_goal else None
-
-            elif metric_type == "growth":
-                growth_info = self.list_growth_sync()
-                last_measurement = (
-                    growth_info.get("growths", [])[0]
-                    if growth_info.get("growths")
-                    else None
-                )
-                return last_measurement.get(metric, None) if last_measurement else None
-
-            else:
-                _LOGGER.error(
-                    "Invalid metric_type. Must be 'weight', 'growth_goal', or 'growth'."
-                )
-                return None
-
-        except Exception as e:
-            _LOGGER.error(f"An error occurred: {e}")
-            return None
-
     async def get_specific_metric(
-        self, metric_type: str, metric: str, user_id: Optional[str] = None
-    ) -> Optional[float]:
-        """
-        Fetch a specific metric based on the type specified (weight, growth goal, or growth metric).
-
-        Parameters:
-            metric_type (str): The type of metric to fetch ('weight', 'growth_goal', 'growth').
-            metric (str): The specific metric to fetch (e.g., "height", "growth_rate", "weight").
-            user_id (str, optional): The user ID for whom to fetch the metric. Defaults to None.
-
-        Returns:
-            float, None: The fetched metric value, or None if it couldn't be fetched.
-        """
-        try:
-            if user_id:
-                self.set_user_id(user_id)  # Update the user_id if provided
-
-            if metric_type == "weight":
-                last_measurement = await self.get_measurements()
-                return (
-                    last_measurement[0].get(metric, None) if last_measurement else None
-                )
-
-            elif metric_type == "growth_goal":
-                growth_goal_info = await self.list_growth_goal()
-                last_goal = (
-                    growth_goal_info.get("growth_goals", [])[0]
-                    if growth_goal_info.get("growth_goals")
-                    else None
-                )
-                return last_goal.get(metric, None) if last_goal else None
-            elif metric_type == "growth":
-                growth_info = await self.list_growth()
-                last_measurement = (
-                    growth_info.get("growths", [])[0]
-                    if growth_info.get("growths")
-                    else None
-                )
-                return last_measurement.get(metric, None) if last_measurement else None
-            else:
-                print(
-                    "Invalid metric_type. Must be 'weight', 'growth_goal', or 'growth'."
-                )
-                return None
-
-        except Exception as e:
-            print(f"An error occurred: {e}")
-            return None
-
-    async def get_specific_metric_from_user_ID(
         self, metric_type: str, metric: str, user_id: Optional[str] = None
     ) -> Optional[float]:
         """
@@ -347,40 +263,28 @@ class RenphoWeight:
         """
         try:
             if user_id:
-                self.set_user_id(user_id)  # Update the user_id if provided
+                self.set_user_id(user_id)
 
-            if metric_type == "weight":
+            if metric_type == METRIC_TYPE_WEIGHT:
                 last_measurement = await self.get_measurements()
-                return (
-                    last_measurement[0].get(metric, None) if last_measurement else None
-                )
+                return last_measurement[0].get(metric, None) if last_measurement else None
 
-            elif metric_type == "growth_goal":
+            elif metric_type == METRIC_TYPE_GROWTH_GOAL:
                 growth_goal_info = await self.list_growth_goal()
-                last_goal = (
-                    growth_goal_info.get("growth_goals", [])[0]
-                    if growth_goal_info.get("growth_goals")
-                    else None
-                )
+                last_goal = growth_goal_info.get("growth_goals", [])[0] if growth_goal_info.get("growth_goals") else None
                 return last_goal.get(metric, None) if last_goal else None
 
-            elif metric_type == "growth":
+            elif metric_type == METRIC_TYPE_GROWTH:
                 growth_info = await self.list_growth()
-                last_measurement = (
-                    growth_info.get("growths", [])[0]
-                    if growth_info.get("growths")
-                    else None
-                )
+                last_measurement = growth_info.get("growths", [])[0] if growth_info.get("growths") else None
                 return last_measurement.get(metric, None) if last_measurement else None
 
             else:
-                print(
-                    "Invalid metric_type. Must be 'weight', 'growth_goal', or 'growth'."
-                )
+                _LOGGER.error(f"Invalid metric_type: {metric_type}. Must be one of {METRIC_TYPE_WEIGHT}, {METRIC_TYPE_GROWTH_GOAL}, or {METRIC_TYPE_GROWTH}.")
                 return None
 
         except Exception as e:
-            print(f"An error occurred: {e}")
+            _LOGGER.error(f"An error occurred: {e}")
             return None
 
     def get_info_sync(self):
@@ -416,18 +320,6 @@ class RenphoWeight:
         """
         if hasattr(self, "polling"):
             self.polling.cancel()
-
-    def set_user_id(self, user_id):
-        """
-        Set the user ID for whom the weight data should be fetched.
-        """
-        self.user_id = user_id
-
-    def get_user_id(self):
-        """
-        Get the current user ID for whom the weight data is being fetched.
-        """
-        return self.user_id
 
     async def get_device_info(self):
         """
@@ -472,6 +364,17 @@ class RenphoWeight:
         url = f"{GIRTH_GOAL_URL}?user_id={self.user_id}&last_updated_at={week_ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
         return await self._request("GET", url)
 
+    async def list_growth_goal(self):
+        """
+        Asynchronously list girth goal information.
+
+        Returns:
+            dict: The API response as a dictionary.
+        """
+        week_ago_timestamp = self.get_week_ago_timestamp()
+        url = f"{GIRTH_GOAL_URL}?user_id={self.user_id}&last_updated_at={week_ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
+        return await self._request("GET", url)
+
     async def get_specific_growth_goal_metric(
         self, metric: str, user_id: Optional[str] = None
     ) -> Optional[float]:
@@ -506,7 +409,7 @@ class RenphoWeight:
             dict: The API response as a dictionary.
         """
         week_ago_timestamp = self.get_week_ago_timestamp()
-        url = f"https://renpho.qnclouds.com/api/v3/growth_records/list_growth_record.json?user_id={self.user_id}&last_updated_at={week_ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
+        url = f"{GROWTH_RECORD_URL}?user_id={self.user_id}&last_updated_at={week_ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
         return await self._request("GET", url)
 
     async def get_specific_growth_metric(
@@ -525,7 +428,7 @@ class RenphoWeight:
         try:
             if user_id:
                 self.set_user_id(user_id)  # Update the user_id if provided
-            growth_info = await self.list_growth()
+            growth_info = await self.list_growth_record()
             last_measurement = (
                 growth_info.get("growths", [])[0]
                 if growth_info.get("growths")
@@ -538,7 +441,7 @@ class RenphoWeight:
 
     async def message_list(self):
         week_ago_timestamp = self.get_week_ago_timestamp()
-        url = f"https://renpho.qnclouds.com/api/v2/messages/list.json?user_id={self.user_id}&last_updated_at={week_ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
+        url = f"{MESSAGE_LIST_URL}?user_id={self.user_id}&last_updated_at={week_ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
         return await self._request("GET", url)
 
     async def close(self):
@@ -546,7 +449,6 @@ class RenphoWeight:
         Shutdown the executor when you are done using the RenphoWeight instance.
         """
         await self.session.close()
-        self.executor.shutdown()
 
 
 class Interval(Timer):
