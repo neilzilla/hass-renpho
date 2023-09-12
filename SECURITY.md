@@ -28,4 +28,5 @@ We take security very seriously. If you believe you've found a security vulnerab
 - Public acknowledgment of the vulnerability after it has been fixed.
 
 ### Note
+
 Vulnerabilities that are not validated within 7 days will be closed.

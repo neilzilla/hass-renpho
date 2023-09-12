@@ -16,6 +16,7 @@ Make sure your GitHub repository meets the following requirements:
     "country": ["us"]
   }
   ```
+
 - The repository must contain a `README.md` file.
 - You must tag a release. The tag should be a version number and the release should include a changelog.
 

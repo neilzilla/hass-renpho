@@ -3,51 +3,50 @@ name: Create Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 jobs:
   release:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Generate Changelog
-      id: changelog
-      run: |
-        export CHANGELOG=$(git log $(git describe --tags --abbrev=0)..HEAD --pretty="- %s")
-        echo "CHANGELOG=$CHANGELOG" >> $GITHUB_ENV
+      - name: Generate Changelog
+        id: changelog
+        run: |
+          export CHANGELOG=$(git log $(git describe --tags --abbrev=0)..HEAD --pretty="- %s")
+          echo "CHANGELOG=$CHANGELOG" >> $GITHUB_ENV
 
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-        body: ${{ env.CHANGELOG }}
-        draft: false
-        prerelease: false
-        token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: ${{ env.CHANGELOG }}
+          draft: false
+          prerelease: false
 
-    - name: Zip custom_components/renpho directory
-      run: zip -r renpho_custom_component.zip custom_components/renpho
+      - name: Zip custom_components/renpho directory
+        run: zip -r renpho_custom_component.zip custom_components/renpho
 
-    - name: Zip complete code
-      run: zip -r complete_code.zip .
+      - name: Zip complete code
+        run: zip -r complete_code.zip .
 
-    - name: Upload custom_components/renpho ZIP to Release
-      uses: actions/upload-release-asset@v1
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./renpho_custom_component.zip
-        asset_name: renpho_custom_component.zip
-        asset_content_type: application/zip
+      - name: Upload custom_components/renpho ZIP to Release
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./renpho_custom_component.zip
+          asset_name: renpho_custom_component.zip
+          asset_content_type: application/zip
 
-    - name: Upload complete code ZIP to Release
-      uses: actions/upload-release-asset@v1
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./complete_code.zip
-        asset_name: complete_code.zip
-        asset_content_type: application/zip
+      - name: Upload complete code ZIP to Release
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./complete_code.zip
+          asset_name: complete_code.zip
+          asset_content_type: application/zip
