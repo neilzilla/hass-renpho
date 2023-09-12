@@ -99,12 +99,6 @@ if __name__ == "__main__":
             renpho.get_info_sync()
             users = await renpho.get_scale_users()
             print("Fetched scale users:", users)
-            metric = await renpho.get_specific_metric_from_user_ID("weight", "bodyfat")
-            print("Fetched specific metric:", metric)
-            metric_for_user = await renpho.get_specific_metric_from_user_ID(
-                "weight", "bodyfat", "<user_id>"
-            )
-            print("Fetched specific metric for user:", metric_for_user)
             get_device_info = await renpho.get_device_info()
             print("Fetched device info:", get_device_info)
             list_growth_record = await renpho.list_growth_record()

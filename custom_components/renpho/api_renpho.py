@@ -5,7 +5,7 @@ import logging
 import time
 from base64 import b64encode
 from threading import Timer
-from typing import Dict, List, Optional, Union
+from typing import Callable, Dict, List, Optional, Union
 
 import aiohttp
 import requests
@@ -251,37 +251,40 @@ class RenphoWeight:
         self, metric_type: str, metric: str, user_id: Optional[str] = None
     ) -> Optional[float]:
         """
-        Fetch a specific metric for a particular user ID based on the type specified (weight, growth goal, or growth metric).
+        Fetch a specific metric for a particular user ID based on the type specified.
 
         Parameters:
-            metric_type (str): The type of metric to fetch ('weight', 'growth_goal', 'growth').
-            metric (str): The specific metric to fetch (e.g., "height", "growth_rate", "weight").
-            user_id (str, optional): The user ID for whom to fetch the metric. Defaults to None.
+            metric_type (str): The type of metric to fetch.
+            metric (str): The specific metric to fetch.
+            user_id (Optional[str]): The user ID for whom to fetch the metric. Defaults to None.
 
         Returns:
-            float, None: The fetched metric value, or None if it couldn't be fetched.
+            Optional[float]: The fetched metric value, or None if it couldn't be fetched.
         """
+
+        METRIC_TYPE_FUNCTIONS = {
+            METRIC_TYPE_WEIGHT: ("get_measurements", "last_ary"),
+            METRIC_TYPE_GIRTH: ("list_girth", "girths"),
+            METRIC_TYPE_GROWTH_GOAL: ("list_growth_goal", "growth_goals"),
+            METRIC_TYPE_GROWTH_RECORD: ("list_growth_record", "growths"),
+        }
+
         try:
             if user_id:
                 self.set_user_id(user_id)
 
-            if metric_type == METRIC_TYPE_WEIGHT:
-                last_measurement = await self.get_measurements()
-                return last_measurement[0].get(metric, None) if last_measurement else None
+            func_name, last_measurement_key = METRIC_TYPE_FUNCTIONS.get(metric_type, (None, None))
 
-            elif metric_type == METRIC_TYPE_GROWTH_GOAL:
-                growth_goal_info = await self.list_growth_goal()
-                last_goal = growth_goal_info.get("growth_goals", [])[0] if growth_goal_info.get("growth_goals") else None
-                return last_goal.get(metric, None) if last_goal else None
-
-            elif metric_type == METRIC_TYPE_GROWTH:
-                growth_info = await self.list_growth()
-                last_measurement = growth_info.get("growths", [])[0] if growth_info.get("growths") else None
-                return last_measurement.get(metric, None) if last_measurement else None
-
-            else:
-                _LOGGER.error(f"Invalid metric_type: {metric_type}. Must be one of {METRIC_TYPE_WEIGHT}, {METRIC_TYPE_GROWTH_GOAL}, or {METRIC_TYPE_GROWTH}.")
+            if func_name is None:
+                _LOGGER.error(f"Invalid metric_type: {metric_type}. Must be one of {list(METRIC_TYPE_FUNCTIONS.keys())}.")
                 return None
+
+            # Dynamically call the function
+            func: Callable = getattr(self, func_name)
+            metric_info = await func()
+
+            last_measurement = metric_info.get(last_measurement_key, [])[0] if metric_info.get(last_measurement_key) else None
+            return last_measurement.get(metric, None) if last_measurement else None
 
         except Exception as e:
             _LOGGER.error(f"An error occurred: {e}")
@@ -342,16 +345,48 @@ class RenphoWeight:
         url = f"{LATEST_MODEL_URL}?user_id={self.user_id}&last_updated_at={week_ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
         return await self._request("GET", url)
 
-    async def list_girth(self):
+    async def list_girth(self) -> Optional[dict]:
         """
         Asynchronously list girth information.
 
         Returns:
-            dict: The API response as a dictionary.
+            Optional[dict]: The API response as a dictionary, or None if the request fails.
         """
         week_ago_timestamp = self.get_week_ago_timestamp()
         url = f"{GIRTH_URL}?user_id={self.user_id}&last_updated_at={week_ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
-        return await self._request("GET", url)
+        try:
+            return await self._request("GET", url)
+        except Exception as e:
+            _LOGGER.error(f"An error occurred while listing girth: {e}")
+            return None
+
+
+    async def get_specific_girth_metric(
+        self, metric: str, user_id: Optional[str] = None
+    ) -> Optional[float]:
+        """
+        Fetch a specific girth metric for a particular user ID based on the most recent girth information.
+
+        Parameters:
+            metric (str): The specific metric to fetch (e.g., "waist", "hip").
+            user_id (Optional[str]): The user ID for whom to fetch the metric. Defaults to None.
+
+        Returns:
+            Optional[float]: The fetched metric value, or None if it couldn't be fetched.
+        """
+        try:
+            if user_id:
+                self.set_user_id(user_id)
+            girth_info = await self.list_girth()
+            last_measurement = (
+                girth_info.get("girths", [])[0]
+                if girth_info.get("girths")
+                else None
+            )
+            return last_measurement.get(metric, None) if last_measurement else None
+        except Exception as e:
+            _LOGGER.error(f"An error occurred: {e}")
+            return None
 
     async def list_girth_goal(self):
         """
@@ -364,25 +399,14 @@ class RenphoWeight:
         url = f"{GIRTH_GOAL_URL}?user_id={self.user_id}&last_updated_at={week_ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
         return await self._request("GET", url)
 
-    async def list_growth_goal(self):
-        """
-        Asynchronously list girth goal information.
-
-        Returns:
-            dict: The API response as a dictionary.
-        """
-        week_ago_timestamp = self.get_week_ago_timestamp()
-        url = f"{GIRTH_GOAL_URL}?user_id={self.user_id}&last_updated_at={week_ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
-        return await self._request("GET", url)
-
-    async def get_specific_growth_goal_metric(
+    async def get_specific_girth_goal_metric(
         self, metric: str, user_id: Optional[str] = None
     ) -> Optional[float]:
         """
-        Fetch a specific growth goal metric for a particular user ID from the most recent growth goal information.
+        Fetch a specific girth goal metric for a particular user ID from the most recent girth goal information.
 
         Parameters:
-            metric (str): The specific metric to fetch (e.g., "height_goal", "growth_rate_goal").
+            metric (str): The specific metric to fetch .
             user_id (str, optional): The user ID for whom to fetch the metric. Defaults to None.
 
         Returns:
@@ -390,11 +414,11 @@ class RenphoWeight:
         """
         try:
             if user_id:
-                self.set_user_id(user_id)  # Update the user_id if provided
-            growth_goal_info = await self.list_growth_goal()
+                self.set_user_id(user_id)
+            girth_goal_info = await self.list_girth_goal()
             last_goal = (
-                growth_goal_info.get("growth_goals", [])[0]
-                if growth_goal_info.get("growth_goals")
+                girth_goal_info.get("girth_goals", [])[0]
+                if girth_goal_info.get("girth_goals")
                 else None
             )
             return last_goal.get(metric, None) if last_goal else None

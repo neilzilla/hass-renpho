@@ -9,7 +9,7 @@ import voluptuous as vol
 from homeassistant import config_entries, exceptions
 from homeassistant.core import HomeAssistant
 
-from .const import CONF_EMAIL, CONF_PASSWORD, CONF_PUBLIC_KEY, CONF_USER_ID, DOMAIN
+from .const import CONF_EMAIL, CONF_PASSWORD, CONF_PUBLIC_KEY, CONF_REFRESH, CONF_USER_ID, DOMAIN
 from .api_renpho import RenphoWeight
 
 _LOGGER = logging.getLogger(__name__)

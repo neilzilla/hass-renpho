@@ -12,7 +12,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from homeassistant.util import slugify
 
-from .const import CM_TO_INCH, DOMAIN, KG_TO_LBS
+from .const import CM_TO_INCH, DOMAIN, KG_TO_LBS, METRIC_TYPE
 from .api_renpho import _LOGGER, RenphoWeight
 
 
@@ -757,9 +757,8 @@ class RenphoSensor(SensorEntity):
 
     async def async_update(self) -> None:
         """Update the sensor using the event loop for asynchronous code."""
-        METRIC_TYPES = ["weight", "growth", "growth_goal", ]  # Define all the types of metrics
-        for metric_type in METRIC_TYPES:
-            try:
+        try:
+            for metric_type in METRIC_TYPE:
                 metric_value = await self._renpho.get_specific_metric(
                     metric_type=metric_type,
                     metric=self._metric,
@@ -777,9 +776,9 @@ class RenphoSensor(SensorEntity):
 
                     _LOGGER.info(f"Successfully updated {self._name} for metric type {metric_type}")
 
-            except (ConnectionError, TimeoutError) as e:
-                _LOGGER.error(f"{type(e).__name__} occurred while updating {self._name} for metric type {metric_type}: {e}")
+        except (ConnectionError, TimeoutError) as e:
+            _LOGGER.error(f"{type(e).__name__} occurred while updating {self._name} for metric type {metric_type}: {e}")
 
-            except Exception as e:
-                _LOGGER.critical(f"An unexpected error occurred while updating {self._name} for metric type {metric_type}: {e}")
+        except Exception as e:
+            _LOGGER.critical(f"An unexpected error occurred while updating {self._name} for metric type {metric_type}: {e}")
 

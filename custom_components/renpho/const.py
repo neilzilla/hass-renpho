@@ -116,8 +116,16 @@ GIRTH_GOALS: Final = [
 ]
 
 METRIC_TYPE_WEIGHT: Final = "weight"
-METRIC_TYPE_GROWTH_GOAL: Final = "growth_goal"
-METRIC_TYPE_GROWTH: Final = "growth"
+METRIC_TYPE_GROWTH_RECORD: Final = "growth_record"
+METRIC_TYPE_GIRTH: Final = "girth"
+METRIC_TYPE_GIRTH_GOAL: Final = "girth_goal"
+
+METRIC_TYPE = [
+    METRIC_TYPE_WEIGHT,
+    METRIC_TYPE_GROWTH_RECORD,
+    METRIC_TYPE_GIRTH,
+    METRIC_TYPE_GIRTH_GOAL,
+]
 
 # Public key for encrypting the password
 CONF_PUBLIC_KEY: Final = """-----BEGIN PUBLIC KEY-----
