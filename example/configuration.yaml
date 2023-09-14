@@ -1,0 +1,8 @@
+renpho:
+  email: # email address
+  password: # password
+  refresh: 600
+  user_id: # user id
+
+sensor:
+  - platform: renpho

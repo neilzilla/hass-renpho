@@ -1,0 +1,4 @@
+pytest-homeassistant-custom-component
+pytest
+pytest-asyncio
+python-dotenv

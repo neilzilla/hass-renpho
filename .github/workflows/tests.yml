@@ -1,0 +1,31 @@
+name: Python Unittest Workflow Inside Home Assistant VM
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    container:
+      image: homeassistant/home-assistant:latest # Use Home Assistant's Docker image
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3
+        run: |
+          python3 -m ensurepip
+          python3 -m pip install --upgrade pip
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements_dev.txt
+          pip install -r requirements_test.txt
+      - name: Run Tests
+        run: |
+          python3 -m unittest discover
