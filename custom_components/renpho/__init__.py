@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-from const import (
+from .const import (
     CONF_EMAIL,
     CONF_PASSWORD,
     CONF_PUBLIC_KEY,
@@ -10,7 +10,7 @@ from const import (
     DOMAIN,
     EVENT_HOMEASSISTANT_STOP,
 )
-from api_renpho import RenphoWeight
+from .api_renpho import RenphoWeight
 
 
 # Initialize logger
@@ -104,6 +104,13 @@ if __name__ == "__main__":
             print("Fetched weight:", weight[0])
 
             specific_metric = await renpho.get_specific_metric('weight', 'weight')
+            print(f"Fetched specific metric: {specific_metric}")
+
+
+            specific_metric = await renpho.get_specific_metric('girth', 'neck_value')
+            print(f"Fetched specific metric: {specific_metric}")
+
+            specific_metric = await renpho.get_specific_metric('girth_goals', 'neck')
             print(f"Fetched specific metric: {specific_metric}")
 
             # await renpho.start_polling(refresh=1)

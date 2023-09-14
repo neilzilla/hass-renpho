@@ -13,7 +13,7 @@ import requests
 from Crypto.Cipher import PKCS1_v1_5
 from Crypto.PublicKey import RSA
 
-from const import METRIC_TYPE_GIRTH, METRIC_TYPE_GIRTH_GOAL, METRIC_TYPE_GROWTH_RECORD, METRIC_TYPE_WEIGHT
+from .const import METRIC_TYPE_GIRTH, METRIC_TYPE_GIRTH_GOAL, METRIC_TYPE_GROWTH_RECORD, METRIC_TYPE_WEIGHT
 
 # Initialize logging
 _LOGGER = logging.getLogger(__name__)
@@ -293,12 +293,13 @@ class RenphoWeight:
             if self.weight is not None:
                 return last_measurement[1].get(metric, None)
         try:
-            func_name, last_measurement_key = METRIC_TYPE_FUNCTIONS.get(
-                metric_type, ("weight", None))
+            if metric_type == METRIC_TYPE_GIRTH_GOAL:
+                return await self.get_specific_girth_goal_metric(metric, user_id)
+
+            func_name, last_measurement_key = METRIC_TYPE_FUNCTIONS.get(metric_type, ("weight", None))
 
             if func_name is None:
-                _LOGGER.error(
-                    f"Invalid metric_type: {metric_type}. Must be one of {list(METRIC_TYPE_FUNCTIONS.keys())}.")
+                _LOGGER.error(f"Invalid metric_type: {metric_type}. Must be one of {list(METRIC_TYPE_FUNCTIONS.keys())}.")
                 await self.close()
                 return None
 
@@ -312,8 +313,7 @@ class RenphoWeight:
             last_measurement = metric_info[last_measurement_key][0] if metric_info[last_measurement_key] else None
 
             if last_measurement is None:
-                _LOGGER.warning(
-                    f"Invalid response or '{last_measurement_key}' not in the response.")
+                _LOGGER.warning(f"Invalid response or '{last_measurement_key}' not in the response.")
                 await self.close()
                 return None
 
@@ -466,7 +466,7 @@ class RenphoWeight:
         Fetch a specific girth goal metric for a particular user ID from the most recent girth goal information.
 
         Parameters:
-            metric (str): The specific metric to fetch .
+            metric (str): The specific metric to fetch.
             user_id (str, optional): The user ID for whom to fetch the metric. Defaults to None.
 
         Returns:
@@ -475,13 +475,23 @@ class RenphoWeight:
         try:
             if user_id:
                 self.set_user_id(user_id)
+
             girth_goal_info = await self.list_girth_goal()
-            last_goal = (
-                girth_goal_info.get("girth_goals", [])[0]
-                if girth_goal_info.get("girth_goals")
-                else None
+
+            if not girth_goal_info or 'girth_goals' not in girth_goal_info:
+                return None
+
+            # Filter to find the specific metric
+            last_goal = next(
+                (goal for goal in girth_goal_info['girth_goals'] if goal['girth_type'] == metric),
+                None
             )
-            return last_goal.get(metric, None) if last_goal else None
+
+            if last_goal:
+                return last_goal.get('goal_value', None)
+
+            return None
+
         except Exception as e:
             await self.close()
             print(f"An error occurred: {e}")
