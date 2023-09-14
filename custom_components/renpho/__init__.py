@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-from .const import (
+from const import (
     CONF_EMAIL,
     CONF_PASSWORD,
     CONF_PUBLIC_KEY,
@@ -10,7 +10,7 @@ from .const import (
     DOMAIN,
     EVENT_HOMEASSISTANT_STOP,
 )
-from .api_renpho import RenphoWeight
+from api_renpho import RenphoWeight
 
 
 # Initialize logger
@@ -58,12 +58,6 @@ async def setup_renpho(hass, conf):
     user_id = conf.get(CONF_USER_ID, None)
     refresh = conf.get(CONF_REFRESH, 600)
     renpho = RenphoWeight(CONF_PUBLIC_KEY, email, password, user_id, refresh)
-
-    # @callback
-    # def async_on_start(event):
-    #     hass.async_create_task(async_prepare(hass, renpho, refresh))
-
-    # hass.bus.async_listen_once(EVENT_HOMEASSISTANT_START, async_on_start)
     hass.data[DOMAIN] = renpho
 
 
@@ -75,8 +69,7 @@ async def async_prepare(hass, renpho, refresh):
 
 async def async_cleanup(renpho):
     """Cleanup logic."""
-    await renpho.stop_polling()
-
+    await renpho.close()
 
 # ------------------- Main Method for Testing -------------------
 
@@ -84,39 +77,70 @@ if __name__ == "__main__":
 
     async def main():
         import os
-
         from dotenv import load_dotenv
 
         load_dotenv()
+
         email = os.environ.get("EMAIL")
         password = os.environ.get("PASSWORD")
         user_id = os.environ.get("USER_ID", None)
+
+        renpho = RenphoWeight(CONF_PUBLIC_KEY, email, password, user_id)
+
         try:
-            renpho = RenphoWeight(CONF_PUBLIC_KEY, email, password, user_id)
-            print("Before polling")
-            renpho.start_polling(10)
-            print("After polling")
-            renpho.get_info_sync()
+            await renpho.auth()
+            print("Authentication successful.")
+
+            await renpho.get_info()
+            print("Fetched user info.")
+
             users = await renpho.get_scale_users()
             print("Fetched scale users:", users)
-            get_device_info = await renpho.get_device_info()
-            print("Fetched device info:", get_device_info)
-            list_growth_record = await renpho.list_growth_record()
-            print("Fetched list growth record:", list_growth_record)
-            list_girth = await renpho.list_girth()
-            print("Fetched list girth:", list_girth)
-            list_girth_goal = await renpho.list_girth_goal()
-            print("Fetched list girth goal:", list_girth_goal)
-            message_list = await renpho.message_list()
-            list_growth_record = await renpho.list_growth_record()
-            print("Fetched list growth record:", list_growth_record)
-            print("Fetched message list:", message_list)
-            info = await renpho.get_info()
-            print("Fetched info:", info)
+
+            measurements = await renpho.get_measurements()
+            print("Fetched measurements:", measurements)
+
+            weight = await renpho.get_weight()
+            print("Fetched weight:", weight[0])
+
+            specific_metric = await renpho.get_specific_metric('weight', 'weight')
+            print(f"Fetched specific metric: {specific_metric}")
+
+            # await renpho.start_polling(refresh=1)
+            # print("Started polling.")
+
+            # await renpho.stop_polling()
+            # print("Stopped polling.")
+
+            device_info = await renpho.get_device_info()
+            print("Fetched device info:", device_info)
+
+            latest_model = await renpho.list_latest_model()
+            print("Fetched latest model:", latest_model)
+
+            girth_info = await renpho.list_girth()
+            print("Fetched girth info:", girth_info)
+
+            girth_goal = await renpho.list_girth_goal()
+            print("Fetched girth goal:", girth_goal)
+
+            growth_record = await renpho.list_growth_record()
+            print("Fetched growth record:", growth_record)
+
+            messages = await renpho.message_list()
+            print("Fetched message list:", messages)
+
+            # request_user = await renpho.request_user()
+            # print("Fetched request user:", request_user)
+
+            # reach_goal = await renpho.reach_goal()
+            # print("Fetched reach_goal:", reach_goal)
+
         except Exception as e:
             print(f"An exception occurred: {e}")
 
-        input("Press Enter to stop polling")
-        renpho.stop_polling()
+        finally:
+            input("Press Enter to stop polling")
+            await renpho.close()  # This method also stops polling as per your class definition
 
     asyncio.run(main())

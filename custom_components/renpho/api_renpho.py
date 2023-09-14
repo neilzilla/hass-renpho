@@ -6,13 +6,14 @@ import time
 from base64 import b64encode
 from threading import Timer
 from typing import Callable, Dict, List, Optional, Union
+import traceback
 
 import aiohttp
 import requests
 from Crypto.Cipher import PKCS1_v1_5
 from Crypto.PublicKey import RSA
 
-from .const import METRIC_TYPE_GROWTH, METRIC_TYPE_GROWTH_GOAL, METRIC_TYPE_WEIGHT
+from const import METRIC_TYPE_GIRTH, METRIC_TYPE_GIRTH_GOAL, METRIC_TYPE_GROWTH_RECORD, METRIC_TYPE_WEIGHT
 
 # Initialize logging
 _LOGGER = logging.getLogger(__name__)
@@ -28,10 +29,9 @@ GIRTH_GOAL_URL = "https://renpho.qnclouds.com/api/v3/girth_goals/list_girth_goal
 GROWTH_RECORD_URL = (
     "https://renpho.qnclouds.com/api/v3/growth_records/list_growth_record.json"
 )
-GROWTH_GOAL_URL = (
-    "https://renpho.qnclouds.com/api/v3/growth_goals/list_growth_goal.json"
-)
 MESSAGE_LIST_URL = "https://renpho.qnclouds.com/api/v2/messages/list.json"
+USER_REQUEST_URL = "https://renpho.qnclouds.com/api/v2/users/request_user.json"
+USERS_REACH_GOAL = "https://renpho.qnclouds.com/api/v3/users/reach_goal.json"
 
 
 class RenphoWeight:
@@ -48,7 +48,7 @@ class RenphoWeight:
         session_key (str): The session key obtained after successful authentication.
     """
 
-    def __init__(self, public_key, email, password, user_id=None, refresh=None):
+    def __init__(self, public_key, email, password, user_id=None, refresh=60):
         """Initialize a new RenphoWeight instance."""
         self.public_key = public_key
         self.email = email
@@ -59,9 +59,9 @@ class RenphoWeight:
         self.weight = None
         self.time_stamp = None
         self.session_key = None
-        if refresh is None:
-            self.refresh = 60
+        self.refresh = refresh
         self.session = aiohttp.ClientSession()
+        self.is_polling_active = False
 
     def set_user_id(self, user_id):
         """
@@ -91,68 +91,88 @@ class RenphoWeight:
             return data
 
     async def _request(self, method: str, url: str, **kwargs) -> Union[Dict, List]:
+        """
+        Asynchronous function to make API requests.
+
+        Parameters:
+            method (str): The HTTP method to use ('GET', 'POST', etc.)
+            url (str): The URL to send the request to.
+            **kwargs: Additional keyword arguments to pass to the aiohttp request.
+
+        Returns:
+            Union[Dict, List]: The parsed JSON response from the API as a dictionary or list.
+
+        Raises:
+            APIError: Custom exception for API-related errors.
+        """
         try:
+            # Initialize session if it does not exist
+            if self.session is None:
+                self.session = aiohttp.ClientSession()
+
+            # Authenticate if session_key is missing, except for the auth URL itself
+            if self.session_key is None and method != "POST" and url != API_AUTH_URL:
+                _LOGGER.warning(
+                    "No session key found. Attempting to authenticate.")
+                await self.auth()
+
+            # Prepare the data for the API request
             kwargs = self.prepare_data(kwargs)
-            # Reuse session
+
+            # Send the request and wait for the response
             async with self.session.request(method, url, **kwargs) as response:
                 response.raise_for_status()
                 parsed_response = await response.json()
 
+                # Handle specific status code 40302
                 if parsed_response.get("status_code") == "40302":
-                    await self.auth()
+                    _LOGGER.warning(
+                        "Received 40302 status code. Attempting to re-authenticate.")
 
                 return parsed_response
+
+        except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError) as e:
+            _LOGGER.error(f"Client error: {e}")
+            raise APIError(f"API request failed {method} {url}")
+
         except Exception as e:
-            _LOGGER.error(f"Error in request: {e}")
-            raise APIError("API request failed")  # Raise a custom exception
-
-    def _request_sync(self, method: str, url: str, **kwargs) -> Union[Dict, List]:
-        try:
-            kwargs = self.prepare_data(kwargs)  # Update this line
-            response = requests.request(method, url, **kwargs)
-            response.raise_for_status()
-            return response.json()
-        except Exception as e:
-            _LOGGER.error(f"Error in request: {e}")
-            raise  # Or raise a custom exception
-
-    def auth_sync(self):
-        """
-        Authenticate with the Renpho API to obtain a session key.
-        """
-        if not self.email or not self.password:
-            raise Exception("Email and password must be provided")
-
-        key = RSA.importKey(self.public_key)
-        cipher = PKCS1_v1_5.new(key)
-        encrypted_password = b64encode(cipher.encrypt(self.password.encode("utf-8")))
-
-        data = {"secure_flag": 1, "email": self.email, "password": encrypted_password}
-        parsed = self._request_sync("POST", API_AUTH_URL, data=data)
-
-        if "terminal_user_session_key" not in parsed:
-            raise AuthenticationError("Authentication failed")
-
-        self.session_key = parsed["terminal_user_session_key"]
-        return parsed
+            _LOGGER.error(f"Unexpected error: {e}")
+            raise APIError(f"API request failed {method} {url}")
 
     async def auth(self):
-        """
-        Authenticate with the Renpho API to obtain a session key.
-        """
         if not self.email or not self.password:
+            await self.close()
             raise AuthenticationError("Email and password must be provided")
+
+        # Check if public_key is None
+        if self.public_key is None:
+            _LOGGER.error("Public key is None.")
+            await self.close()
+            raise AuthenticationError("Public key is None.")
 
         key = RSA.importKey(self.public_key)
         cipher = PKCS1_v1_5.new(key)
-        encrypted_password = b64encode(cipher.encrypt(self.password.encode("utf-8")))
+        encrypted_password = b64encode(
+            cipher.encrypt(self.password.encode("utf-8")))
 
-        data = {"secure_flag": "1", "email": self.email, "password": encrypted_password}
+        data = {"secure_flag": "1", "email": self.email,
+                "password": encrypted_password}
         parsed = await self._request("POST", API_AUTH_URL, json=data)
 
-        if "terminal_user_session_key" not in parsed:
-            raise AuthenticationError("Authentication failed")
+        # Check if parsed object is None
+        if parsed is None:
+            _LOGGER.error("Parsed object is None.")
+            await self.close()
+            raise AuthenticationError("Received NoneType object.")
 
+        # Check for 'terminal_user_session_key'
+        if "terminal_user_session_key" not in parsed:
+            _LOGGER.error(
+                "'terminal_user_session_key' not found in parsed object.")
+            await self.close()
+            raise AuthenticationError("'terminal_user_session_key' missing.")
+
+        # If everything is fine, set the session_key
         self.session_key = parsed["terminal_user_session_key"]
         return parsed
 
@@ -167,15 +187,6 @@ class RenphoWeight:
         except Exception as e:
             _LOGGER.error(f"Validation failed: {e}")
             return False
-
-    def get_scale_users_sync(self):
-        """
-        Fetch the list of users associated with the scale.
-        """
-        url = f"{API_SCALE_USERS_URL}?locale=en&terminal_user_session_key={self.session_key}"
-        parsed = self._request_sync("GET", url)
-        self.set_user_id(parsed["scale_users"][0]["user_id"])
-        return parsed["scale_users"]
 
     async def get_scale_users(self):
         """
@@ -199,32 +210,17 @@ class RenphoWeight:
             _LOGGER.error(f"An unexpected error occurred: {e}")
         return None
 
-    def get_measurements_sync(self) -> Optional[List[Dict]]:
-        """
-        Fetch the most recent weight measurements for the user.
-        """
-        try:
-            today = datetime.date.today()
-            week_ago = today - datetime.timedelta(days=7)
-            week_ago_timestamp = int(time.mktime(week_ago.timetuple()))
-            url = f"{API_MEASUREMENTS_URL}?user_id={self.user_id}&last_at={week_ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
-            parsed = self._request_sync("GET", url)
-
-            if "last_ary" not in parsed:
-                _LOGGER.warning(f"Field 'last_ary' is not in the response: {parsed}")
-                return None
-
-            last_measurement = parsed["last_ary"][0]
-            self.weight = last_measurement.get("weight", None)
-            self.time_stamp = last_measurement.get("time_stamp", None)
-            return parsed["last_ary"]
-        except Exception as e:
-            _LOGGER.error(f"An error occurred: {e}")
-            return None
-
     async def get_measurements(self) -> Optional[List[Dict]]:
         """
-        Fetch the most recent weight measurements for the user.
+        Asynchronously fetches the most recent weight measurements for the user.
+
+        Returns:
+            Optional[List[Dict]]: A list of dictionaries containing the most recent weight measurements for the user.
+                                Returns None if the request fails or if 'last_ary' is not present in the response.
+
+        Raises:
+            aiohttp.ClientError: For client-related errors.
+            Exception: For any other unexpected errors.
         """
         try:
             today = datetime.date.today()
@@ -233,19 +229,40 @@ class RenphoWeight:
             url = f"{API_MEASUREMENTS_URL}?user_id={self.user_id}&last_at={week_ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
             parsed = await self._request("GET", url)
 
-            if not parsed or "last_ary" not in parsed:
-                _LOGGER.warning("Invalid response or 'last_ary' not in the response.")
+            if not parsed:
+                _LOGGER.error(f"Invalid response {url}")
+                await self.close()
                 return None
 
-            last_measurement = parsed["last_ary"][0]
-            self.weight = last_measurement.get("weight", None)
-            self.time_stamp = last_measurement.get("time_stamp", None)
+            if "last_ary" not in parsed:
+                _LOGGER.warning(f"Invalid response or 'last_ary' not in the response. {url}")
+                await self.close()
+                return None
+
+            last_measurement = parsed['last_ary'][0] if parsed['last_ary'] else None
+
+            if last_measurement and isinstance(last_measurement, dict):
+                self.weight = last_measurement.get("weight", None)
+                self.time_stamp = last_measurement.get("time_stamp", None)
+            else:
+                _LOGGER.warning("Invalid last_measurement value.")
+                self.weight = None
+                self.time_stamp = None
+
             return parsed["last_ary"]
+
         except aiohttp.ClientError as e:
-            _LOGGER.error(f"Aiohttp client error: {e}")
+            _LOGGER.error(f"Aiohttp client error: {e} {url}")
+            await self.close()
+            return None
         except Exception as e:
-            _LOGGER.error(f"An unexpected error occurred: {e}")
-        return None
+            _LOGGER.error(f"An unexpected error occurred: {e} {url}")
+            await self.close()
+            return None
+
+    async def get_weight(self):
+        last_measurement = await self.get_measurements()
+        return self.weight, last_measurement[0] if last_measurement else None
 
     async def get_specific_metric(
         self, metric_type: str, metric: str, user_id: Optional[str] = None
@@ -263,41 +280,49 @@ class RenphoWeight:
         """
 
         METRIC_TYPE_FUNCTIONS = {
-            METRIC_TYPE_WEIGHT: ("get_measurements", "last_ary"),
             METRIC_TYPE_GIRTH: ("list_girth", "girths"),
-            METRIC_TYPE_GROWTH_GOAL: ("list_growth_goal", "growth_goals"),
+            METRIC_TYPE_GIRTH_GOAL: ("list_girth_goal", "girth_goals"),
             METRIC_TYPE_GROWTH_RECORD: ("list_growth_record", "growths"),
         }
 
-        try:
-            if user_id:
-                self.set_user_id(user_id)
+        if user_id:
+            self.set_user_id(user_id)
 
-            func_name, last_measurement_key = METRIC_TYPE_FUNCTIONS.get(metric_type, (None, None))
+        if metric_type == METRIC_TYPE_WEIGHT:
+            last_measurement = await self.get_weight()
+            if self.weight is not None:
+                return last_measurement[1].get(metric, None)
+        try:
+            func_name, last_measurement_key = METRIC_TYPE_FUNCTIONS.get(
+                metric_type, ("weight", None))
 
             if func_name is None:
-                _LOGGER.error(f"Invalid metric_type: {metric_type}. Must be one of {list(METRIC_TYPE_FUNCTIONS.keys())}.")
+                _LOGGER.error(
+                    f"Invalid metric_type: {metric_type}. Must be one of {list(METRIC_TYPE_FUNCTIONS.keys())}.")
+                await self.close()
                 return None
 
-            # Dynamically call the function
             func: Callable = getattr(self, func_name)
             metric_info = await func()
 
-            last_measurement = metric_info.get(last_measurement_key, [])[0] if metric_info.get(last_measurement_key) else None
-            return last_measurement.get(metric, None) if last_measurement else None
+            if metric_info is None or last_measurement_key not in metric_info:
+                await self.close()
+                return None
+
+            last_measurement = metric_info[last_measurement_key][0] if metric_info[last_measurement_key] else None
+
+            if last_measurement is None:
+                _LOGGER.warning(
+                    f"Invalid response or '{last_measurement_key}' not in the response.")
+                await self.close()
+                return None
+
+            return last_measurement.get(metric, None)
 
         except Exception as e:
-            _LOGGER.error(f"An error occurred: {e}")
+            _LOGGER.error(f"An error occurred: {e} {metric_type} {metric}")
+            await self.close()
             return None
-
-    def get_info_sync(self):
-        """
-        Wrapper method to authenticate, fetch users, and get measurements.
-        """
-        self.auth_sync()
-        self.get_scale_users_sync()
-        self.get_measurements_sync()
-        return self.get_measurements_sync()
 
     async def get_info(self):
         """
@@ -307,22 +332,46 @@ class RenphoWeight:
         await self.get_scale_users()
         return await self.get_measurements()
 
-    async def start_polling(self, polling_interval=60):
+    async def start_polling(self, refresh=0):
         """
         Start polling for weight data at a given interval.
         """
-        await self.get_info()
-        polling_interval = polling_interval if polling_interval > 0 else 60
-        while True:
-            await asyncio.sleep(self.refresh)
+        if refresh <= 0:
+            refresh = self.refresh
+        self.is_polling_active = True
+        refresh = refresh if refresh > 0 else 60  # Update local variable
+        try:
             await self.get_info()
+            while True:
+                await asyncio.sleep(refresh)  # Use local variable
+                await self.get_info()
+        except Exception as e:
+            _LOGGER.error(f"An exception occurred during polling: {e}")
+            self.stop_polling()  # Stop polling
+        finally:
+            await self.close()  # Close session
+
 
     def stop_polling(self):
         """
         Stop polling for weight data.
         """
-        if hasattr(self, "polling"):
-            self.polling.cancel()
+        if self.is_polling_active:
+            if hasattr(self, "polling"):
+                try:
+                    # Check if 'polling' is a Timer object or similar with a 'cancel' method
+                    if callable(getattr(self.polling, "cancel", None)):
+                        self.polling.cancel()
+                        _LOGGER.info("Successfully stopped polling.")
+                        self.is_polling_active = False
+                    else:
+                        _LOGGER.warning(
+                            "Attribute 'polling' exists but has no 'cancel' method.")
+                except Exception as e:
+                    _LOGGER.error(
+                        f"An error occurred while stopping polling: {e}")
+            else:
+                _LOGGER.warning("No active polling to stop.")
 
     async def get_device_info(self):
         """
@@ -332,7 +381,11 @@ class RenphoWeight:
         """
         week_ago_timestamp = self.get_week_ago_timestamp()
         url = f"{DEVICE_INFO_URL}?user_id={self.user_id}&last_updated_at={week_ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
-        return await self._request("GET", url)
+        try:
+            return await self._request("GET", url)
+        except Exception as e:
+            _LOGGER.error(f"An error occurred while listing device info: {e}")
+            return None
 
     async def list_latest_model(self):
         """
@@ -343,7 +396,11 @@ class RenphoWeight:
         """
         week_ago_timestamp = self.get_week_ago_timestamp()
         url = f"{LATEST_MODEL_URL}?user_id={self.user_id}&last_updated_at={week_ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
-        return await self._request("GET", url)
+        try:
+            return await self._request("GET", url)
+        except Exception as e:
+            _LOGGER.error(f"An error occurred while listing latest model: {e}")
+            return None
 
     async def list_girth(self) -> Optional[dict]:
         """
@@ -359,7 +416,6 @@ class RenphoWeight:
         except Exception as e:
             _LOGGER.error(f"An error occurred while listing girth: {e}")
             return None
-
 
     async def get_specific_girth_metric(
         self, metric: str, user_id: Optional[str] = None
@@ -397,7 +453,11 @@ class RenphoWeight:
         """
         week_ago_timestamp = self.get_week_ago_timestamp()
         url = f"{GIRTH_GOAL_URL}?user_id={self.user_id}&last_updated_at={week_ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
-        return await self._request("GET", url)
+        try:
+            return await self._request("GET", url)
+        except Exception as e:
+            _LOGGER.error(f"An error occurred: {e}")
+            return None
 
     async def get_specific_girth_goal_metric(
         self, metric: str, user_id: Optional[str] = None
@@ -423,6 +483,7 @@ class RenphoWeight:
             )
             return last_goal.get(metric, None) if last_goal else None
         except Exception as e:
+            await self.close()
             print(f"An error occurred: {e}")
             return None
 
@@ -434,7 +495,12 @@ class RenphoWeight:
         """
         week_ago_timestamp = self.get_week_ago_timestamp()
         url = f"{GROWTH_RECORD_URL}?user_id={self.user_id}&last_updated_at={week_ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
-        return await self._request("GET", url)
+        try:
+            return await self._request("GET", url)
+        except Exception as e:
+            await self.close()
+            print(f"An error occurred: {e}")
+            return None
 
     async def get_specific_growth_metric(
         self, metric: str, user_id: Optional[str] = None
@@ -460,19 +526,57 @@ class RenphoWeight:
             )
             return last_measurement.get(metric, None) if last_measurement else None
         except Exception as e:
+            await self.close()
             print(f"An error occurred: {e}")
             return None
 
+
     async def message_list(self):
+        """
+        Asynchronously list messages.
+        """
         week_ago_timestamp = self.get_week_ago_timestamp()
         url = f"{MESSAGE_LIST_URL}?user_id={self.user_id}&last_updated_at={week_ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
-        return await self._request("GET", url)
+        try:
+            return await self._request("GET", url)
+        except Exception as e:
+            await self.close()
+            print(f"An error occurred: {e}")
+            return None
+
+    async def request_user(self):
+        """
+        Asynchronously request user
+        """
+        week_ago_timestamp = self.get_week_ago_timestamp()
+        url = f"{USER_REQUEST_URL}?user_id={self.user_id}&last_updated_at={week_ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
+        try:
+            return await self._request("GET", url)
+        except Exception as e:
+            await self.close()
+            print(f"An error occurred: {e}")
+            return None
+
+    async def reach_goal(self):
+        """
+        Asynchronously reach_goal
+        """
+        week_ago_timestamp = self.get_week_ago_timestamp()
+        url = f"{USERS_REACH_GOAL}?user_id={self.user_id}&last_updated_at={week_ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
+        try:
+            return await self._request("GET", url)
+        except Exception as e:
+            await self.close()
+            print(f"An error occurred: {e}")
+            return None
 
     async def close(self):
         """
         Shutdown the executor when you are done using the RenphoWeight instance.
         """
-        await self.session.close()
+        self.stop_polling()  # Stop the polling
+        if self.session:
+            await self.session.close()  # Close the session
 
 
 class Interval(Timer):
@@ -487,10 +591,13 @@ class Interval(Timer):
         while not self.finished.wait(self.interval):
             self.function(*self.args, **self.kwargs)
 
-
 class AuthenticationError(Exception):
     pass
 
 
 class APIError(Exception):
+    pass
+
+
+class ClientSSLError(Exception):
     pass
