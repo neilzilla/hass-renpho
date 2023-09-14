@@ -1,4 +1,3 @@
-"""Platform for sensor integration."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -12,9 +11,10 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from homeassistant.util import slugify
 
+from sensor import RenphoSensor
+
 from const import CM_TO_INCH, DOMAIN, KG_TO_LBS, METRIC_TYPE, METRIC_TYPE_WEIGHT, METRIC_TYPE_GIRTH, METRIC_TYPE_GIRTH_GOAL
 from api_renpho import _LOGGER, RenphoWeight
-
 
 async def sensors_list(
     hass: HomeAssistant, config_entry: ConfigEntry
@@ -710,142 +710,3 @@ async def sensors_list(
     return [
         RenphoSensor(hass.data[DOMAIN], **config) for config in sensor_configurations
     ]
-
-
-async def async_setup(
-    hass: HomeAssistant,
-    config_entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
-):
-    sensor_entities = await sensors_list(hass, config_entry)
-    async_add_entities(sensor_entities)
-
-async def async_setup_entry(
-    hass: HomeAssistant,
-    config_entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
-):
-    """Setup sensor platform."""
-    sensor_entities = await sensors_list(hass, config_entry)
-    async_add_entities(sensor_entities)
-
-def setup_platform(
-    hass: HomeAssistant,
-    config: ConfigType,
-    add_entities: AddEntitiesCallback,
-    discovery_info: DiscoveryInfoType = None,
-):
-    sensor_entities = sensors_list(hass, discovery_info)
-    add_entities(sensor_entities)
-
-
-class RenphoSensor(SensorEntity):
-    def __init__(
-        self,
-        renpho: RenphoWeight,
-        id: str,
-        name: str,
-        unit: str,
-        category: str,
-        label: str,
-        metric: str,
-        convert_unit=False,
-    ) -> None:
-        self._renpho = renpho
-        self._metric = metric
-        self._id = id
-        self._name = f"Renpho {name}"
-        self._unit = unit
-        self._category = category
-        self._label = label
-        self._state = None
-        self._convert_unit = convert_unit
-        self._timestamp = None
-
-    @property
-    def unique_id(self) -> str:
-        """Return a unique ID."""
-        return f"renpho_{slugify(self._name)}"
-
-    @property
-    def device_state_attributes(self):
-        """Return the state attributes."""
-        return {
-            "timestamp": self._timestamp,
-            "category": self._category,
-            "label": self._label,
-        }
-
-    def convert_unit(self, value: Optional[float], unit: str) -> Optional[float]:
-        """Convert unit based on the conversion mapping."""
-        conversions = {"kg": value * KG_TO_LBS, "cm": value * CM_TO_INCH}
-        return conversions.get(unit, value)
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    @property
-    def state(self):
-        """Return the state of the sensor.
-        If the unit is kg or cm, convert to lbs or inch respectively.
-
-        """
-        if self._convert_unit:
-            if self._unit == MASS_KILOGRAMS:
-                return self.kg_to_lbs(self._state)
-            elif self._unit == "cm":
-                return self.cm_to_inch(self._state)
-        return self._state
-
-    @property
-    def unit(self) -> str:
-        """Return the unit of measurement.
-        If the unit is kg or cm, convert to lbs or inch respectively.
-
-        """
-        if self._convert_unit:
-            if self._unit == MASS_KILOGRAMS:
-                return "lbs"
-            elif self._unit == "cm":
-                return "inch"
-        return self._unit
-
-    @property
-    def category(self) -> str:
-        """Return the category of the sensor."""
-        return self._category
-
-    @property
-    def label(self) -> str:
-        """Return the label of the sensor."""
-        return self._label
-
-    async def async_update(self) -> None:
-        """Update the sensor using the event loop for asynchronous code."""
-        try:
-            metric_value = await self._renpho.get_specific_metric(
-                metric_type=self._metric,
-                metric=self._id,
-                user_id=None
-            )
-
-            if metric_value is not None:
-                self._state = metric_value
-
-                # Convert the unit if necessary
-                self._state = self.convert_unit(self._state, self._unit)
-
-                # Update the timestamp
-                self._timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-                _LOGGER.info(f"Successfully updated {self._name} for metric type {self._metric}")
-
-        except (ConnectionError, TimeoutError) as e:
-            _LOGGER.error(f"{type(e).__name__} occurred while updating {self._name} for metric type {self._metric}: {e}")
-
-        except Exception as e:
-            _LOGGER.critical(f"An unexpected error occurred while updating {self._name} for metric type {self._metric}: {e}")
-
-
-
