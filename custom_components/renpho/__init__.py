@@ -58,12 +58,14 @@ async def setup_renpho(hass, conf):
     user_id = conf.get(CONF_USER_ID, None)
     refresh = conf.get(CONF_REFRESH, 600)
     renpho = RenphoWeight(CONF_PUBLIC_KEY, email, password, user_id, refresh)
+    await renpho.get_info()
     hass.data[DOMAIN] = renpho
 
 
 async def async_prepare(hass, renpho, refresh):
     """Prepare and start polling."""
     await renpho.start_polling(refresh)
+    await renpho.get_info()
     hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, async_cleanup(renpho))
 
 
@@ -104,13 +106,6 @@ if __name__ == "__main__":
             print("Fetched weight:", weight[0])
 
             specific_metric = await renpho.get_specific_metric('weight', 'weight')
-            print(f"Fetched specific metric: {specific_metric}")
-
-
-            specific_metric = await renpho.get_specific_metric('girth', 'neck_value')
-            print(f"Fetched specific metric: {specific_metric}")
-
-            specific_metric = await renpho.get_specific_metric('girth_goals', 'neck')
             print(f"Fetched specific metric: {specific_metric}")
 
             # await renpho.start_polling(refresh=1)

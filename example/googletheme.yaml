@@ -11,20 +11,24 @@ views:
             title: Vital Stats
             entities:
               - entity: sensor.renpho_weight
+                icon: mdi:scale
+                name: Weight
               - entity: sensor.renpho_bmi
+                icon: mdi:human
+                name: BMI
               - entity: sensor.renpho_bmr
+                icon: mdi:fire
+                name: BMR
               - entity: sensor.renpho_body_age
-              - entity: sensor.renpho_heart_rate
-            state_color: false
+                icon: mdi:calendar
+                name: Body Age
+            state_color: true
             theme: Google Theme
           - type: sensor
-            entity: sensor.renpho_weight
             graph: line
-            detail: 2
-            icon: mdi:weight
-            name: Weight Over Time
-            unit: kg
-      - type: horizontal-stack
+            entity: sensor.renpho_weight
+            hours_to_show: 72
+      - type: grid
         title: Body Composition
         cards:
           - type: gauge
@@ -32,25 +36,134 @@ views:
             min: 0
             max: 100
             name: Body Fat
+            icon: mdi:water-percent
+            severity:
+              red: 25-100
+              green: 0-15
+              yellow: 16-24
+            theme: Google Theme
+          - type: gauge
+            entity: sensor.renpho_visceral_fat
+            min: 0
+            max: 100
+            name: Visceral Fat
+            icon: mdi:heart-outline
+            theme: Google Theme
+          - type: gauge
+            entity: sensor.renpho_subcutaneous_fat
+            min: 0
+            max: 100
+            name: Subcutaneous Fat
+            icon: mdi:heart-pulse
             theme: Google Theme
           - type: gauge
             entity: sensor.renpho_muscle_mass
             min: 0
             max: 100
             name: Muscle Mass
-          - type: gauge
-            entity: sensor.renpho_resistance
-            min: 0
-            max: 1000
-            name: Resistance
+            icon: mdi:muscle
             theme: Google Theme
-      - type: entities
-        title: Other Metrics
-        entities:
-          - entity: sensor.renpho_visceral_fat
-          - entity: sensor.renpho_subcutaneous_fat
-          - entity: sensor.renpho_protein_content
-          - entity: sensor.renpho_cardiac_index
-          - entity: sensor.renpho_sport_flag
-        state_color: true
-        theme: Google Theme
+          - type: gauge
+            entity: sensor.renpho_water_content
+            min: 0
+            max: 100
+            name: Water Content
+            icon: mdi:water
+            theme: Google Theme
+          - type: gauge
+            entity: sensor.renpho_protein_content
+            min: 0
+            max: 100
+            name: Protein Content
+            icon: mdi:food-drumstick
+            theme: Google Theme
+      - type: vertical-stack
+        title: Girth Measurements
+        cards:
+          - type: entities
+            entities:
+              - entity: sensor.renpho_neck_value
+                icon: mdi:necklace
+                name: Neck Value
+              - entity: sensor.renpho_shoulder_value
+                icon: mdi:human-handsup
+                name: Shoulder Value
+              - entity: sensor.renpho_left_arm_value
+                icon: mdi:arm-flex
+                name: Left Arm Value
+              - entity: sensor.renpho_right_arm_value
+                icon: mdi:arm-flex
+                name: Right Arm Value
+              - entity: sensor.renpho_chest_value
+                icon: mdi:heart-outline
+                name: Chest Value
+              - entity: sensor.renpho_waist_value
+                icon: mdi:human-male
+                name: Waist Value
+              - entity: sensor.renpho_hip_value
+                icon: mdi:human-female
+                name: Hip Value
+              - entity: sensor.renpho_left_thigh_value
+                icon: mdi:human-male
+                name: Left Thigh Value
+              - entity: sensor.renpho_right_thigh_value
+                icon: mdi:human-male
+                name: Right Thigh Value
+              - entity: sensor.renpho_left_calf_value
+                icon: mdi:human-male
+                name: Left Calf Value
+              - entity: sensor.renpho_right_calf_value
+                icon: mdi:human-male
+                name: Right Calf Value
+              - entity: sensor.renpho_whr_value
+                icon: mdi:ratio
+                name: WHR Value
+              - entity: sensor.renpho_abdomen_value
+                icon: mdi:belly
+                name: Abdomen Value
+            theme: Google Theme
+      - type: vertical-stack
+        title: Girth Goals
+        cards:
+          - type: entities
+            entities:
+              - entity: sensor.renpho_neck_goal_value
+                icon: mdi:necklace
+                name: Neck Goal Value
+              - entity: sensor.renpho_shoulder_goal_value
+                icon: mdi:human-handsup
+                name: Shoulder Goal Value
+              - entity: sensor.renpho_left_arm_goal_value
+                icon: mdi:arm-flex
+                name: Left Arm Goal Value
+              - entity: sensor.renpho_right_arm_goal_value
+                icon: mdi:arm-flex
+                name: Right Arm Goal Value
+              - entity: sensor.renpho_chest_goal_value
+                icon: mdi:heart-outline
+                name: Chest Goal Value
+              - entity: sensor.renpho_waist_goal_value
+                icon: mdi:human-male
+                name: Waist Goal Value
+              - entity: sensor.renpho_hip_goal_value
+                icon: mdi:human-female
+                name: Hip Goal Value
+              - entity: sensor.renpho_left_thigh_goal_value
+                icon: mdi:human-male
+                name: Left Thigh Goal Value
+              - entity: sensor.renpho_right_thigh_goal_value
+                icon: mdi:human-male
+                name: Right Thigh Goal Value
+              - entity: sensor.renpho_left_calf_goal_value
+                icon: mdi:human-male
+                name: Left Calf Goal Value
+              - entity: sensor.renpho_right_calf_goal_value
+                icon: mdi:human-male
+                name: Right Calf Goal Value
+              - entity: sensor.renpho_whr_goal_value
+                icon: mdi:ratio
+                name: WHR Goal Value
+              - entity: sensor.renpho_abdomen_goal_value
+                icon: mdi:belly
+                name: Abdomen Goal Value
+            theme: Google Theme

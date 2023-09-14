@@ -92,15 +92,6 @@ class RenphoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             description_placeholders=placeholders,
         )
 
-    async def async_step_advanced_options(self, user_input=None):
-        # Implement advanced options step here
-        pass
-
-    async def async_step_select_device(self, user_input=None):
-        # Implement device selection step here
-        pass
-
-
 class CannotConnect(exceptions.HomeAssistantError):
     def __init__(self, reason: str = "", details: dict = None):
         super().__init__(self)
