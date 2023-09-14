@@ -537,54 +537,6 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH
         },
         {
-            "id": "left_arm_value",
-            "name": "Left Arm Value",
-            "unit": "cm",
-            "category": "Measurements",
-            "label": "Girth Measurements",
-            "metric": METRIC_TYPE_GIRTH
-        },
-        {
-            "id": "left_thigh_value",
-            "name": "Left Thigh Value",
-            "unit": "cm",
-            "category": "Measurements",
-            "label": "Girth Measurements",
-            "metric": METRIC_TYPE_GIRTH
-        },
-        {
-            "id": "left_calf_value",
-            "name": "Left Calf Value",
-            "unit": "cm",
-            "category": "Measurements",
-            "label": "Girth Measurements",
-            "metric": METRIC_TYPE_GIRTH
-        },
-        {
-            "id": "right_arm_value",
-            "name": "Right Arm Value",
-            "unit": "cm",
-            "category": "Measurements",
-            "label": "Girth Measurements",
-            "metric": METRIC_TYPE_GIRTH
-        },
-        {
-            "id": "right_thigh_value",
-            "name": "Right Thigh Value",
-            "unit": "cm",
-            "category": "Measurements",
-            "label": "Girth Measurements",
-            "metric": METRIC_TYPE_GIRTH
-        },
-        {
-            "id": "right_calf_value",
-            "name": "Right Calf Value",
-            "unit": "cm",
-            "category": "Measurements",
-            "label": "Girth Measurements",
-            "metric": METRIC_TYPE_GIRTH
-        },
-        {
             "id": "whr_value",
             "name": "WHR Value",
             "unit": "ratio",
