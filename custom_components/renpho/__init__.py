@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-from const import (
+from .const import (
     CONF_EMAIL,
     CONF_PASSWORD,
     CONF_PUBLIC_KEY,
@@ -10,7 +10,7 @@ from const import (
     DOMAIN,
     EVENT_HOMEASSISTANT_STOP,
 )
-from api_renpho import RenphoWeight
+from .api_renpho import RenphoWeight
 
 
 # Initialize logger
@@ -58,12 +58,14 @@ async def setup_renpho(hass, conf):
     user_id = conf.get(CONF_USER_ID, None)
     refresh = conf.get(CONF_REFRESH, 600)
     renpho = RenphoWeight(CONF_PUBLIC_KEY, email, password, user_id, refresh)
+    await renpho.get_info()
     hass.data[DOMAIN] = renpho
 
 
 async def async_prepare(hass, renpho, refresh):
     """Prepare and start polling."""
     await renpho.start_polling(refresh)
+    await renpho.get_info()
     hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, async_cleanup(renpho))
 
 

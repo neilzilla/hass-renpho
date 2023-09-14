@@ -13,8 +13,8 @@ from homeassistant.util import slugify
 
 from sensor import RenphoSensor
 
-from const import CM_TO_INCH, DOMAIN, KG_TO_LBS, METRIC_TYPE, METRIC_TYPE_WEIGHT, METRIC_TYPE_GIRTH, METRIC_TYPE_GIRTH_GOAL
-from api_renpho import _LOGGER, RenphoWeight
+from .const import CM_TO_INCH, DOMAIN, KG_TO_LBS, METRIC_TYPE, METRIC_TYPE_WEIGHT, METRIC_TYPE_GIRTH, METRIC_TYPE_GIRTH_GOAL
+from .api_renpho import _LOGGER, RenphoWeight
 
 async def sensors_list(
     hass: HomeAssistant, config_entry: ConfigEntry
@@ -465,8 +465,16 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH
         },
         {
-            "id": "arm_value",
-            "name": "Arm Value",
+            "id": "left_arm_value",
+            "name": "Left Arm Value",
+            "unit": "cm",
+            "category": "Measurements",
+            "label": "Girth Measurements",
+            "metric": METRIC_TYPE_GIRTH
+        },
+        {
+            "id": "right_arm_value",
+            "name": "Right Arm Value",
             "unit": "cm",
             "category": "Measurements",
             "label": "Girth Measurements",
@@ -497,16 +505,32 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH
         },
         {
-            "id": "thigh_value",
-            "name": "Thigh Value",
+            "id": "left_thigh_value",
+            "name": "Left Thigh Value",
             "unit": "cm",
             "category": "Measurements",
             "label": "Girth Measurements",
             "metric": METRIC_TYPE_GIRTH
         },
         {
-            "id": "calf_value",
-            "name": "Calf Value",
+            "id": "right_thigh_value",
+            "name": "Right Thigh Value",
+            "unit": "cm",
+            "category": "Measurements",
+            "label": "Girth Measurements",
+            "metric": METRIC_TYPE_GIRTH
+        },
+        {
+            "id": "left_calf_value",
+            "name": "Left Calf Value",
+            "unit": "cm",
+            "category": "Measurements",
+            "label": "Girth Measurements",
+            "metric": METRIC_TYPE_GIRTH
+        },
+        {
+            "id": "right_calf_value",
+            "name": "Right Calf Value",
             "unit": "cm",
             "category": "Measurements",
             "label": "Girth Measurements",

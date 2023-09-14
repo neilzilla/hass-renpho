@@ -9,8 +9,8 @@ import voluptuous as vol
 from homeassistant import config_entries, exceptions
 from homeassistant.core import HomeAssistant
 
-from const import CONF_EMAIL, CONF_PASSWORD, CONF_PUBLIC_KEY, CONF_REFRESH, CONF_USER_ID, DOMAIN
-from api_renpho import RenphoWeight
+from .const import CONF_EMAIL, CONF_PASSWORD, CONF_PUBLIC_KEY, CONF_REFRESH, CONF_USER_ID, DOMAIN
+from .api_renpho import RenphoWeight
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -91,15 +91,6 @@ class RenphoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
             description_placeholders=placeholders,
         )
-
-    async def async_step_advanced_options(self, user_input=None):
-        # Implement advanced options step here
-        pass
-
-    async def async_step_select_device(self, user_input=None):
-        # Implement device selection step here
-        pass
-
 
 class CannotConnect(exceptions.HomeAssistantError):
     def __init__(self, reason: str = "", details: dict = None):

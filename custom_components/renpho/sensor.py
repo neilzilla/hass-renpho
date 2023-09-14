@@ -12,8 +12,8 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from homeassistant.util import slugify
 
-from const import CM_TO_INCH, DOMAIN, KG_TO_LBS, METRIC_TYPE, METRIC_TYPE_WEIGHT, METRIC_TYPE_GIRTH, METRIC_TYPE_GIRTH_GOAL
-from api_renpho import _LOGGER, RenphoWeight
+from .const import CM_TO_INCH, DOMAIN, KG_TO_LBS, METRIC_TYPE, METRIC_TYPE_WEIGHT, METRIC_TYPE_GIRTH, METRIC_TYPE_GIRTH_GOAL
+from .api_renpho import _LOGGER, RenphoWeight
 
 
 async def sensors_list(
@@ -465,8 +465,16 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH
         },
         {
-            "id": "arm_value",
-            "name": "Arm Value",
+            "id": "left_arm_value",
+            "name": "Left Arm Value",
+            "unit": "cm",
+            "category": "Measurements",
+            "label": "Girth Measurements",
+            "metric": METRIC_TYPE_GIRTH
+        },
+        {
+            "id": "right_arm_value",
+            "name": "Right Arm Value",
             "unit": "cm",
             "category": "Measurements",
             "label": "Girth Measurements",
@@ -497,16 +505,32 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH
         },
         {
-            "id": "thigh_value",
-            "name": "Thigh Value",
+            "id": "left_thigh_value",
+            "name": "Left Thigh Value",
             "unit": "cm",
             "category": "Measurements",
             "label": "Girth Measurements",
             "metric": METRIC_TYPE_GIRTH
         },
         {
-            "id": "calf_value",
-            "name": "Calf Value",
+            "id": "right_thigh_value",
+            "name": "Right Thigh Value",
+            "unit": "cm",
+            "category": "Measurements",
+            "label": "Girth Measurements",
+            "metric": METRIC_TYPE_GIRTH
+        },
+        {
+            "id": "left_calf_value",
+            "name": "Left Calf Value",
+            "unit": "cm",
+            "category": "Measurements",
+            "label": "Girth Measurements",
+            "metric": METRIC_TYPE_GIRTH
+        },
+        {
+            "id": "right_calf_value",
+            "name": "Right Calf Value",
             "unit": "cm",
             "category": "Measurements",
             "label": "Girth Measurements",
@@ -578,7 +602,7 @@ async def sensors_list(
         },
         # Girth Goals
         {
-            "id": "neck_goal_value",
+            "id": "neck",
             "name": "Neck Goal Value",
             "unit": "cm",
             "category": "Goals",
@@ -586,7 +610,7 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH_GOAL
         },
         {
-            "id": "shoulder_goal_value",
+            "id": "shoulder",
             "name": "Shoulder Goal Value",
             "unit": "cm",
             "category": "Goals",
@@ -594,7 +618,7 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH_GOAL
         },
         {
-            "id": "arm_goal_value",
+            "id": "arm",
             "name": "Arm Goal Value",
             "unit": "cm",
             "category": "Goals",
@@ -602,7 +626,7 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH_GOAL
         },
         {
-            "id": "chest_goal_value",
+            "id": "chest",
             "name": "Chest Goal Value",
             "unit": "cm",
             "category": "Goals",
@@ -610,7 +634,7 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH_GOAL
         },
         {
-            "id": "waist_goal_value",
+            "id": "waist",
             "name": "Waist Goal Value",
             "unit": "cm",
             "category": "Goals",
@@ -618,7 +642,7 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH_GOAL
         },
         {
-            "id": "hip_goal_value",
+            "id": "hip",
             "name": "Hip Goal Value",
             "unit": "cm",
             "category": "Goals",
@@ -626,7 +650,7 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH_GOAL
         },
         {
-            "id": "thigh_goal_value",
+            "id": "thigh",
             "name": "Thigh Goal Value",
             "unit": "cm",
             "category": "Goals",
@@ -634,7 +658,7 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH_GOAL
         },
         {
-            "id": "calf_goal_value",
+            "id": "calf",
             "name": "Calf Goal Value",
             "unit": "cm",
             "category": "Goals",
@@ -642,7 +666,7 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH_GOAL
         },
         {
-            "id": "left_arm_goal_value",
+            "id": "left_arm",
             "name": "Left Arm Goal Value",
             "unit": "cm",
             "category": "Goals",
@@ -650,7 +674,7 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH_GOAL
         },
         {
-            "id": "left_thigh_goal_value",
+            "id": "left_thigh",
             "name": "Left Thigh Goal Value",
             "unit": "cm",
             "category": "Goals",
@@ -658,7 +682,7 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH_GOAL
         },
         {
-            "id": "left_calf_goal_value",
+            "id": "left_calf",
             "name": "Left Calf Goal Value",
             "unit": "cm",
             "category": "Goals",
@@ -666,7 +690,7 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH_GOAL
         },
         {
-            "id": "right_arm_goal_value",
+            "id": "right_arm",
             "name": "Right Arm Goal Value",
             "unit": "cm",
             "category": "Goals",
@@ -674,7 +698,7 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH_GOAL
         },
         {
-            "id": "right_thigh_goal_value",
+            "id": "right_thigh",
             "name": "Right Thigh Goal Value",
             "unit": "cm",
             "category": "Goals",
@@ -682,7 +706,7 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH_GOAL
         },
         {
-            "id": "right_calf_goal_value",
+            "id": "right_calf",
             "name": "Right Calf Goal Value",
             "unit": "cm",
             "category": "Goals",
@@ -690,7 +714,7 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH_GOAL
         },
         {
-            "id": "whr_goal_value",
+            "id": "whr",
             "name": "WHR Goal Value",
             "unit": "ratio",
             "category": "Goals",
@@ -698,7 +722,7 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH_GOAL
         },
         {
-            "id": "abdomen_goal_value",
+            "id": "abdomen",
             "name": "Abdomen Goal Value",
             "unit": "cm",
             "category": "Goals",
@@ -834,7 +858,8 @@ class RenphoSensor(SensorEntity):
                 self._state = metric_value
 
                 # Convert the unit if necessary
-                self._state = self.convert_unit(self._state, self._unit)
+                # if self._unit is not None or self._unit != "":
+                #     self._state = self.convert_unit(self._state, self._unit)
 
                 # Update the timestamp
                 self._timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -846,6 +871,3 @@ class RenphoSensor(SensorEntity):
 
         except Exception as e:
             _LOGGER.critical(f"An unexpected error occurred while updating {self._name} for metric type {self._metric}: {e}")
-
-
-

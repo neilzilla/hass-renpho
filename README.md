@@ -24,6 +24,8 @@ This custom component allows you to integrate Renpho's weight scale data into Ho
 
 ![Sensors](docs/images/renpho_google.png)
 
+![Complete View](docs/images/image.png)
+
 ## Table of Contents
 
 - [Prerequisites](#prerequisites)
