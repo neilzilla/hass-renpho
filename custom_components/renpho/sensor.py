@@ -11,6 +11,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from homeassistant.util import slugify
+from homeassistant.helpers.restore_state import RestoreEntity
+from homeassistant.util import dt as dt_util
 
 from .const import CM_TO_INCH, DOMAIN, KG_TO_LBS, METRIC_TYPE, METRIC_TYPE_WEIGHT, METRIC_TYPE_GIRTH, METRIC_TYPE_GIRTH_GOAL
 from .api_renpho import _LOGGER, RenphoWeight
@@ -798,7 +800,6 @@ class RenphoSensor(SensorEntity):
         return self._label
 
     async def async_update(self) -> None:
-        """Update the sensor using the event loop for asynchronous code."""
         try:
             metric_value = await self._renpho.get_specific_metric(
                 metric_type=self._metric,
@@ -806,17 +807,25 @@ class RenphoSensor(SensorEntity):
                 user_id=None
             )
 
-            if metric_value is not None:
-                self._state = metric_value
+            # Check if metric_value is None
+            if metric_value is None:
+                # _LOGGER.warning(f"Metric value is None for {self._name} and metric type {self._metric}")
+                return
 
-                # Convert the unit if necessary
-                # if self._unit is not None or self._unit != "":
-                #     self._state = self.convert_unit(self._state, self._unit)
+            self._state = metric_value
 
-                # Update the timestamp
-                self._timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            # Convert the unit if necessary
+            # if self._unit is not None and self._unit != "":
+            #     converted_value = self.convert_unit(self._state, self._unit)
+            #     if converted_value is not None:
+            #         self._state = converted_value
+            #     else:
+            #         _LOGGER.warning(f"Failed to convert unit for {self._name} and metric type {self._metric}")
 
-                _LOGGER.info(f"Successfully updated {self._name} for metric type {self._metric}")
+            # Update the timestamp
+            self._timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+            _LOGGER.info(f"Successfully updated {self._name} for metric type {self._metric}")
 
         except (ConnectionError, TimeoutError) as e:
             _LOGGER.error(f"{type(e).__name__} occurred while updating {self._name} for metric type {self._metric}: {e}")
