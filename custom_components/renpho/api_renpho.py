@@ -76,9 +76,9 @@ class RenphoWeight:
         return self.user_id
 
     @staticmethod
-    def get_timestamp(days=60) -> int:
-        ago = datetime.date.today() - datetime.timedelta(days=days)
-        return int(time.mktime(ago.timetuple()))
+    def get_ago_timestamp() -> int:
+        start_date = datetime.date(1998, 1, 1)
+        return int(time.mktime(start_date.timetuple()))
 
     def prepare_data(self, data):
         if isinstance(data, bytes):
@@ -223,8 +223,7 @@ class RenphoWeight:
             Exception: For any other unexpected errors.
         """
         try:
-            today = datetime.date.today()
-            ago_timestamp = self.get_ago_timestamp(60)
+            ago_timestamp = int(time.mktime(datetime.date(1998, 1, 1).timetuple()))
             url = f"{API_MEASUREMENTS_URL}?user_id={self.user_id}&last_at={ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
             parsed = await self._request("GET", url)
 
@@ -378,7 +377,7 @@ class RenphoWeight:
         Returns:
             dict: The API response as a dictionary.
         """
-        ago_timestamp = self.get_ago_timestamp(60)
+        week_ago_timestamp = self.get_ago_timestamp()
         url = f"{DEVICE_INFO_URL}?user_id={self.user_id}&last_updated_at={week_ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
         try:
             return await self._request("GET", url)
@@ -393,8 +392,8 @@ class RenphoWeight:
         Returns:
             dict: The API response as a dictionary.
         """
-        ago_timestamp = self.get_ago_timestamp(60)
-        url = f"{LATEST_MODEL_URL}?user_id={self.user_id}&last_updated_at={ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
+        week_ago_timestamp = self.get_ago_timestamp()
+        url = f"{LATEST_MODEL_URL}?user_id={self.user_id}&last_updated_at={week_ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
         try:
             return await self._request("GET", url)
         except Exception as e:
@@ -408,8 +407,8 @@ class RenphoWeight:
         Returns:
             Optional[dict]: The API response as a dictionary, or None if the request fails.
         """
-        ago_timestamp = self.get_ago_timestamp(60)
-        url = f"{GIRTH_URL}?user_id={self.user_id}&last_updated_at={ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
+        week_ago_timestamp = self.get_ago_timestamp()
+        url = f"{GIRTH_URL}?user_id={self.user_id}&last_updated_at={week_ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
         try:
             return await self._request("GET", url)
         except Exception as e:
@@ -450,8 +449,8 @@ class RenphoWeight:
         Returns:
             dict: The API response as a dictionary.
         """
-        ago_timestamp = self.get_ago_timestamp(60)
-        url = f"{GIRTH_GOAL_URL}?user_id={self.user_id}&last_updated_at={ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
+        week_ago_timestamp = self.get_ago_timestamp()
+        url = f"{GIRTH_GOAL_URL}?user_id={self.user_id}&last_updated_at={week_ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
         try:
             return await self._request("GET", url)
         except Exception as e:
@@ -502,8 +501,8 @@ class RenphoWeight:
         Returns:
             dict: The API response as a dictionary.
         """
-        ago_timestamp = self.get_ago_timestamp(60)
-        url = f"{GROWTH_RECORD_URL}?user_id={self.user_id}&last_updated_at={ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
+        week_ago_timestamp = self.get_ago_timestamp()
+        url = f"{GROWTH_RECORD_URL}?user_id={self.user_id}&last_updated_at={week_ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
         try:
             return await self._request("GET", url)
         except Exception as e:
@@ -544,8 +543,8 @@ class RenphoWeight:
         """
         Asynchronously list messages.
         """
-        ago_timestamp = self.get_ago_timestamp(60)
-        url = f"{MESSAGE_LIST_URL}?user_id={self.user_id}&last_updated_at={ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
+        week_ago_timestamp = self.get_ago_timestamp()
+        url = f"{MESSAGE_LIST_URL}?user_id={self.user_id}&last_updated_at={week_ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
         try:
             return await self._request("GET", url)
         except Exception as e:
@@ -557,8 +556,8 @@ class RenphoWeight:
         """
         Asynchronously request user
         """
-        ago_timestamp = self.get_ago_timestamp(60)
-        url = f"{USER_REQUEST_URL}?user_id={self.user_id}&last_updated_at={ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
+        week_ago_timestamp = self.get_ago_timestamp()
+        url = f"{USER_REQUEST_URL}?user_id={self.user_id}&last_updated_at={week_ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
         try:
             return await self._request("GET", url)
         except Exception as e:
@@ -570,8 +569,8 @@ class RenphoWeight:
         """
         Asynchronously reach_goal
         """
-        ago_timestamp = self.get_ago_timestamp(60)
-        url = f"{USERS_REACH_GOAL}?user_id={self.user_id}&last_updated_at={ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
+        week_ago_timestamp = self.get_ago_timestamp()
+        url = f"{USERS_REACH_GOAL}?user_id={self.user_id}&last_updated_at={week_ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
         try:
             return await self._request("GET", url)
         except Exception as e:
