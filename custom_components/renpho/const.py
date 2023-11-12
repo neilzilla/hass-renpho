@@ -118,7 +118,7 @@ GIRTH_GOALS: Final = [
 METRIC_TYPE_WEIGHT: Final = "weight"
 METRIC_TYPE_GROWTH_RECORD: Final = "growth_record"
 METRIC_TYPE_GIRTH: Final = "girth"
-METRIC_TYPE_GIRTH_GOAL: Final = "girth_goal"
+METRIC_TYPE_GIRTH_GOAL: Final = "girth_goals"
 
 METRIC_TYPE = [
     METRIC_TYPE_WEIGHT,

@@ -31,11 +31,14 @@ DATA_SCHEMA = vol.Schema(
 async def async_validate_input(hass: HomeAssistant, data: dict) -> dict[str, Any]:
     """Validate the user input allows us to connect."""
     _LOGGER.debug("Starting to validate input: %s", data)
+    user_id = data.get(CONF_USER_ID)
+    if data.get(CONF_USER_ID) == "OptionalUserID":
+        user_id = None
     renpho = RenphoWeight(
         CONF_PUBLIC_KEY,
         data[CONF_EMAIL],
         data[CONF_PASSWORD],
-        data.get(CONF_USER_ID),
+        user_id,
         data.get(CONF_REFRESH,60),
     )
     is_valid = await renpho.validate_credentials()
@@ -88,15 +91,6 @@ class RenphoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
             description_placeholders=placeholders,
         )
-
-    async def async_step_advanced_options(self, user_input=None):
-        # Implement advanced options step here
-        pass
-
-    async def async_step_select_device(self, user_input=None):
-        # Implement device selection step here
-        pass
-
 
 class CannotConnect(exceptions.HomeAssistantError):
     def __init__(self, reason: str = "", details: dict = None):

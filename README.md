@@ -10,7 +10,7 @@
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/antoinebou12/hass_renpho?color=41BDF5&style=for-the-badge)](https://github.com/antoinebou12/hass_renpho/releases/latest)
 [![Integration Usage](https://img.shields.io/badge/dynamic/json?color=41BDF5&style=for-the-badge&logo=home-assistant&label=usage&suffix=%20installs&cacheSeconds=15600&url=https://analytics.home-assistant.io/custom_integrations.json&query=$.hass_renpho.total)](https://analytics.home-assistant.io/custom_integrations.json&query=$.hass_renpho.total)
 
-USE V.1.0.0 Please
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=antoinebou12&repository=hass_renpho&category=Integration)
 
 ## Overview
 
@@ -24,6 +24,8 @@ This custom component allows you to integrate Renpho's weight scale data into Ho
 
 ![Sensors](docs/images/renpho_google.png)
 
+![Complete View](docs/images/image.png)
+
 ## Table of Contents
 
 - [Prerequisites](#prerequisites)
@@ -35,12 +37,9 @@ This custom component allows you to integrate Renpho's weight scale data into Ho
 
 ## Prerequisites
 
-1. You must have a Renpho account. If you don't have one, you can create one [here](https://renpho.com/).
-2. You must have a Renpho scale. If you don't have one, you can purchase one [here](https://renpho.com/collections/body-fat-scale).
-3. You must have the Renpho app installed on your mobile device. You can download it [here](https://play.google.com/store/apps/details?id=com.renpho.smart&hl=en_US&gl=US) for Android and [here](https://apps.apple.com/us/app/renpho/id1115563582) for iOS.
-4. You must have Home Assistant installed and running.
-5. You must have the [Home Assistant Community Store (HACS)](https://hacs.xyz/) installed and running.
-6. Visual Studio Code is recommended for editing the files.
+1. You must have a Renpho scale. If you don't have one, you can purchase one [here](https://renpho.com/collections/body-fat-scale).
+2. You must have the Renpho app installed on your mobile device. You can download it [here](https://play.google.com/store/apps/details?id=com.qingniu.renpho&hl=en_US&pli=1) for Android and [here](https://apps.apple.com/ca/app/renpho/id1219889310) for iOS.
+4. You must have the [Home Assistant Community Store (HACS)](https://hacs.xyz/) installed and running.
 
 ## Installation
 

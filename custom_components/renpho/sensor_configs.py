@@ -1,4 +1,3 @@
-"""Platform for sensor integration."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -11,12 +10,11 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from homeassistant.util import slugify
-from homeassistant.helpers.restore_state import RestoreEntity
-from homeassistant.util import dt as dt_util
+
+from sensor import RenphoSensor
 
 from .const import CM_TO_INCH, DOMAIN, KG_TO_LBS, METRIC_TYPE, METRIC_TYPE_WEIGHT, METRIC_TYPE_GIRTH, METRIC_TYPE_GIRTH_GOAL
 from .api_renpho import _LOGGER, RenphoWeight
-
 
 async def sensors_list(
     hass: HomeAssistant, config_entry: ConfigEntry
@@ -539,6 +537,54 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH
         },
         {
+            "id": "left_arm_value",
+            "name": "Left Arm Value",
+            "unit": "cm",
+            "category": "Measurements",
+            "label": "Girth Measurements",
+            "metric": METRIC_TYPE_GIRTH
+        },
+        {
+            "id": "left_thigh_value",
+            "name": "Left Thigh Value",
+            "unit": "cm",
+            "category": "Measurements",
+            "label": "Girth Measurements",
+            "metric": METRIC_TYPE_GIRTH
+        },
+        {
+            "id": "left_calf_value",
+            "name": "Left Calf Value",
+            "unit": "cm",
+            "category": "Measurements",
+            "label": "Girth Measurements",
+            "metric": METRIC_TYPE_GIRTH
+        },
+        {
+            "id": "right_arm_value",
+            "name": "Right Arm Value",
+            "unit": "cm",
+            "category": "Measurements",
+            "label": "Girth Measurements",
+            "metric": METRIC_TYPE_GIRTH
+        },
+        {
+            "id": "right_thigh_value",
+            "name": "Right Thigh Value",
+            "unit": "cm",
+            "category": "Measurements",
+            "label": "Girth Measurements",
+            "metric": METRIC_TYPE_GIRTH
+        },
+        {
+            "id": "right_calf_value",
+            "name": "Right Calf Value",
+            "unit": "cm",
+            "category": "Measurements",
+            "label": "Girth Measurements",
+            "metric": METRIC_TYPE_GIRTH
+        },
+        {
             "id": "whr_value",
             "name": "WHR Value",
             "unit": "ratio",
@@ -556,7 +602,7 @@ async def sensors_list(
         },
         # Girth Goals
         {
-            "id": "neck",
+            "id": "neck_goal_value",
             "name": "Neck Goal Value",
             "unit": "cm",
             "category": "Goals",
@@ -564,7 +610,7 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH_GOAL
         },
         {
-            "id": "shoulder",
+            "id": "shoulder_goal_value",
             "name": "Shoulder Goal Value",
             "unit": "cm",
             "category": "Goals",
@@ -572,7 +618,7 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH_GOAL
         },
         {
-            "id": "arm",
+            "id": "arm_goal_value",
             "name": "Arm Goal Value",
             "unit": "cm",
             "category": "Goals",
@@ -580,7 +626,7 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH_GOAL
         },
         {
-            "id": "chest",
+            "id": "chest_goal_value",
             "name": "Chest Goal Value",
             "unit": "cm",
             "category": "Goals",
@@ -588,7 +634,7 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH_GOAL
         },
         {
-            "id": "waist",
+            "id": "waist_goal_value",
             "name": "Waist Goal Value",
             "unit": "cm",
             "category": "Goals",
@@ -596,7 +642,7 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH_GOAL
         },
         {
-            "id": "hip",
+            "id": "hip_goal_value",
             "name": "Hip Goal Value",
             "unit": "cm",
             "category": "Goals",
@@ -604,7 +650,7 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH_GOAL
         },
         {
-            "id": "thigh",
+            "id": "thigh_goal_value",
             "name": "Thigh Goal Value",
             "unit": "cm",
             "category": "Goals",
@@ -612,7 +658,7 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH_GOAL
         },
         {
-            "id": "calf",
+            "id": "calf_goal_value",
             "name": "Calf Goal Value",
             "unit": "cm",
             "category": "Goals",
@@ -620,7 +666,7 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH_GOAL
         },
         {
-            "id": "left_arm",
+            "id": "left_arm_goal_value",
             "name": "Left Arm Goal Value",
             "unit": "cm",
             "category": "Goals",
@@ -628,7 +674,7 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH_GOAL
         },
         {
-            "id": "left_thigh",
+            "id": "left_thigh_goal_value",
             "name": "Left Thigh Goal Value",
             "unit": "cm",
             "category": "Goals",
@@ -636,7 +682,7 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH_GOAL
         },
         {
-            "id": "left_calf",
+            "id": "left_calf_goal_value",
             "name": "Left Calf Goal Value",
             "unit": "cm",
             "category": "Goals",
@@ -644,7 +690,7 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH_GOAL
         },
         {
-            "id": "right_arm",
+            "id": "right_arm_goal_value",
             "name": "Right Arm Goal Value",
             "unit": "cm",
             "category": "Goals",
@@ -652,7 +698,7 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH_GOAL
         },
         {
-            "id": "right_thigh",
+            "id": "right_thigh_goal_value",
             "name": "Right Thigh Goal Value",
             "unit": "cm",
             "category": "Goals",
@@ -660,7 +706,7 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH_GOAL
         },
         {
-            "id": "right_calf",
+            "id": "right_calf_goal_value",
             "name": "Right Calf Goal Value",
             "unit": "cm",
             "category": "Goals",
@@ -668,7 +714,7 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH_GOAL
         },
         {
-            "id": "whr",
+            "id": "whr_goal_value",
             "name": "WHR Goal Value",
             "unit": "ratio",
             "category": "Goals",
@@ -676,7 +722,7 @@ async def sensors_list(
             "metric": METRIC_TYPE_GIRTH_GOAL
         },
         {
-            "id": "abdomen",
+            "id": "abdomen_goal_value",
             "name": "Abdomen Goal Value",
             "unit": "cm",
             "category": "Goals",
@@ -688,147 +734,3 @@ async def sensors_list(
     return [
         RenphoSensor(hass.data[DOMAIN], **config) for config in sensor_configurations
     ]
-
-
-async def async_setup(
-    hass: HomeAssistant,
-    config_entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
-):
-    sensor_entities = await sensors_list(hass, config_entry)
-    async_add_entities(sensor_entities)
-
-async def async_setup_entry(
-    hass: HomeAssistant,
-    config_entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
-):
-    """Setup sensor platform."""
-    sensor_entities = await sensors_list(hass, config_entry)
-    async_add_entities(sensor_entities)
-
-def setup_platform(
-    hass: HomeAssistant,
-    config: ConfigType,
-    add_entities: AddEntitiesCallback,
-    discovery_info: DiscoveryInfoType = None,
-):
-    sensor_entities = sensors_list(hass, discovery_info)
-    add_entities(sensor_entities)
-
-
-class RenphoSensor(SensorEntity):
-    def __init__(
-        self,
-        renpho: RenphoWeight,
-        id: str,
-        name: str,
-        unit: str,
-        category: str,
-        label: str,
-        metric: str,
-        convert_unit=False,
-    ) -> None:
-        self._renpho = renpho
-        self._metric = metric
-        self._id = id
-        self._name = f"Renpho {name}"
-        self._unit = unit
-        self._category = category
-        self._label = label
-        self._state = None
-        self._convert_unit = convert_unit
-        self._timestamp = None
-
-    @property
-    def unique_id(self) -> str:
-        """Return a unique ID."""
-        return f"renpho_{slugify(self._name)}"
-
-    @property
-    def device_state_attributes(self):
-        """Return the state attributes."""
-        return {
-            "timestamp": self._timestamp,
-            "category": self._category,
-            "label": self._label,
-        }
-
-    def convert_unit(self, value: Optional[float], unit: str) -> Optional[float]:
-        """Convert unit based on the conversion mapping."""
-        conversions = {"kg": value * KG_TO_LBS, "cm": value * CM_TO_INCH}
-        return conversions.get(unit, value)
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    @property
-    def state(self):
-        """Return the state of the sensor.
-        If the unit is kg or cm, convert to lbs or inch respectively.
-
-        """
-        if self._convert_unit:
-            if self._unit == MASS_KILOGRAMS:
-                return self.kg_to_lbs(self._state)
-            elif self._unit == "cm":
-                return self.cm_to_inch(self._state)
-        return self._state
-
-    @property
-    def unit(self) -> str:
-        """Return the unit of measurement.
-        If the unit is kg or cm, convert to lbs or inch respectively.
-
-        """
-        if self._convert_unit:
-            if self._unit == MASS_KILOGRAMS:
-                return "lbs"
-            elif self._unit == "cm":
-                return "inch"
-        return self._unit
-
-    @property
-    def category(self) -> str:
-        """Return the category of the sensor."""
-        return self._category
-
-    @property
-    def label(self) -> str:
-        """Return the label of the sensor."""
-        return self._label
-
-    async def async_update(self) -> None:
-        try:
-            metric_value = await self._renpho.get_specific_metric(
-                metric_type=self._metric,
-                metric=self._id,
-                user_id=None
-            )
-
-            # Check if metric_value is None
-            if metric_value is None:
-                # _LOGGER.warning(f"Metric value is None for {self._name} and metric type {self._metric}")
-                return
-
-            self._state = metric_value
-
-            # Convert the unit if necessary
-            # if self._unit is not None and self._unit != "":
-            #     converted_value = self.convert_unit(self._state, self._unit)
-            #     if converted_value is not None:
-            #         self._state = converted_value
-            #     else:
-            #         _LOGGER.warning(f"Failed to convert unit for {self._name} and metric type {self._metric}")
-
-            # Update the timestamp
-            self._timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-            _LOGGER.info(f"Successfully updated {self._name} for metric type {self._metric}")
-
-        except (ConnectionError, TimeoutError) as e:
-            _LOGGER.error(f"{type(e).__name__} occurred while updating {self._name} for metric type {self._metric}: {e}")
-
-        except Exception as e:
-            _LOGGER.critical(f"An unexpected error occurred while updating {self._name} for metric type {self._metric}: {e}")
