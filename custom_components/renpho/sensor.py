@@ -698,23 +698,27 @@ async def async_setup(
     sensor_entities = await sensors_list(hass, config_entry)
     async_add_entities(sensor_entities)
 
+
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ):
-    """Setup sensor platform."""
-    sensor_entities = await sensors_list(hass, config_entry)
-    async_add_entities(sensor_entities)
+    hass.async_create_task(
+        hass.config_entries.async_forward_entry_setup(config_entry, "sensor")
+    )
+    return True
 
-def setup_platform(
+
+async def async_setup_platform(
     hass: HomeAssistant,
     config: ConfigType,
-    add_entities: AddEntitiesCallback,
+    async_add_entities: AddEntitiesCallback,
     discovery_info: DiscoveryInfoType = None,
 ):
-    sensor_entities = sensors_list(hass, discovery_info)
-    add_entities(sensor_entities)
+    """Set up the sensor platform asynchronously."""
+    sensor_entities = await sensors_list(hass, discovery_info)
+    async_add_entities(sensor_entities)
 
 
 class RenphoSensor(SensorEntity):

@@ -133,11 +133,11 @@ class RenphoWeight:
 
         except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError) as e:
             _LOGGER.error(f"Client error: {e}")
-            raise APIError(f"API request failed {method} {url}")
+            raise APIError(f"API request failed {method} {url}") from e
 
         except Exception as e:
             _LOGGER.error(f"Unexpected error: {e}")
-            raise APIError(f"API request failed {method} {url}")
+            raise APIError(f"API request failed {method} {url}") from e
 
     async def auth(self):
         if not self.email or not self.password:

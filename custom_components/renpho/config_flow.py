@@ -92,6 +92,7 @@ class RenphoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             description_placeholders=placeholders,
         )
 
+
 class CannotConnect(exceptions.HomeAssistantError):
     def __init__(self, reason: str = "", details: dict = None):
         super().__init__(self)
