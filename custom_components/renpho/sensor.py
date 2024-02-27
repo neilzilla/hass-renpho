@@ -159,7 +159,7 @@ class RenphoSensor(SensorEntity, CoordinatorEntity):
                 return
 
             # Update the coordinator data
-            if self._unit_of_measurement == MASS_POUNDS and self._unit == MASS_KILOGRAMS
+            if self._unit_of_measurement == MASS_POUNDS and self._unit == MASS_KILOGRAMS:
                 metric_value *= KG_TO_LBS
 
             self.coordinator.data[self._metric][self._id] = metric_value
