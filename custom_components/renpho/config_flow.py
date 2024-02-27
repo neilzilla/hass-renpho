@@ -1,120 +1,139 @@
-# config_flow.py
+# Constants for the Renpho integration
 
-from __future__ import annotations
+# The domain of the component. Used to store data in hass.data.
+from typing import Final
 
-import logging
-from typing import Any
+DOMAIN: Final = "renpho"
+VERSION: Final = "1.0.0"
+EVENT_HOMEASSISTANT_CLOSE: Final = "homeassistant_close"
+EVENT_HOMEASSISTANT_START: Final = "homeassistant_start"
+EVENT_HOMEASSISTANT_STARTED: Final = "homeassistant_started"
+EVENT_HOMEASSISTANT_STOP: Final = "homeassistant_stop"
+MASS_KILOGRAMS: Final = "kg"
+MASS_POUNDS: Final = "lbs"
+TIME_SECONDS: Final = "s"
 
-import voluptuous as vol
-from homeassistant import config_entries, exceptions
-from homeassistant.core import HomeAssistant
 
-from .const import (
-    CONF_EMAIL,
-    CONF_PASSWORD,
-    CONF_PUBLIC_KEY,
-    CONF_REFRESH,
-    CONF_UNIT_OF_MEASUREMENT,
-    CONF_USER_ID,
-    DOMAIN,
-    MASS_KILOGRAMS,
-    MASS_POUNDS,
+# Configuration keys
+CONF_EMAIL: Final = "email"  # The email used for Renpho login
+CONF_PASSWORD: Final = "password"  # The password used for Renpho login
+CONF_REFRESH: Final = "refresh"  # Refresh rate for pulling new data
+CONF_UNIT: Final = "unit"  # Unit of measurement for weight (kg/lbs)
+CONF_USER_ID: Final = (
+    "user_id"  # The ID of the user for whom weight data should be fetched
 )
-from .api_renpho import RenphoWeight
+CONF_UNIT_OF_MEASUREMENT = "unit_of_measurement"
 
-_LOGGER = logging.getLogger(__name__)
+KG_TO_LBS: Final = 2.20462
+CM_TO_INCH: Final = 0.393701
 
+# General Information Metrics
+ID: Final = "id"
+B_USER_ID: Final = "b_user_id"
+TIME_STAMP: Final = "time_stamp"
+CREATED_AT: Final = "created_at"
+CREATED_STAMP: Final = "created_stamp"
 
-DATA_SCHEMA = vol.Schema(
-    {
-        vol.Required(
-            CONF_EMAIL, description={"suggested_value": "example@email.com"}
-        ): str,
-        vol.Required(CONF_PASSWORD, description={"suggested_value": "Password"}): str,
-        vol.Optional(
-            CONF_USER_ID, description={"suggested_value": "OptionalUserID"}
-        ): str,
-        vol.Optional(CONF_REFRESH, description={"suggested_value": 60}): int,
-        vol.Optional(CONF_UNIT_OF_MEASUREMENT, default=MASS_KILOGRAMS): vol.In(
-            [MASS_KILOGRAMS, MASS_POUNDS]
-        ),
-    }
-)
+# Device Information Metrics
+SCALE_TYPE: Final = "scale_type"
+SCALE_NAME: Final = "scale_name"
+MAC: Final = "mac"
+INTERNAL_MODEL: Final = "internal_model"
+TIME_ZONE: Final = "time_zone"
 
+# User Profile Metrics
+GENDER: Final = "gender"
+HEIGHT: Final = "height"
+HEIGHT_UNIT: Final = "height_unit"
+BIRTHDAY: Final = "birthday"
 
-async def async_validate_input(hass: HomeAssistant, data: dict) -> dict[str, Any]:
-    """Validate the user input allows us to connect."""
-    _LOGGER.debug("Starting to validate input: %s", data)
-    user_id = data.get(CONF_USER_ID)
-    if data.get(CONF_USER_ID) == "OptionalUserID":
-        user_id = None
-    renpho = RenphoWeight(
-        CONF_PUBLIC_KEY,
-        data[CONF_EMAIL],
-        data[CONF_PASSWORD],
-        user_id,
-        data.get(CONF_REFRESH, 60),
-    )
-    is_valid = await renpho.validate_credentials()
-    if not is_valid:
-        raise CannotConnect(
-            reason="Invalid credentials",
-            details={
-                "email": data[CONF_EMAIL],
-            },
-        )
-    return {"title": data[CONF_EMAIL]}
+# Physical Metrics
+WEIGHT: Final = "weight"
+BMI: Final = "bmi"
+MUSCLE: Final = "muscle"
+BONE: Final = "bone"
+WAISTLINE: Final = "waistline"
+HIP: Final = "hip"
+STATURE: Final = "stature"
 
+# Body Composition Metrics
+BODYFAT: Final = "bodyfat"
+WATER: Final = "water"
+SUBFAT: Final = "subfat"
+VISFAT: Final = "visfat"
 
-class RenphoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    VERSION = 1
-    CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL
+# Metabolic Metrics
+BMR: Final = "bmr"
+PROTEIN: Final = "protein"
 
-    async def async_step_user(self, user_input=None):
-        errors = {}
+# Age Metrics
+BODYAGE: Final = "bodyage"
 
-        if user_input is not None:
-            try:
-                info = await async_validate_input(self.hass, user_input)
-                return self.async_create_entry(title=info["title"], data=user_input)
+GIRTH_METRICS: Final = [
+    "neck_value",
+    "shoulder_value",
+    "arm_value",
+    "chest_value",
+    "waist_value",
+    "hip_value",
+    "thigh_value",
+    "calf_value",
+    "left_arm_value",
+    "left_thigh_value",
+    "left_calf_value",
+    "right_arm_value",
+    "right_thigh_value",
+    "right_calf_value",
+    "whr_value",
+    "abdomen_value",
+    "custom",
+    "custom_value",
+    "custom_unit",
+    "custom1",
+    "custom_value1",
+    "custom_unit1",
+    "custom2",
+    "custom_value2",
+    "custom_unit2",
+    "custom3",
+    "custom_value3",
+    "custom_unit3",
+    "custom4",
+    "custom_value4",
+    "custom_unit4",
+    "custom5",
+    "custom_value5",
+    "custom_unit5",
+]
 
-            except CannotConnect as e:
-                errors["base"] = "cannot_connect"
-                _LOGGER.error(
-                    f"Cannot connect due to {e.reason}. Details: {e.get_details()}"
-                )
+GIRTH_GOALS: Final = [
+    "girth_type",
+    "setup_goal_at",
+    "goal_value",
+    "goal_unit",
+    "initial_value",
+    "initial_unit",
+    "finish_goal_at",
+    "finish_value",
+    "finish_unit",
+]
 
-            except exceptions.HomeAssistantError as e:
-                errors["base"] = "home_assistant_error"
-                _LOGGER.error(f"Home Assistant specific error: {str(e)}")
+METRIC_TYPE_WEIGHT: Final = "weight"
+METRIC_TYPE_GROWTH_RECORD: Final = "growth_record"
+METRIC_TYPE_GIRTH: Final = "girth"
+METRIC_TYPE_GIRTH_GOAL: Final = "girth_goals"
 
-            except Exception as e:  # pylint: disable=broad-except
-                errors["base"] = "unknown_error"
-                _LOGGER.exception(f"Unexpected exception: {e}")
+METRIC_TYPE = [
+    METRIC_TYPE_WEIGHT,
+    METRIC_TYPE_GROWTH_RECORD,
+    METRIC_TYPE_GIRTH,
+    METRIC_TYPE_GIRTH_GOAL,
+]
 
-        # Use description_placeholders for dynamic info
-        placeholders = {
-            "additional_info": "Please provide your Renpho login details.",
-            "icon": "renpho.png",
-            "description": "This is a description of your Renpho integration.",
-        }
-
-        return self.async_show_form(
-            step_id="user",
-            data_schema=DATA_SCHEMA,
-            errors=errors,
-            description_placeholders=placeholders,
-        )
-
-
-class CannotConnect(exceptions.HomeAssistantError):
-    def __init__(self, reason: str = "", details: dict = None):
-        super().__init__(self)
-        self.reason = reason
-        self.details = details or {}
-
-    def __str__(self):
-        return f"CannotConnect: {self.reason}"
-
-    def get_details(self):
-        return self.details
+# Public key for encrypting the password
+CONF_PUBLIC_KEY: Final = """-----BEGIN PUBLIC KEY-----
+MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC+25I2upukpfQ7rIaaTZtVE744
+u2zV+HaagrUhDOTq8fMVf9yFQvEZh2/HKxFudUxP0dXUa8F6X4XmWumHdQnum3zm
+Jr04fz2b2WCcN0ta/rbF2nYAnMVAk2OJVZAMudOiMWhcxV1nNJiKgTNNr13de0EQ
+IiOL2CUBzu+HmIfUbQIDAQAB
+-----END PUBLIC KEY-----"""
