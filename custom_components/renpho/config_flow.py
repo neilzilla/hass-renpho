@@ -9,10 +9,21 @@ import voluptuous as vol
 from homeassistant import config_entries, exceptions
 from homeassistant.core import HomeAssistant
 
-from .const import CONF_EMAIL, CONF_PASSWORD, CONF_PUBLIC_KEY, CONF_REFRESH, CONF_UNIT_OF_MEASUREMENT, CONF_USER_ID, DOMAIN, MASS_KILOGRAMS, MASS_POUNDS
+from .const import (
+    CONF_EMAIL,
+    CONF_PASSWORD,
+    CONF_PUBLIC_KEY,
+    CONF_REFRESH,
+    CONF_UNIT_OF_MEASUREMENT,
+    CONF_USER_ID,
+    DOMAIN,
+    MASS_KILOGRAMS,
+    MASS_POUNDS,
+)
 from .api_renpho import RenphoWeight
 
 _LOGGER = logging.getLogger(__name__)
+
 
 DATA_SCHEMA = vol.Schema(
     {
@@ -24,7 +35,9 @@ DATA_SCHEMA = vol.Schema(
             CONF_USER_ID, description={"suggested_value": "OptionalUserID"}
         ): str,
         vol.Optional(CONF_REFRESH, description={"suggested_value": 60}): int,
-        vol.Optional(CONF_UNIT_OF_MEASUREMENT, default=MASS_KILOGRAMS): vol.In([MASS_KILOGRAMS, MASS_POUNDS])
+        vol.Optional(CONF_UNIT_OF_MEASUREMENT, default=MASS_KILOGRAMS): vol.In(
+            [MASS_KILOGRAMS, MASS_POUNDS]
+        ),
     }
 )
 
@@ -40,7 +53,7 @@ async def async_validate_input(hass: HomeAssistant, data: dict) -> dict[str, Any
         data[CONF_EMAIL],
         data[CONF_PASSWORD],
         user_id,
-        data.get(CONF_REFRESH,60),
+        data.get(CONF_REFRESH, 60),
     )
     is_valid = await renpho.validate_credentials()
     if not is_valid:
@@ -90,7 +103,7 @@ class RenphoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=DATA_SCHEMA,
             errors=errors,
-            description_placeholders=placeholders
+            description_placeholders=placeholders,
         )
 
 
