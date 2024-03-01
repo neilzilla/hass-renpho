@@ -1,692 +1,35 @@
 """Platform for sensor integration."""
+
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Optional
+from datetime import datetime, timedelta
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import MASS_KILOGRAMS
+from homeassistant.util import slugify
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
-from homeassistant.util import slugify
-from homeassistant.helpers.restore_state import RestoreEntity
-from homeassistant.util import dt as dt_util
 
-from .const import CM_TO_INCH, DOMAIN, KG_TO_LBS, METRIC_TYPE, METRIC_TYPE_WEIGHT, METRIC_TYPE_GIRTH, METRIC_TYPE_GIRTH_GOAL
+from .const import (
+    CONF_REFRESH,
+    CONF_UNIT_OF_MEASUREMENT,
+    DOMAIN,
+    KG_TO_LBS,
+    MASS_KILOGRAMS,
+    MASS_POUNDS,
+)
 from .api_renpho import _LOGGER, RenphoWeight
+from .sensor_configs import sensor_configurations
 
 
 async def sensors_list(
     hass: HomeAssistant, config_entry: ConfigEntry
 ) -> list[RenphoSensor]:
-    sensor_configurations = [
-        # Physical Metrics
-        {
-            "id": "weight",
-            "name": "Weight",
-            "unit": "kg",
-            "category": "Measurements",
-            "label": "Physical Metrics",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "bmi",
-            "name": "BMI",
-            "unit": "",
-            "category": "Measurements",
-            "label": "Physical Metrics",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "muscle",
-            "name": "Muscle Mass",
-            "unit": "%",
-            "category": "Measurements",
-            "label": "Physical Metrics",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "bone",
-            "name": "Bone Mass",
-            "unit": "%",
-            "category": "Measurements",
-            "label": "Physical Metrics",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "waistline",
-            "name": "Waistline",
-            "unit": "cm",
-            "category": "Measurements",
-            "label": "Physical Metrics",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "hip",
-            "name": "Hip",
-            "unit": "cm",
-            "category": "Measurements",
-            "label": "Physical Metrics",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "stature",
-            "name": "Stature",
-            "unit": "cm",
-            "category": "Measurements",
-            "label": "Physical Metrics",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        # Body Composition
-        {
-            "id": "bodyfat",
-            "name": "Body Fat",
-            "unit": "%",
-            "category": "Measurements",
-            "label": "Body Composition",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "water",
-            "name": "Water Content",
-            "unit": "%",
-            "category": "Measurements",
-            "label": "Body Composition",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "subfat",
-            "name": "Subcutaneous Fat",
-            "unit": "%",
-            "category": "Measurements",
-            "label": "Body Composition",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "visfat",
-            "name": "Visceral Fat",
-            "unit": "Level",
-            "category": "Measurements",
-            "label": "Body Composition",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        # Metabolic Metrics
-        {
-            "id": "bmr",
-            "name": "BMR",
-            "unit": "kcal/day",
-            "category": "Measurements",
-            "label": "Metabolic Metrics",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "protein",
-            "name": "Protein Content",
-            "unit": "%",
-            "category": "Measurements",
-            "label": "Metabolic Metrics",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        # Age Metrics
-        {
-            "id": "bodyage",
-            "name": "Body Age",
-            "unit": "Years",
-            "category": "Measurements",
-            "label": "Age Metrics",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        # Device Information
-        {
-            "id": "mac",
-            "name": "MAC Address",
-            "unit": "",
-            "category": "Device",
-            "label": "Device Information",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "scale_type",
-            "name": "Scale Type",
-            "unit": "",
-            "category": "Device",
-            "label": "Device Information",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "scale_name",
-            "name": "Scale Name",
-            "unit": "",
-            "category": "Device",
-            "label": "Device Information",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        # Miscellaneous
-        {
-            "id": "method",
-            "name": "Measurement Method",
-            "unit": "",
-            "category": "Miscellaneous",
-            "label": "Additional Metrics",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "pregnant_flag",
-            "name": "Pregnant Flag",
-            "unit": "",
-            "category": "Miscellaneous",
-            "label": "Additional Metrics",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "sport_flag",
-            "name": "Sport Flag",
-            "unit": "",
-            "category": "Miscellaneous",
-            "label": "Additional Metrics",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "score",
-            "name": "Score",
-            "unit": "",
-            "category": "Miscellaneous",
-            "label": "Additional Metrics",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "remark",
-            "name": "Remark",
-            "unit": "",
-            "category": "Miscellaneous",
-            "label": "Additional Metrics",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        # Meta Information
-        {
-            "id": "id",
-            "name": "Record ID",
-            "unit": "",
-            "category": "Meta",
-            "label": "Meta Information",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "b_user_id",
-            "name": "User ID",
-            "unit": "",
-            "category": "Meta",
-            "label": "Meta Information",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "time_stamp",
-            "name": "Time Stamp",
-            "unit": "UNIX Time",
-            "category": "Meta",
-            "label": "Meta Information",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "created_at",
-            "name": "Created At",
-            "unit": "",
-            "category": "Meta",
-            "label": "Meta Information",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        # User Profile
-        {
-            "id": "gender",
-            "name": "Gender",
-            "unit": "",
-            "category": "User",
-            "label": "User Profile",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "height",
-            "name": "Height",
-            "unit": "cm",
-            "category": "User",
-            "label": "User Profile",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "birthday",
-            "name": "Birthday",
-            "unit": "",
-            "category": "User",
-            "label": "User Profile",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        # Electrical Measurements
-        {
-            "id": "resistance",
-            "name": "Electrical Resistance",
-            "unit": "Ohms",
-            "category": "Measurements",
-            "label": "Electrical Measurements",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "sec_resistance",
-            "name": "Secondary Electrical Resistance",
-            "unit": "Ohms",
-            "category": "Measurements",
-            "label": "Electrical Measurements",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "actual_resistance",
-            "name": "Actual Electrical Resistance",
-            "unit": "Ohms",
-            "category": "Measurements",
-            "label": "Electrical Measurements",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "actual_sec_resistance",
-            "name": "Actual Secondary Electrical Resistance",
-            "unit": "Ohms",
-            "category": "Measurements",
-            "label": "Electrical Measurements",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "resistance20_left_arm",
-            "name": "Resistance20 Left Arm",
-            "unit": "Ohms",
-            "category": "Measurements",
-            "label": "Electrical Measurements",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "resistance20_left_leg",
-            "name": "Resistance20 Left Leg",
-            "unit": "Ohms",
-            "category": "Measurements",
-            "label": "Electrical Measurements",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "resistance20_right_arm",
-            "name": "Resistance20 Right Arm",
-            "unit": "Ohms",
-            "category": "Measurements",
-            "label": "Electrical Measurements",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "resistance20_right_leg",
-            "name": "Resistance20 Right Leg",
-            "unit": "Ohms",
-            "category": "Measurements",
-            "label": "Electrical Measurements",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "resistance20_trunk",
-            "name": "Resistance20 Trunk",
-            "unit": "Ohms",
-            "category": "Measurements",
-            "label": "Electrical Measurements",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "resistance100_left_arm",
-            "name": "Resistance100 Left Arm",
-            "unit": "Ohms",
-            "category": "Measurements",
-            "label": "Electrical Measurements",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "resistance100_left_leg",
-            "name": "Resistance100 Left Leg",
-            "unit": "Ohms",
-            "category": "Measurements",
-            "label": "Electrical Measurements",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "resistance100_right_arm",
-            "name": "Resistance100 Right Arm",
-            "unit": "Ohms",
-            "category": "Measurements",
-            "label": "Electrical Measurements",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "resistance100_right_leg",
-            "name": "Resistance100 Right Leg",
-            "unit": "Ohms",
-            "category": "Measurements",
-            "label": "Electrical Measurements",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "resistance100_trunk",
-            "name": "Resistance100 Trunk",
-            "unit": "Ohms",
-            "category": "Measurements",
-            "label": "Electrical Measurements",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        # Cardiovascular Metrics
-        {
-            "id": "heart_rate",
-            "name": "Heart Rate",
-            "unit": "bpm",
-            "category": "Measurements",
-            "label": "Cardiovascular Metrics",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "cardiac_index",
-            "name": "Cardiac Index",
-            "unit": "",
-            "category": "Measurements",
-            "label": "Cardiovascular Metrics",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        # Other Metrics
-        {
-            "id": "method",
-            "name": "Method Used",
-            "unit": "",
-            "category": "Miscellaneous",
-            "label": "Other Metrics",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "left_weight",
-            "name": "Left Weight",
-            "unit": "kg",
-            "category": "Measurements",
-            "label": "Other Metrics",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "right_weight",
-            "name": "Right Weight",
-            "unit": "kg",
-            "category": "Measurements",
-            "label": "Other Metrics",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "local_created_at",
-            "name": "Local Created At",
-            "unit": "",
-            "category": "Meta",
-            "label": "Other Metrics",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "remark",
-            "name": "Additional Remarks",
-            "unit": "",
-            "category": "Miscellaneous",
-            "label": "Other Metrics",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "stature",
-            "name": "Stature Information",
-            "unit": "cm",
-            "category": "Measurements",
-            "label": "Other Metrics",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        {
-            "id": "category",
-            "name": "Category Identifier",
-            "unit": "",
-            "category": "Miscellaneous",
-            "label": "Other Metrics",
-            "metric": METRIC_TYPE_WEIGHT
-        },
-        # Girth Measurements
-        {
-            "id": "neck_value",
-            "name": "Neck Value",
-            "unit": "cm",
-            "category": "Measurements",
-            "label": "Girth Measurements",
-            "metric": METRIC_TYPE_GIRTH
-        },
-        {
-            "id": "shoulder_value",
-            "name": "Shoulder Value",
-            "unit": "cm",
-            "category": "Measurements",
-            "label": "Girth Measurements",
-            "metric": METRIC_TYPE_GIRTH
-        },
-        {
-            "id": "left_arm_value",
-            "name": "Left Arm Value",
-            "unit": "cm",
-            "category": "Measurements",
-            "label": "Girth Measurements",
-            "metric": METRIC_TYPE_GIRTH
-        },
-        {
-            "id": "right_arm_value",
-            "name": "Right Arm Value",
-            "unit": "cm",
-            "category": "Measurements",
-            "label": "Girth Measurements",
-            "metric": METRIC_TYPE_GIRTH
-        },
-        {
-            "id": "chest_value",
-            "name": "Chest Value",
-            "unit": "cm",
-            "category": "Measurements",
-            "label": "Girth Measurements",
-            "metric": METRIC_TYPE_GIRTH
-        },
-        {
-            "id": "waist_value",
-            "name": "Waist Value",
-            "unit": "cm",
-            "category": "Measurements",
-            "label": "Girth Measurements",
-            "metric": METRIC_TYPE_GIRTH
-        },
-        {
-            "id": "hip_value",
-            "name": "Hip Value",
-            "unit": "cm",
-            "category": "Measurements",
-            "label": "Girth Measurements",
-            "metric": METRIC_TYPE_GIRTH
-        },
-        {
-            "id": "left_thigh_value",
-            "name": "Left Thigh Value",
-            "unit": "cm",
-            "category": "Measurements",
-            "label": "Girth Measurements",
-            "metric": METRIC_TYPE_GIRTH
-        },
-        {
-            "id": "right_thigh_value",
-            "name": "Right Thigh Value",
-            "unit": "cm",
-            "category": "Measurements",
-            "label": "Girth Measurements",
-            "metric": METRIC_TYPE_GIRTH
-        },
-        {
-            "id": "left_calf_value",
-            "name": "Left Calf Value",
-            "unit": "cm",
-            "category": "Measurements",
-            "label": "Girth Measurements",
-            "metric": METRIC_TYPE_GIRTH
-        },
-        {
-            "id": "right_calf_value",
-            "name": "Right Calf Value",
-            "unit": "cm",
-            "category": "Measurements",
-            "label": "Girth Measurements",
-            "metric": METRIC_TYPE_GIRTH
-        },
-        {
-            "id": "whr_value",
-            "name": "WHR Value",
-            "unit": "ratio",
-            "category": "Measurements",
-            "label": "Girth Measurements",
-            "metric": METRIC_TYPE_GIRTH
-        },
-        {
-            "id": "abdomen_value",
-            "name": "Abdomen Value",
-            "unit": "cm",
-            "category": "Measurements",
-            "label": "Girth Measurements",
-            "metric": METRIC_TYPE_GIRTH
-        },
-        # Girth Goals
-        {
-            "id": "neck",
-            "name": "Neck Goal Value",
-            "unit": "cm",
-            "category": "Goals",
-            "label": "Girth Goals",
-            "metric": METRIC_TYPE_GIRTH_GOAL
-        },
-        {
-            "id": "shoulder",
-            "name": "Shoulder Goal Value",
-            "unit": "cm",
-            "category": "Goals",
-            "label": "Girth Goals",
-            "metric": METRIC_TYPE_GIRTH_GOAL
-        },
-        {
-            "id": "arm",
-            "name": "Arm Goal Value",
-            "unit": "cm",
-            "category": "Goals",
-            "label": "Girth Goals",
-            "metric": METRIC_TYPE_GIRTH_GOAL
-        },
-        {
-            "id": "chest",
-            "name": "Chest Goal Value",
-            "unit": "cm",
-            "category": "Goals",
-            "label": "Girth Goals",
-            "metric": METRIC_TYPE_GIRTH_GOAL
-        },
-        {
-            "id": "waist",
-            "name": "Waist Goal Value",
-            "unit": "cm",
-            "category": "Goals",
-            "label": "Girth Goals",
-            "metric": METRIC_TYPE_GIRTH_GOAL
-        },
-        {
-            "id": "hip",
-            "name": "Hip Goal Value",
-            "unit": "cm",
-            "category": "Goals",
-            "label": "Girth Goals",
-            "metric": METRIC_TYPE_GIRTH_GOAL
-        },
-        {
-            "id": "thigh",
-            "name": "Thigh Goal Value",
-            "unit": "cm",
-            "category": "Goals",
-            "label": "Girth Goals",
-            "metric": METRIC_TYPE_GIRTH_GOAL
-        },
-        {
-            "id": "calf",
-            "name": "Calf Goal Value",
-            "unit": "cm",
-            "category": "Goals",
-            "label": "Girth Goals",
-            "metric": METRIC_TYPE_GIRTH_GOAL
-        },
-        {
-            "id": "left_arm",
-            "name": "Left Arm Goal Value",
-            "unit": "cm",
-            "category": "Goals",
-            "label": "Girth Goals",
-            "metric": METRIC_TYPE_GIRTH_GOAL
-        },
-        {
-            "id": "left_thigh",
-            "name": "Left Thigh Goal Value",
-            "unit": "cm",
-            "category": "Goals",
-            "label": "Girth Goals",
-            "metric": METRIC_TYPE_GIRTH_GOAL
-        },
-        {
-            "id": "left_calf",
-            "name": "Left Calf Goal Value",
-            "unit": "cm",
-            "category": "Goals",
-            "label": "Girth Goals",
-            "metric": METRIC_TYPE_GIRTH_GOAL
-        },
-        {
-            "id": "right_arm",
-            "name": "Right Arm Goal Value",
-            "unit": "cm",
-            "category": "Goals",
-            "label": "Girth Goals",
-            "metric": METRIC_TYPE_GIRTH_GOAL
-        },
-        {
-            "id": "right_thigh",
-            "name": "Right Thigh Goal Value",
-            "unit": "cm",
-            "category": "Goals",
-            "label": "Girth Goals",
-            "metric": METRIC_TYPE_GIRTH_GOAL
-        },
-        {
-            "id": "right_calf",
-            "name": "Right Calf Goal Value",
-            "unit": "cm",
-            "category": "Goals",
-            "label": "Girth Goals",
-            "metric": METRIC_TYPE_GIRTH_GOAL
-        },
-        {
-            "id": "whr",
-            "name": "WHR Goal Value",
-            "unit": "ratio",
-            "category": "Goals",
-            "label": "Girth Goals",
-            "metric": METRIC_TYPE_GIRTH_GOAL
-        },
-        {
-            "id": "abdomen",
-            "name": "Abdomen Goal Value",
-            "unit": "cm",
-            "category": "Goals",
-            "label": "Girth Goals",
-            "metric": METRIC_TYPE_GIRTH_GOAL
-        },
-    ]
-
+    """Return a list of sensors."""
     return [
-        RenphoSensor(hass.data[DOMAIN], **config) for config in sensor_configurations
+        RenphoSensor(hass.data[DOMAIN], **sensor, config_entry=config_entry)
+        for sensor in sensor_configurations
     ]
 
 
@@ -704,9 +47,9 @@ async def async_setup_entry(
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ):
-    hass.async_create_task(
-        hass.config_entries.async_forward_entry_setup(config_entry, "sensor")
-    )
+
+    sensor_entities = await sensors_list(hass, config_entry)
+    async_add_entities(sensor_entities)
     return True
 
 
@@ -722,6 +65,8 @@ async def async_setup_platform(
 
 
 class RenphoSensor(SensorEntity):
+    """Representation of a Renpho sensor."""
+
     def __init__(
         self,
         renpho: RenphoWeight,
@@ -731,8 +76,9 @@ class RenphoSensor(SensorEntity):
         category: str,
         label: str,
         metric: str,
-        convert_unit=False,
+        config_entry: ConfigEntry,
     ) -> None:
+        """Initialize the sensor."""
         self._renpho = renpho
         self._metric = metric
         self._id = id
@@ -740,9 +86,11 @@ class RenphoSensor(SensorEntity):
         self._unit = unit
         self._category = category
         self._label = label
-        self._state = None
-        self._convert_unit = convert_unit
+        self._unit_of_measurement = hass.data[DOMAIN]
+            CONF_UNIT_OF_MEASUREMENT, MASS_KILOGRAMS
+        )
         self._timestamp = None
+        self._state = None
 
     @property
     def unique_id(self) -> str:
@@ -758,10 +106,14 @@ class RenphoSensor(SensorEntity):
             "label": self._label,
         }
 
-    def convert_unit(self, value: Optional[float], unit: str) -> Optional[float]:
-        """Convert unit based on the conversion mapping."""
-        conversions = {"kg": value * KG_TO_LBS, "cm": value * CM_TO_INCH}
-        return conversions.get(unit, value)
+    @property
+    def extra_state_attributes(self):
+        # Updated property name for HA compatibility
+        return {
+            "timestamp": self._timestamp,
+            "category": self._category,
+            "label": self._label,
+        }
 
     @property
     def name(self) -> str:
@@ -769,29 +121,22 @@ class RenphoSensor(SensorEntity):
 
     @property
     def state(self):
-        """Return the state of the sensor.
-        If the unit is kg or cm, convert to lbs or inch respectively.
-
-        """
-        if self._convert_unit:
-            if self._unit == MASS_KILOGRAMS:
-                return self.kg_to_lbs(self._state)
-            elif self._unit == "cm":
-                return self.cm_to_inch(self._state)
+        """Return the current state of the sensor."""
         return self._state
 
     @property
-    def unit(self) -> str:
-        """Return the unit of measurement.
-        If the unit is kg or cm, convert to lbs or inch respectively.
+    def unit_of_measurement(self) -> str:
+        # Return the correct unit of measurement based on user configuration
+        return (
+            MASS_POUNDS if self._unit_of_measurement == MASS_POUNDS and self._unit == MASS_KILOGRAMS else MASS_KILOGRAMS
+        )
 
-        """
-        if self._convert_unit:
-            if self._unit == MASS_KILOGRAMS:
-                return "lbs"
-            elif self._unit == "cm":
-                return "inch"
-        return self._unit
+    @property
+    def unit(self) -> str:
+        """Return the unit of the sensor."""
+        if self._unit_of_measurement == MASS_POUNDS and self._unit == MASS_KILOGRAM:
+            return MASS_POUNDS
+        return MASS_KILOGRAMS
 
     @property
     def category(self) -> str:
@@ -811,28 +156,22 @@ class RenphoSensor(SensorEntity):
                 user_id=None
             )
 
-            # Check if metric_value is None
-            if metric_value is None:
-                # _LOGGER.warning(f"Metric value is None for {self._name} and metric type {self._metric}")
-                return
-
-            self._state = metric_value
-
-            # Convert the unit if necessary
-            # if self._unit is not None and self._unit != "":
-            #     converted_value = self.convert_unit(self._state, self._unit)
-            #     if converted_value is not None:
-            #         self._state = converted_value
-            #     else:
-            #         _LOGGER.warning(f"Failed to convert unit for {self._name} and metric type {self._metric}")
-
-            # Update the timestamp
-            self._timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-            _LOGGER.info(f"Successfully updated {self._name} for metric type {self._metric}")
+            if metric_value is not None:
+                converted_value = metric_value * KG_TO_LBS if self._unit_of_measurement == MASS_POUNDS else metric_value
+                self._state = converted_value 
+                self._timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                _LOGGER.info(f"Successfully updated {self._name} for metric type {self._metric}")
+            else:
+                # Optionally, handle the case where metric_value is None
+                _LOGGER.warning(f"No data received for {self._name} for metric type {self._metric}")
+                self._state = None  # You might choose to clear the state or leave it unchanged
 
         except (ConnectionError, TimeoutError) as e:
-            _LOGGER.error(f"{type(e).__name__} occurred while updating {self._name} for metric type {self._metric}: {e}")
+            _LOGGER.error(
+                f"{type(e).__name__} occurred while updating {self._name} for metric type {self._metric}: {e}"
+            )
 
         except Exception as e:
-            _LOGGER.critical(f"An unexpected error occurred while updating {self._name} for metric type {self._metric}: {e}")
+            _LOGGER.critical(
+                f"An unexpected error occurred while updating {self._name} for metric type {self._metric}: {e}"
+            )

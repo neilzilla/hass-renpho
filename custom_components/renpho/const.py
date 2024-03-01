@@ -10,7 +10,9 @@ EVENT_HOMEASSISTANT_START: Final = "homeassistant_start"
 EVENT_HOMEASSISTANT_STARTED: Final = "homeassistant_started"
 EVENT_HOMEASSISTANT_STOP: Final = "homeassistant_stop"
 MASS_KILOGRAMS: Final = "kg"
+MASS_POUNDS: Final = "lbs"
 TIME_SECONDS: Final = "s"
+
 
 # Configuration keys
 CONF_EMAIL: Final = "email"  # The email used for Renpho login
@@ -20,6 +22,7 @@ CONF_UNIT: Final = "unit"  # Unit of measurement for weight (kg/lbs)
 CONF_USER_ID: Final = (
     "user_id"  # The ID of the user for whom weight data should be fetched
 )
+CONF_UNIT_OF_MEASUREMENT = "unit_of_measurement"
 
 KG_TO_LBS: Final = 2.20462
 CM_TO_INCH: Final = 0.393701
