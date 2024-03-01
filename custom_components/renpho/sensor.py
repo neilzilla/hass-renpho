@@ -28,7 +28,7 @@ async def sensors_list(
 ) -> list[RenphoSensor]:
     """Return a list of sensors."""
     return [
-        RenphoSensor(hass.data[DOMAIN], **sensor, config_entry=config_entry)
+        RenphoSensor(hass.data[DOMAIN], **sensor, config_entry=config_entry, unit_of_measurement=hass[CONF_UNIT_OF_MEASUREMENT])
         for sensor in sensor_configurations
     ]
 
@@ -77,6 +77,7 @@ class RenphoSensor(SensorEntity):
         label: str,
         metric: str,
         config_entry: ConfigEntry,
+        unit_of_measurement: str,
     ) -> None:
         """Initialize the sensor."""
         self._renpho = renpho
@@ -86,9 +87,7 @@ class RenphoSensor(SensorEntity):
         self._unit = unit
         self._category = category
         self._label = label
-        self._unit_of_measurement = hass.data[DOMAIN]
-            CONF_UNIT_OF_MEASUREMENT, MASS_KILOGRAMS
-        )
+        self._unit_of_measurement = unit_of_measurement
         self._timestamp = None
         self._state = None
 
