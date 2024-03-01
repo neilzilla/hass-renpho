@@ -162,8 +162,6 @@ class RenphoSensor(SensorEntity):
                 self._timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 _LOGGER.info(f"Successfully updated {self._name} for metric type {self._metric}")
             else:
-                # Optionally, handle the case where metric_value is None
-                _LOGGER.warning(f"No data received for {self._name} for metric type {self._metric}")
                 self._state = None  # You might choose to clear the state or leave it unchanged
 
         except (ConnectionError, TimeoutError) as e:
