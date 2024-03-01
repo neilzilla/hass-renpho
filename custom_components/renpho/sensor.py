@@ -156,8 +156,7 @@ class RenphoSensor(SensorEntity):
             )
 
             if metric_value is not None:
-                converted_value = metric_value * KG_TO_LBS if self._unit_of_measurement == MASS_POUNDS else metric_value
-                self._state = converted_value 
+                self._state = round(metric_value * KG_TO_LBS, 2) if self._unit_of_measurement == MASS_POUNDS else round(metric_value, 2)
                 self._timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 _LOGGER.info(f"Successfully updated {self._name} for metric type {self._metric}")
             else:
