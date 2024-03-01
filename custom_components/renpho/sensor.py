@@ -28,7 +28,7 @@ async def sensors_list(
 ) -> list[RenphoSensor]:
     """Return a list of sensors."""
     return [
-        RenphoSensor(hass.data[DOMAIN], **sensor, config_entry=config_entry, unit_of_measurement=hass[CONF_UNIT_OF_MEASUREMENT])
+        RenphoSensor(hass.data[DOMAIN], **sensor, config_entry=config_entry, unit_of_measurement=hass.data[CONF_UNIT_OF_MEASUREMENT])
         for sensor in sensor_configurations
     ]
 
