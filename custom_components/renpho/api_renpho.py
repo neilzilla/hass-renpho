@@ -60,9 +60,9 @@ class RenphoWeight:
         self.time_stamp = None
         self.session_key = None
         self.refresh = refresh
-        self.session = aiohttp.ClientSession()
+        self.session = None
         self.is_polling_active = False
-        self.session_key_expiry = None
+        self.session_key_expiry = datetime.datetime.now()
 
     def set_user_id(self, user_id):
         """
@@ -91,6 +91,12 @@ class RenphoWeight:
         else:
             return data
 
+    async def open_session(self):
+        if self.session is None or self.session.closed:
+            self.session_key = None
+            self.session_key_expiry = datetime.datetime.now()
+            self.session = aiohttp.ClientSession()
+
     async def _request(self, method: str, url: str, **kwargs) -> Union[Dict, List]:
         """
         Asynchronous function to make API requests.
@@ -108,8 +114,7 @@ class RenphoWeight:
         """
         try:
             # Initialize session if it does not exist
-            if self.session is None or self.session.closed:
-                self.session = aiohttp.ClientSession()
+            self.open_session()
 
             # Authenticate if session_key is missing, except for the auth URL itself
             if self.session_key is None and method != "POST" and url != API_AUTH_URL:
@@ -117,9 +122,8 @@ class RenphoWeight:
                     "No session key found. Attempting to authenticate.")
                 await self.auth()
 
-            if self.session_key is None or (self.session_key_expiry and self.session_key_expiry <= datetime.datetime.now()):
-                _LOGGER.warning("Session key has expired or is missing. Attempting to re-authenticate.")
-                await self.auth()
+            # check if the session key is valid
+            await self.ensure_valid_session()
 
             # Prepare the data for the API request
             kwargs = self.prepare_data(kwargs)
@@ -133,17 +137,31 @@ class RenphoWeight:
                 if parsed_response.get("status_code", 0) == 40302:
                     _LOGGER.warning(
                         "Received 40302 status code. Attempting to re-authenticate.")
-                    await self.auth()
 
                 return parsed_response
 
         except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError) as e:
             _LOGGER.error(f"Client error occurred in _request: {e}")
             raise APIError(f"API request failed {method} {url}") from e
-
         except Exception as e:
             _LOGGER.error(f"Unexpected error occurred in _request: {e}")
             raise APIError(f"API request failed {method} {url}") from e
+
+    def encrypt_password(public_key_str, password):
+        try:
+            # Ensure the public key is imported correctly
+            rsa_key = RSA.importKey(public_key_str)
+            # Create a cipher object using PKCS#1 v1.5
+            cipher = PKCS1_v1_5.new(rsa_key)
+            # Encrypt the password
+            encrypted_password = cipher.encrypt(password.encode('utf-8'))
+            # Encode the encrypted password with base64
+            encoded_encrypted_password = b64encode(encrypted_password)
+            return encoded_encrypted_password.decode('utf-8')
+        except Exception as e:
+            _LOGGER.error(f"Encryption error: {e}")
+            raise
+
 
     async def auth(self):
         if not self.email or not self.password:
@@ -158,8 +176,12 @@ class RenphoWeight:
 
         key = RSA.importKey(self.public_key)
         cipher = PKCS1_v1_5.new(key)
-        encrypted_password = b64encode(
-            cipher.encrypt(self.password.encode("utf-8")))
+        try:
+            encrypted_password = encrypt_password(self.public_key, self.password)
+        except Exception as e:
+            _LOGGER.error(f"An error occurred while encrypting the password: {e}")
+            await self.close()
+            return
 
         data = {"secure_flag": "1", "email": self.email,
                 "password": encrypted_password}
@@ -182,6 +204,16 @@ class RenphoWeight:
         self.session_key = parsed["terminal_user_session_key"]
         self.session_key_expiry = datetime.datetime.now() + datetime.timedelta(minutes=10)
         return parsed
+
+    async def ensure_valid_session(self):
+        """Ensure the session is valid and authenticated."""
+        if not self.is_session_valid():
+            _LOGGER.warning("Session key expired or missing. Re-authenticating.")
+            await self.auth()
+
+    def is_session_valid(self):
+        """Check if the session key is valid."""
+        return self.session_key and self.session_key_expiry > datetime.datetime.now()+ datetime.timedelta(minutes=1)
 
     async def validate_credentials(self):
         """
@@ -591,6 +623,8 @@ class RenphoWeight:
         """
         self.stop_polling()  # Stop the polling
         if self.session and not self.session.closed:
+            self.session_key = None
+            self.session_key_expiry = datetime.datetime.now()
             await self.session.close()  # Close the session
 
 
