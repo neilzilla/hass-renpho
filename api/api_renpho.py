@@ -57,7 +57,7 @@ class RenphoWeight:
         session_key (str): The session key obtained after successful authentication.
     """
 
-    def __init__(self, email, password, public_key=CONF_PUBLIC_KEY, user_id=None, refresh=60):
+    def __init__(self, public_key, email, password, user_id=None, refresh=60):
         """Initialize a new RenphoWeight instance."""
         self.public_key = public_key
         self.email = email
@@ -633,20 +633,6 @@ class RenphoWeight:
             self.session_key = None
             self.session_key_expiry = datetime.datetime.now()
             await self.session.close()  # Close the session
-
-
-class Interval(Timer):
-    """
-    A subclass of Timer to repeatedly run a function at a specified interval.
-    """
-
-    def run(self):
-        """
-        Run the function at the given interval.
-        """
-        while not self.finished.wait(self.interval):
-            self.function(*self.args, **self.kwargs)
-
 
 class AuthenticationError(Exception):
     pass

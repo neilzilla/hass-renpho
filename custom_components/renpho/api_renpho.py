@@ -211,7 +211,7 @@ class RenphoWeight:
 
     def is_session_valid(self):
         """Check if the session key is valid."""
-        return self.session_key and self.session_key_expiry > datetime.datetime.now()+ datetime.timedelta(minutes=1)
+        return self.session_key and datetime.datetime.now() < self.session_key_expiry
 
     async def validate_credentials(self):
         """
