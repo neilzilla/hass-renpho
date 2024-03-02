@@ -159,7 +159,7 @@ class RenphoSensor(SensorEntity):
                 else:
                     self._state = metric_value
                 self._timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                _LOGGER.info(f"Successfully updated {self._name} for metric type {self._metric}")
+                _LOGGER.info(f"Successfully updated {self._name} for metric type {self._metric} with value {self._state} with unit {self._unit}")
             else:
                 self._state = None  # You might choose to clear the state or leave it unchanged
 
