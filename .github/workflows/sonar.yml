@@ -12,6 +12,7 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     permissions: read-all
+    if: false
     steps:
       - uses: actions/checkout@v2
         with:
