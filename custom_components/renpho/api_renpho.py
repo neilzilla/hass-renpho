@@ -3,7 +3,6 @@ import datetime
 import logging
 import time
 from base64 import b64encode
-from threading import Timer
 from typing import Callable, Dict, Final, List, Optional, Union
 
 import aiohttp
@@ -62,7 +61,8 @@ class RenphoWeight:
         self.refresh = refresh
         self.session = None
         self.is_polling_active = False
-        self.session_key_expiry = datetime.datetime.utcnow() - timedelta(minutes=1)
+        self.session_key_expiry = datetime.datetime.now(datetime.timezone.utc)
+        self.auth_in_progress = False
 
     def set_user_id(self, user_id):
         """
@@ -116,13 +116,14 @@ class RenphoWeight:
                 await self.open_session()
 
                 # Authenticate if session_key is missing, except for the auth URL itself
-                if self.session_key is None and method != "POST" and url != API_AUTH_URL:
-                    _LOGGER.warning(
-                        "No session key found. Attempting to authenticate.")
-                    await self.auth()
+                if not self.auth_in_progress:
+                    if self.session_key is None and method != "POST" and url != API_AUTH_URL:
+                        _LOGGER.warning(
+                            "No session key found. Attempting to authenticate.")
+                        await self.auth()
 
-                # check if the session key is valid
-                await self.ensure_valid_session()
+                    # check if the session key is valid
+                    await self.ensure_valid_session()
 
                 # Prepare the data for the API request
                 kwargs = self.prepare_data(kwargs)
@@ -165,54 +166,59 @@ class RenphoWeight:
             raise
 
     async def auth(self):
-        if not self.email or not self.password:
-            await self.close()
-            raise AuthenticationError("Email and password must be provided")
-
-        # Check if public_key is None
-        if self.public_key is None:
-            _LOGGER.error("Public key is None.")
-            await self.close()
-            raise AuthenticationError("Public key is None.")
-
-        try:
-            encrypted_password = self.encrypt_password(self.public_key, self.password)
-        except Exception as e:
-            _LOGGER.error(f"An error occurred while encrypting the password: {e}")
-            await self.close()
+        if self.auth_in_progress:
             return
+        self.auth_in_progress = True
+        try:
+            if not self.email or not self.password:
+                await self.close()
+                raise AuthenticationError("Email and password must be provided")
 
-        data = {"secure_flag": "1", "email": self.email,
-                "password": encrypted_password}
-        parsed = await self._request("POST", API_AUTH_URL, json=data)
+            # Check if public_key is None
+            if self.public_key is None:
+                _LOGGER.error("Public key is None.")
+                await self.close()
+                raise AuthenticationError("Public key is None.")
 
-        # Check if parsed object is None
-        if parsed is None:
-            _LOGGER.error("Parsed object is None.")
+            encrypted_password = self.encrypt_password(self.public_key, self.password)
+
+            data = {"secure_flag": "1", "email": self.email,
+                    "password": encrypted_password}
+
+            parsed = await self._request("POST", API_AUTH_URL, json=data)
+
+            # Check if parsed object is None
+            if parsed is None:
+                _LOGGER.error("Parsed object is None.")
+                await self.close()
+                raise AuthenticationError("Received NoneType object.")
+
+            # Check for 'terminal_user_session_key'
+            if "terminal_user_session_key" not in parsed:
+                _LOGGER.error(
+                    "'terminal_user_session_key' not found in parsed object.")
+                await self.close()
+                raise AuthenticationError("'terminal_user_session_key' missing.")
+
+            # If everything is fine, set the session_key
+            self.session_key = parsed["terminal_user_session_key"]
+            self.session_key_expiry = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=10)
+            return parsed
+        except Exception as e:
+            _LOGGER.error(f"Authentication failed: {e}")
             await self.close()
-            raise AuthenticationError("Received NoneType object.")
-
-        # Check for 'terminal_user_session_key'
-        if "terminal_user_session_key" not in parsed:
-            _LOGGER.error(
-                "'terminal_user_session_key' not found in parsed object.")
-            await self.close()
-            raise AuthenticationError("'terminal_user_session_key' missing.")
-
-        # If everything is fine, set the session_key
-        self.session_key = parsed["terminal_user_session_key"]
-        self.session_key_expiry = datetime.datetime.utcnow() + datetime.timedelta(minutes=10)
-        return parsed
+        finally:
+            self.auth_in_progress = False
 
     async def ensure_valid_session(self):
         """Ensure the session is valid and authenticated."""
-        if not self.is_session_valid():
+        if not self.is_session_valid() and not self.auth_in_progress:
             _LOGGER.warning("Session key expired or missing. Re-authenticating.")
             await self.auth()
 
     def is_session_valid(self):
         """Check if the session key is valid."""
-        return self.session_key and datetime.datetime.utcnow() < self.session_key_expiry
+        return self.session_key and datetime.datetime.now(datetime.timezone.utc) < self.session_key_expiry
 
     async def validate_credentials(self):
         """
