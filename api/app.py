@@ -13,7 +13,7 @@ import logging
 import time
 from base64 import b64encode
 from threading import Timer
-from typing import Callable, Dict, Final, List, Optional, Union
+from typing import Callable, Dict, Final, List, Optional, Union, Any
 from contextlib import asynccontextmanager
 
 import aiohttp
@@ -692,7 +692,7 @@ security = HTTPBasic()
 class APIResponse(BaseModel):
     status: str
     message: str
-    data: Optional[dict] = None
+    data: Optional[Any] = None
 
 
 user_instances_cache = LRUCache(maxsize=100)
