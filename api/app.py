@@ -377,7 +377,6 @@ class RenphoWeight:
         """
         Wrapper method to authenticate, fetch users, and get measurements.
         """
-        await self.auth()
         await self.get_scale_users()
         return await self.get_measurements()
 
@@ -737,7 +736,6 @@ async def get_measurements(request: Request, renpho: RenphoWeight = Depends(get_
         return APIResponse(status="error", message=str(e))
 
 @app.get("/weight", response_model=APIResponse)
-@app.get("/weight", response_model=APIResponse)
 async def get_weight(request: Request, renpho: RenphoWeight = Depends(get_current_user)):
     try:
         weight = await renpho.get_weight()
@@ -749,7 +747,7 @@ async def get_weight(request: Request, renpho: RenphoWeight = Depends(get_curren
         renpho.close()
         logger.error(f"Error fetching weight: {e}")
         return APIResponse(status="error", message=str(e))
-@app.get("/specific_metric", response_model=APIResponse)
+
 @app.get("/specific_metric", response_model=APIResponse)
 async def get_specific_metric(request: Request, metric: str, metric_id: str, renpho: RenphoWeight = Depends(get_current_user)):
     try:
@@ -762,7 +760,7 @@ async def get_specific_metric(request: Request, metric: str, metric_id: str, ren
         renpho.close()
         logger.error(f"Error fetching specific metric: {e}")
         return APIResponse(status="error", message=str(e))
-@app.get("/device_info", response_model=APIResponse)
+
 @app.get("/device_info", response_model=APIResponse)
 async def get_device_info(request: Request, renpho: RenphoWeight = Depends(get_current_user)):
     try:
@@ -775,7 +773,7 @@ async def get_device_info(request: Request, renpho: RenphoWeight = Depends(get_c
         renpho.close()
         logger.error(f"Error fetching device info: {e}")
         return APIResponse(status="error", message=str(e))
-@app.get("/latest_model", response_model=APIResponse)
+
 @app.get("/latest_model", response_model=APIResponse)
 async def list_latest_model(request: Request, renpho: RenphoWeight = Depends(get_current_user)):
     try:
@@ -788,7 +786,7 @@ async def list_latest_model(request: Request, renpho: RenphoWeight = Depends(get
         renpho.close()
         logger.error(f"Error fetching latest model: {e}")
         return APIResponse(status="error", message=str(e))
-@app.get("/girth_info", response_model=APIResponse)
+
 @app.get("/girth_info", response_model=APIResponse)
 async def list_girth(request: Request, renpho: RenphoWeight = Depends(get_current_user)):
     try:
@@ -801,7 +799,7 @@ async def list_girth(request: Request, renpho: RenphoWeight = Depends(get_curren
         renpho.close()
         logger.error(f"Error fetching girth info: {e}")
         return APIResponse(status="error", message=str(e))
-@app.get("/girth_goal", response_model=APIResponse)
+
 @app.get("/girth_goal", response_model=APIResponse)
 async def list_girth_goal(request: Request, renpho: RenphoWeight = Depends(get_current_user)):
     try:
@@ -814,6 +812,7 @@ async def list_girth_goal(request: Request, renpho: RenphoWeight = Depends(get_c
         renpho.close()
         logger.error(f"Error fetching girth goal: {e}")
         return APIResponse(status="error", message=str(e))
+
 @app.get("/growth_record", response_model=APIResponse)
 async def list_growth_record(request: Request, renpho: RenphoWeight = Depends(get_current_user)):
     try:
@@ -828,7 +827,6 @@ async def list_growth_record(request: Request, renpho: RenphoWeight = Depends(ge
         return APIResponse(status="error", message=str(e))
 
 @app.get("/message_list", response_model=APIResponse)
-@app.get("/message_list", response_model=APIResponse)
 async def message_list(request: Request, renpho: RenphoWeight = Depends(get_current_user)):
     try:
         messages = await renpho.message_list()
@@ -840,7 +838,7 @@ async def message_list(request: Request, renpho: RenphoWeight = Depends(get_curr
         renpho.close()
         logger.error(f"Error fetching message list: {e}")
         return APIResponse(status="error", message=str(e))
-@app.get("/reach_goal", response_model=APIResponse)
+
 @app.get("/reach_goal", response_model=APIResponse)
 async def reach_goal(request: Request, renpho: RenphoWeight = Depends(get_current_user)):
     try:
@@ -853,7 +851,7 @@ async def reach_goal(request: Request, renpho: RenphoWeight = Depends(get_curren
         renpho.close()
         logger.error(f"Error fetching reach goal: {e}")
         return APIResponse(status="error", message=str(e))
-@app.get("/request_user", response_model=APIResponse)
+
 @app.get("/request_user", response_model=APIResponse)
 async def request_user(request: Request, renpho: RenphoWeight = Depends(get_current_user)):
     try:
