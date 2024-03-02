@@ -122,8 +122,8 @@ class RenphoWeight:
                     "No session key found. Attempting to authenticate.")
                 await self.auth()
 
-            if self.session_key_expiry >= datetime.datetime.now():
-                await self.auth()
+            # check if the session key is valid
+            await self.ensure_valid_session()
 
             # Prepare the data for the API request
             kwargs = self.prepare_data(kwargs)
@@ -147,6 +147,7 @@ class RenphoWeight:
             _LOGGER.error(f"Unexpected error occurred in _request: {e}")
             raise APIError(f"API request failed {method} {url}") from e
 
+    @staticmethod
     def encrypt_password(public_key_str, password):
         try:
             # Ensure the public key is imported correctly
@@ -162,7 +163,6 @@ class RenphoWeight:
             _LOGGER.error(f"Encryption error: {e}")
             raise
 
-
     async def auth(self):
         if not self.email or not self.password:
             await self.close()
@@ -174,10 +174,8 @@ class RenphoWeight:
             await self.close()
             raise AuthenticationError("Public key is None.")
 
-        key = RSA.importKey(self.public_key)
-        cipher = PKCS1_v1_5.new(key)
         try:
-            encrypted_password = encrypt_password(self.public_key, self.password)
+            encrypted_password = self.encrypt_password(self.public_key, self.password)
         except Exception as e:
             _LOGGER.error(f"An error occurred while encrypting the password: {e}")
             await self.close()
@@ -213,7 +211,7 @@ class RenphoWeight:
 
     def is_session_valid(self):
         """Check if the session key is valid."""
-        return self.session_key and self.session_key_expiry > datetime.datetime.now()
+        return self.session_key and self.session_key_expiry > datetime.datetime.now()+ datetime.timedelta(minutes=1)
 
     async def validate_credentials(self):
         """
