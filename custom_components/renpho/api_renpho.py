@@ -638,6 +638,7 @@ class Interval(Timer):
         while not self.finished.wait(self.interval):
             self.function(*self.args, **self.kwargs)
 
+
 class AuthenticationError(Exception):
     pass
 

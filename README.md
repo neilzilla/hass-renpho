@@ -1,6 +1,6 @@
 # Renpho Weight Home Assistant Component
 
-![Version](https://img.shields.io/badge/version-0.2.0-blue)
+![Version](https://img.shields.io/badge/version-v2.0.2.1-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
 ![HACS Integration](https://img.shields.io/badge/Category-Integration-blue)
@@ -44,6 +44,10 @@ This custom component allows you to integrate Renpho's weight scale data into Ho
 ## Installation
 
 ```
+Stable
+Use the latest release
+
+Not stable
 git clone https://github.com/antoinebou12/hass_renpho
 ```
 
