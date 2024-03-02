@@ -5,7 +5,6 @@ from fastapi.templating import Jinja2Templates
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 import hashlib
 from cachetools import LRUCache
-from cachetools.sync import RLock
 import os
 
 import asyncio
@@ -696,7 +695,8 @@ class APIResponse(BaseModel):
     data: Optional[dict] = None
 
 
-user_instances_cache = LRUCache(maxsize=100, lock=RLock())
+user_instances_cache = LRUCache(maxsize=100)
+cache_lock = asyncio.Lock()
 
 async def get_user_hash(credentials: HTTPBasicCredentials):
     """
@@ -710,20 +710,18 @@ async def get_user_hash(credentials: HTTPBasicCredentials):
 async def get_current_user(credentials: HTTPBasicCredentials = Depends(security)):
     user_hash = await get_user_hash(credentials)
     
-    # Try to get an existing user instance from the cache
-    user = user_instances_cache.get(user_hash)
-    
-    if not user:
-        try:
-            # Create a new user instance and authenticate
-            user = RenphoWeight(email=credentials.username, password=credentials.password)
-            await user.auth()  # Ensure that user can authenticate
-            
-            # Store the authenticated user instance in the cache
-            user_instances_cache[user_hash] = user
-        except Exception as e:
-            print(f"Authentication failed: {e}")  # Adjust the logging mechanism as needed
-            raise HTTPException(status_code=401, detail="Authentication failed")
+    async with cache_lock:
+        # Access the cache within the locked context to ensure thread safety
+        user = user_instances_cache.get(user_hash)
+        
+        if not user:
+            try:
+                user = RenphoWeight(email=credentials.username, password=credentials.password)
+                await user.auth()
+                user_instances_cache[user_hash] = user
+            except Exception as e:
+                print(f"Authentication failed: {e}")  # Adjust the logging mechanism as needed
+                raise HTTPException(status_code=401, detail="Authentication failed")
     
     return user
 
