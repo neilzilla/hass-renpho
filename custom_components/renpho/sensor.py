@@ -28,7 +28,7 @@ async def sensors_list(
 ) -> list[RenphoSensor]:
     """Return a list of sensors."""
     return [
-        RenphoSensor(hass.data[DOMAIN], **sensor, config_entry=config_entry, unit_of_measurement=hass.data[CONF_UNIT_OF_MEASUREMENT])
+        RenphoSensor(hass.data[DOMAIN], **sensor, unit_of_measurement=hass.data[CONF_UNIT_OF_MEASUREMENT])
         for sensor in sensor_configurations
     ]
 
@@ -76,7 +76,6 @@ class RenphoSensor(SensorEntity):
         category: str,
         label: str,
         metric: str,
-        config_entry: ConfigEntry,
         unit_of_measurement: str,
     ) -> None:
         """Initialize the sensor."""
@@ -126,12 +125,26 @@ class RenphoSensor(SensorEntity):
     @property
     def unit_of_measurement(self) -> str:
         # Return the correct unit of measurement based on user configuration
-        return self._unit_of_measurement
+        if self._unit_of_measurement == MASS_POUNDS and self._unit == MASS_KILOGRAMS:
+            return MASS_POUNDS
+        elif self._unit_of_measurement == MASS_KILOGRAMS and self._unit == MASS_KILOGRAMS:
+            return MASS_KILOGRAMS
+        elif self._unit_of_measurement == MASS_POUNDS and self._unit == MASS_POUNDS:
+            return MASS_POUNDS
+        elif self._unit_of_measurement == MASS_KILOGRAMS or MASS_POUNDS and self._unit != MASS_KILOGRAMS or MASS_POUNDS:
+            return self._unit
 
     @property
     def unit(self) -> str:
         """Return the unit of the sensor."""
-        return self._unit
+        if self._unit_of_measurement == MASS_POUNDS and self._unit == MASS_KILOGRAMS:
+            return MASS_POUNDS
+        elif self._unit_of_measurement == MASS_KILOGRAMS and self._unit == MASS_KILOGRAMS:
+            return MASS_KILOGRAMS
+        elif self._unit_of_measurement == MASS_POUNDS and self._unit == MASS_POUNDS:
+            return MASS_POUNDS
+        elif self._unit_of_measurement == MASS_KILOGRAMS or MASS_POUNDS and self._unit != MASS_KILOGRAMS or MASS_POUNDS:
+            return self._unit
 
     @property
     def category(self) -> str:
