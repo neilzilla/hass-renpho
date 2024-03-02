@@ -1,7 +1,9 @@
 fastapi
 uvicorn
-aiohttp
+httpx
+jinja2
 pydantic
+aiohttp
 python-multipart
 cryptography
 pyjwt
