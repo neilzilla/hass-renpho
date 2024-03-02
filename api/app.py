@@ -5,7 +5,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 import os
 
-from api_renpho import RenphoWeight
+from .api_renpho import RenphoWeight
 
 # Initialize FastAPI and Jinja2
 app = FastAPI(docs_url="/docs", redoc_url=None)
