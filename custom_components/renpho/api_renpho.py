@@ -1,19 +1,28 @@
 import asyncio
 import datetime
-import json
 import logging
 import time
 from base64 import b64encode
 from threading import Timer
-from typing import Callable, Dict, List, Optional, Union
-import traceback
+from typing import Callable, Dict, Final, List, Optional, Union
 
 import aiohttp
-import requests
 from Crypto.Cipher import PKCS1_v1_5
 from Crypto.PublicKey import RSA
 
-from .const import METRIC_TYPE_GIRTH, METRIC_TYPE_GIRTH_GOAL, METRIC_TYPE_GROWTH_RECORD, METRIC_TYPE_WEIGHT
+
+METRIC_TYPE_WEIGHT: Final = "weight"
+METRIC_TYPE_GROWTH_RECORD: Final = "growth_record"
+METRIC_TYPE_GIRTH: Final = "girth"
+METRIC_TYPE_GIRTH_GOAL: Final = "girth_goals"
+
+CONF_PUBLIC_KEY: Final = """-----BEGIN PUBLIC KEY-----
+MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC+25I2upukpfQ7rIaaTZtVE744
+u2zV+HaagrUhDOTq8fMVf9yFQvEZh2/HKxFudUxP0dXUa8F6X4XmWumHdQnum3zm
+Jr04fz2b2WCcN0ta/rbF2nYAnMVAk2OJVZAMudOiMWhcxV1nNJiKgTNNr13de0EQ
+IiOL2CUBzu+HmIfUbQIDAQAB
+-----END PUBLIC KEY-----"""
+
 
 # Initialize logging
 _LOGGER = logging.getLogger(__name__)
@@ -48,7 +57,7 @@ class RenphoWeight:
         session_key (str): The session key obtained after successful authentication.
     """
 
-    def __init__(self, public_key, email, password, user_id=None, refresh=60):
+    def __init__(self, email, password, public_key=CONF_PUBLIC_KEY, user_id=None, refresh=60):
         """Initialize a new RenphoWeight instance."""
         self.public_key = public_key
         self.email = email
@@ -114,7 +123,7 @@ class RenphoWeight:
         """
         try:
             # Initialize session if it does not exist
-            self.open_session()
+            await self.open_session()
 
             # Authenticate if session_key is missing, except for the auth URL itself
             if self.session_key is None and method != "POST" and url != API_AUTH_URL:
@@ -211,7 +220,7 @@ class RenphoWeight:
 
     def is_session_valid(self):
         """Check if the session key is valid."""
-        return self.session_key and self.session_key_expiry > datetime.datetime.now()+ datetime.timedelta(minutes=1)
+        return self.session_key and datetime.datetime.now() < self.session_key_expiry
 
     async def validate_credentials(self):
         """
