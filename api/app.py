@@ -3,6 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
+import hashlib
+from cachetools import LRUCache
+from cachetools.sync import RLock
 import os
 
 import asyncio
@@ -693,7 +696,7 @@ class APIResponse(BaseModel):
     data: Optional[dict] = None
 
 
-user_instances_cache = {}
+user_instances_cache = LRUCache(maxsize=100, lock=RLock())
 
 async def get_user_hash(credentials: HTTPBasicCredentials):
     """
@@ -719,7 +722,7 @@ async def get_current_user(credentials: HTTPBasicCredentials = Depends(security)
             # Store the authenticated user instance in the cache
             user_instances_cache[user_hash] = user
         except Exception as e:
-            __LOGGER.error(f"Authentication failed: {e}")
+            print(f"Authentication failed: {e}")  # Adjust the logging mechanism as needed
             raise HTTPException(status_code=401, detail="Authentication failed")
     
     return user
