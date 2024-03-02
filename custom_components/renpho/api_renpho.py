@@ -15,14 +15,6 @@ METRIC_TYPE_GROWTH_RECORD: Final = "growth_record"
 METRIC_TYPE_GIRTH: Final = "girth"
 METRIC_TYPE_GIRTH_GOAL: Final = "girth_goals"
 
-CONF_PUBLIC_KEY: Final = """-----BEGIN PUBLIC KEY-----
-MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC+25I2upukpfQ7rIaaTZtVE744
-u2zV+HaagrUhDOTq8fMVf9yFQvEZh2/HKxFudUxP0dXUa8F6X4XmWumHdQnum3zm
-Jr04fz2b2WCcN0ta/rbF2nYAnMVAk2OJVZAMudOiMWhcxV1nNJiKgTNNr13de0EQ
-IiOL2CUBzu+HmIfUbQIDAQAB
------END PUBLIC KEY-----"""
-
-
 # Initialize logging
 _LOGGER = logging.getLogger(__name__)
 
@@ -56,7 +48,7 @@ class RenphoWeight:
         session_key (str): The session key obtained after successful authentication.
     """
 
-    def __init__(self, email, password, public_key=CONF_PUBLIC_KEY, user_id=None, refresh=60):
+    def __init__(self, public_key, email, password, user_id=None, refresh=60):
         """Initialize a new RenphoWeight instance."""
         self.public_key = public_key
         self.email = email
@@ -70,7 +62,7 @@ class RenphoWeight:
         self.refresh = refresh
         self.session = None
         self.is_polling_active = False
-        self.session_key_expiry = datetime.datetime.now()
+        self.session_key_expiry = datetime.utcnow() - timedelta(minutes=1)
 
     def set_user_id(self, user_id):
         """
@@ -105,7 +97,7 @@ class RenphoWeight:
             self.session_key_expiry = datetime.datetime.now()
             self.session = aiohttp.ClientSession()
 
-    async def _request(self, method: str, url: str, **kwargs) -> Union[Dict, List]:
+    async def _request(self, method: str, url: str, retries=3, backoff_factor=0.5, **kwargs) -> Union[Dict, List]:
         """
         Asynchronous function to make API requests.
 
@@ -120,40 +112,47 @@ class RenphoWeight:
         Raises:
             APIError: Custom exception for API-related errors.
         """
-        try:
-            # Initialize session if it does not exist
-            await self.open_session()
+        for attempt in range(1, retries + 1):
+            try:
+                # Initialize session if it does not exist
+                await self.open_session()
 
-            # Authenticate if session_key is missing, except for the auth URL itself
-            if self.session_key is None and method != "POST" and url != API_AUTH_URL:
-                _LOGGER.warning(
-                    "No session key found. Attempting to authenticate.")
-                await self.auth()
-
-            # check if the session key is valid
-            await self.ensure_valid_session()
-
-            # Prepare the data for the API request
-            kwargs = self.prepare_data(kwargs)
-
-            # Send the request and wait for the response
-            async with self.session.request(method, url, **kwargs) as response:
-                response.raise_for_status()
-                parsed_response = await response.json()
-
-                # Handle specific status code 40302
-                if parsed_response.get("status_code", 0) == 40302:
+                # Authenticate if session_key is missing, except for the auth URL itself
+                if self.session_key is None and method != "POST" and url != API_AUTH_URL:
                     _LOGGER.warning(
-                        "Received 40302 status code. Attempting to re-authenticate.")
+                        "No session key found. Attempting to authenticate.")
+                    await self.auth()
 
-                return parsed_response
+                # check if the session key is valid
+                await self.ensure_valid_session()
 
-        except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError) as e:
-            _LOGGER.error(f"Client error occurred in _request: {e}")
-            raise APIError(f"API request failed {method} {url}") from e
-        except Exception as e:
-            _LOGGER.error(f"Unexpected error occurred in _request: {e}")
-            raise APIError(f"API request failed {method} {url}") from e
+                # Prepare the data for the API request
+                kwargs = self.prepare_data(kwargs)
+
+                # Send the request and wait for the response
+                async with self.session.request(method, url, **kwargs) as response:
+                    response.raise_for_status()
+                    parsed_response = await response.json()
+
+                    # Handle specific status code 40302
+                    if parsed_response.get("status_code", 0) == 40302:
+                        _LOGGER.warning(
+                            "Received 40302 status code. Attempting to re-authenticate.")
+
+                    return parsed_response
+
+            except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError) as e:
+                _LOGGER.error(f"Attempt {attempt} - Cannot connect to host: {e}")
+                if attempt == retries:
+                    _LOGGER.error(f"Failed to connect to host after {retries} attempts.")
+                    raise
+                sleep_time = backoff_factor * (2 ** (attempt - 1))
+                _LOGGER.info(f"Retrying in {sleep_time} seconds...")
+                await asyncio.sleep(sleep_time)
+                raise APIError(f"API request failed {method} {url}") from e
+            except Exception as e:
+                _LOGGER.error(f"Unexpected error occurred in _request: {e}")
+                raise APIError(f"API request failed {method} {url}") from e
 
     @staticmethod
     def encrypt_password(public_key_str, password):
@@ -162,11 +161,7 @@ class RenphoWeight:
             rsa_key = RSA.importKey(public_key_str)
             # Create a cipher object using PKCS#1 v1.5
             cipher = PKCS1_v1_5.new(rsa_key)
-            # Encrypt the password
-            encrypted_password = cipher.encrypt(password.encode('utf-8'))
-            # Encode the encrypted password with base64
-            encoded_encrypted_password = b64encode(encrypted_password)
-            return encoded_encrypted_password.decode('utf-8')
+            return b64encode(cipher.encrypt(password.encode("utf-8")))
         except Exception as e:
             _LOGGER.error(f"Encryption error: {e}")
             raise
@@ -219,7 +214,7 @@ class RenphoWeight:
 
     def is_session_valid(self):
         """Check if the session key is valid."""
-        return self.session_key and datetime.datetime.now() < self.session_key_expiry
+        return self.session_key and datetime.utcnow() < self.session_key_expiry
 
     async def validate_credentials(self):
         """
@@ -632,20 +627,6 @@ class RenphoWeight:
             self.session_key = None
             self.session_key_expiry = datetime.datetime.now()
             await self.session.close()  # Close the session
-
-
-class Interval(Timer):
-    """
-    A subclass of Timer to repeatedly run a function at a specified interval.
-    """
-
-    def run(self):
-        """
-        Run the function at the given interval.
-        """
-        while not self.finished.wait(self.interval):
-            self.function(*self.args, **self.kwargs)
-
 
 class AuthenticationError(Exception):
     pass
