@@ -126,17 +126,11 @@ class RenphoSensor(SensorEntity):
     @property
     def unit_of_measurement(self) -> str:
         # Return the correct unit of measurement based on user configuration
-        return (
-            MASS_POUNDS if self._unit_of_measurement == MASS_POUNDS and self._unit == MASS_KILOGRAMS else MASS_KILOGRAMS
-        )
+        return self._unit_of_measurement
 
     @property
     def unit(self) -> str:
         """Return the unit of the sensor."""
-        if self._unit_of_measurement == MASS_POUNDS and self._unit == MASS_KILOGRAM:
-            return MASS_POUNDS
-        elif self._unit_of_measurement == MASS_KILOGRAM and self._unit == MASS_KILOGRAM:
-            return MASS_KILOGRAM
         return self._unit
 
     @property
@@ -158,7 +152,12 @@ class RenphoSensor(SensorEntity):
             )
 
             if metric_value is not None:
-                self._state = round(metric_value * KG_TO_LBS, 2) if self._unit_of_measurement == MASS_POUNDS and self._unit == MASS_KILOGRAMS else round(metric_value, 2)
+                if self._unit_of_measurement == MASS_POUNDS and self._unit == MASS_KILOGRAMS:
+                    self._state = round(metric_value * KG_TO_LBS, 2)
+                elif self._unit_of_measurement == MASS_KILOGRAMS and self._unit == MASS_KILOGRAMS:
+                    self._state = round(metric_value, 2)
+                else:
+                    self._state = metric_value
                 self._timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 _LOGGER.info(f"Successfully updated {self._name} for metric type {self._metric}")
             else:
