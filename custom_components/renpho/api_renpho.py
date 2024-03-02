@@ -62,7 +62,7 @@ class RenphoWeight:
         self.refresh = refresh
         self.session = None
         self.is_polling_active = False
-        self.session_key_expiry = datetime.utcnow() - timedelta(minutes=1)
+        self.session_key_expiry = datetime.datetime.utcnow() - timedelta(minutes=1)
 
     def set_user_id(self, user_id):
         """
@@ -93,8 +93,6 @@ class RenphoWeight:
 
     async def open_session(self):
         if self.session is None or self.session.closed:
-            self.session_key = None
-            self.session_key_expiry = datetime.datetime.now()
             self.session = aiohttp.ClientSession()
 
     async def _request(self, method: str, url: str, retries=3, backoff_factor=0.5, **kwargs) -> Union[Dict, List]:
@@ -203,7 +201,7 @@ class RenphoWeight:
 
         # If everything is fine, set the session_key
         self.session_key = parsed["terminal_user_session_key"]
-        self.session_key_expiry = datetime.datetime.now() + datetime.timedelta(minutes=10)
+        self.session_key_expiry = datetime.datetime.utcnow() + datetime.timedelta(minutes=10)
         return parsed
 
     async def ensure_valid_session(self):
@@ -214,7 +212,7 @@ class RenphoWeight:
 
     def is_session_valid(self):
         """Check if the session key is valid."""
-        return self.session_key and datetime.utcnow() < self.session_key_expiry
+        return self.session_key and datetime.datetime.utcnow() < self.session_key_expiry
 
     async def validate_credentials(self):
         """
