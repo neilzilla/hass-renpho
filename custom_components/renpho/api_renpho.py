@@ -288,8 +288,8 @@ class RenphoWeight:
 
         if metric_type == METRIC_TYPE_WEIGHT:
             last_measurement = await self.get_weight()
-            if self.weight is not None:
-                return last_measurement[1].get(metric, None)
+            if last_measurement and self.weight is not None:
+                return last_measurement[1].get(metric, None) if last_measurement[1] else None
         try:
             if metric_type == METRIC_TYPE_GIRTH_GOAL:
                 return await self.get_specific_girth_goal_metric(metric, user_id)
@@ -315,7 +315,7 @@ class RenphoWeight:
                 await self.close()
                 return None
 
-            return last_measurement.get(metric, None)
+            return last_measurement.get(metric, None) if last_measurement else None
 
         except Exception as e:
             _LOGGER.error(f"An error occurred: {e} {metric_type} {metric}")
