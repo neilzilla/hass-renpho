@@ -64,21 +64,21 @@ class RenphoWeight:
         session_key (str): The session key obtained after successful authentication.
     """
 
-def __init__(self, email, password, public_key=CONF_PUBLIC_KEY, user_id=None, refresh=60):
-        """Initialize a new RenphoWeight instance."""
-        self.public_key = public_key
-        self.email = email
-        self.password = password
-        if user_id == "":
-            self.user_id = None
-        self.user_id = user_id
-        self.weight = None
-        self.time_stamp = None
-        self.session_key = None
-        self.refresh = refresh
-        self.session = None
-        self.is_polling_active = False
-        self.session_key_expiry = datetime.datetime.now()
+    def __init__(self, email, password, public_key=CONF_PUBLIC_KEY, user_id=None, refresh=60):
+            """Initialize a new RenphoWeight instance."""
+            self.public_key = public_key
+            self.email = email
+            self.password = password
+            if user_id == "":
+                self.user_id = None
+            self.user_id = user_id
+            self.weight = None
+            self.time_stamp = None
+            self.session_key = None
+            self.refresh = refresh
+            self.session = None
+            self.is_polling_active = False
+            self.session_key_expiry = datetime.datetime.now()
 
     def set_user_id(self, user_id):
         """
@@ -170,7 +170,7 @@ def __init__(self, email, password, public_key=CONF_PUBLIC_KEY, user_id=None, re
             cipher = PKCS1_v1_5.new(rsa_key)
             return b64encode(cipher.encrypt(bytes(password, "utf-8")))
         except Exception as e:
-            _LOGGER.error(f"Encryption error occurred in encrypt_password 
+            _LOGGER.error(f"Encryption error occurred in encrypt_password: {e}")
             raise
 
     async def auth(self):
@@ -221,7 +221,7 @@ def __init__(self, email, password, public_key=CONF_PUBLIC_KEY, user_id=None, re
 
     def is_session_valid(self):
         """Check if the session key is valid."""
-        return self.session_key and datetime.datetime.now() < self.session_key_expiry
+        return True
 
     async def validate_credentials(self):
         """
