@@ -693,14 +693,36 @@ class APIResponse(BaseModel):
     data: Optional[dict] = None
 
 
+user_instances_cache = {}
+
+async def get_user_hash(credentials: HTTPBasicCredentials):
+    """
+    Generate a hash based on the username and password.
+    This hash will be used as a key to store user instances in the cache.
+    """
+    user_string = f"{credentials.username}:{credentials.password}"
+    user_hash = hashlib.sha256(user_string.encode('utf-8')).hexdigest()
+    return user_hash
+
 async def get_current_user(credentials: HTTPBasicCredentials = Depends(security)):
-    try:
-        user = RenphoWeight(email=credentials.username, password=credentials.password)
-        await user.auth()  # Ensure that user can authenticate
-        return user
-    except Exception as e:
-        __LOGGER.error(f"Authentication failed: {e}")
-        raise HTTPException(status_code=401, detail="Authentication failed")
+    user_hash = await get_user_hash(credentials)
+    
+    # Try to get an existing user instance from the cache
+    user = user_instances_cache.get(user_hash)
+    
+    if not user:
+        try:
+            # Create a new user instance and authenticate
+            user = RenphoWeight(email=credentials.username, password=credentials.password)
+            await user.auth()  # Ensure that user can authenticate
+            
+            # Store the authenticated user instance in the cache
+            user_instances_cache[user_hash] = user
+        except Exception as e:
+            __LOGGER.error(f"Authentication failed: {e}")
+            raise HTTPException(status_code=401, detail="Authentication failed")
+    
+    return user
 
 
 @app.get("/")
