@@ -377,8 +377,13 @@ class RenphoWeight:
         """
         Wrapper method to authenticate, fetch users, and get measurements.
         """
-        await self.get_scale_users()
-        return await self.get_measurements()
+        asyncio.gather(
+            self.auth(),
+            self.get_scale_users(),
+            self.get_measurements()
+        )
+
+        return self.weight
 
     async def start_polling(self, refresh=0):
         """
