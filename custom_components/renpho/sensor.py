@@ -28,7 +28,7 @@ async def sensors_list(
 ) -> list[RenphoSensor]:
     """Return a list of sensors."""
     return [
-        RenphoSensor(hass.data[DOMAIN], **sensor, config_entry=config_entry, unit_of_measurement=hass.data[CONF_UNIT_OF_MEASUREMENT])
+        RenphoSensor(hass.data[DOMAIN], **sensor, unit_of_measurement=hass.data[CONF_UNIT_OF_MEASUREMENT])
         for sensor in sensor_configurations
     ]
 
@@ -76,7 +76,6 @@ class RenphoSensor(SensorEntity):
         category: str,
         label: str,
         metric: str,
-        config_entry: ConfigEntry,
         unit_of_measurement: str,
     ) -> None:
         """Initialize the sensor."""
@@ -126,18 +125,26 @@ class RenphoSensor(SensorEntity):
     @property
     def unit_of_measurement(self) -> str:
         # Return the correct unit of measurement based on user configuration
-        return (
-            MASS_POUNDS if self._unit_of_measurement == MASS_POUNDS and self._unit == MASS_KILOGRAMS else MASS_KILOGRAMS
-        )
+        if self._unit_of_measurement == MASS_POUNDS and self._unit == MASS_KILOGRAMS:
+            return MASS_POUNDS
+        elif self._unit_of_measurement == MASS_KILOGRAMS and self._unit == MASS_KILOGRAMS:
+            return MASS_KILOGRAMS
+        elif self._unit_of_measurement == MASS_POUNDS and self._unit == MASS_POUNDS:
+            return MASS_POUNDS
+        elif self._unit_of_measurement == MASS_KILOGRAMS or MASS_POUNDS and self._unit != MASS_KILOGRAMS or MASS_POUNDS:
+            return self._unit
 
     @property
     def unit(self) -> str:
         """Return the unit of the sensor."""
-        if self._unit_of_measurement == MASS_POUNDS and self._unit == MASS_KILOGRAM:
+        if self._unit_of_measurement == MASS_POUNDS and self._unit == MASS_KILOGRAMS:
             return MASS_POUNDS
-        elif self._unit_of_measurement == MASS_KILOGRAM and self._unit == MASS_KILOGRAM:
-            return MASS_KILOGRAM
-        return self._unit
+        elif self._unit_of_measurement == MASS_KILOGRAMS and self._unit == MASS_KILOGRAMS:
+            return MASS_KILOGRAMS
+        elif self._unit_of_measurement == MASS_POUNDS and self._unit == MASS_POUNDS:
+            return MASS_POUNDS
+        elif self._unit_of_measurement == MASS_KILOGRAMS or MASS_POUNDS and self._unit != MASS_KILOGRAMS or MASS_POUNDS:
+            return self._unit
 
     @property
     def category(self) -> str:
@@ -158,9 +165,14 @@ class RenphoSensor(SensorEntity):
             )
 
             if metric_value is not None:
-                self._state = round(metric_value * KG_TO_LBS, 2) if self._unit_of_measurement == MASS_POUNDS and self._unit == MASS_KILOGRAMS else round(metric_value, 2)
+                if self._unit_of_measurement == MASS_POUNDS and self._unit == MASS_KILOGRAMS:
+                    self._state = round(metric_value * KG_TO_LBS, 2)
+                elif self._unit_of_measurement == MASS_KILOGRAMS and self._unit == MASS_KILOGRAMS:
+                    self._state = round(metric_value, 2)
+                else:
+                    self._state = metric_value
                 self._timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                _LOGGER.info(f"Successfully updated {self._name} for metric type {self._metric}")
+                _LOGGER.info(f"Successfully updated {self._name} for metric type {self._metric} with value {self._state} with unit {self._unit}")
             else:
                 self._state = None  # You might choose to clear the state or leave it unchanged
 
