@@ -10,7 +10,6 @@ import aiohttp
 from Crypto.Cipher import PKCS1_v1_5
 from Crypto.PublicKey import RSA
 
-
 METRIC_TYPE_WEIGHT: Final = "weight"
 METRIC_TYPE_GROWTH_RECORD: Final = "growth_record"
 METRIC_TYPE_GIRTH: Final = "girth"
