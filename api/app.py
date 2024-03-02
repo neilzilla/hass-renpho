@@ -82,7 +82,10 @@ class RenphoWeight:
         self.refresh = refresh
         self.session = None
         self.is_polling_active = False
-        self.session_key_expiry = datetime.datetime.now()
+        self.session_key_expiry = datetime.datetime.now(datetime.timezone.utc)
+        self.auth_in_progress = False
+        self.session_lock = asyncio.Lock()
+        self.active_requests = 0
 
     def set_user_id(self, user_id):
         """
@@ -112,10 +115,9 @@ class RenphoWeight:
             return data
 
     async def open_session(self):
-        if self.session is None or self.session.closed:
-            self.session_key = None
-            self.session_key_expiry = datetime.datetime.now()
-            self.session = aiohttp.ClientSession()
+        async with self.session_lock:
+            if self.session is None or self.session.closed:
+                self.session = aiohttp.ClientSession()
 
     async def _request(self, method: str, url: str, **kwargs) -> Union[Dict, List]:
         """
@@ -133,17 +135,16 @@ class RenphoWeight:
             APIError: Custom exception for API-related errors.
         """
         try:
+            async with self.session_lock:
+                self.active_requests += 1
             # Initialize session if it does not exist
             await self.open_session()
 
             # Authenticate if session_key is missing, except for the auth URL itself
-            if self.session_key is None and method != "POST" and url != API_AUTH_URL:
+            if not self.auth_in_progress and (self.session_key is None and method != "POST" and url != API_AUTH_URL):
                 _LOGGER.warning(
                     "No session key found. Attempting to authenticate.")
-                await self.auth()
-
-            # check if the session key is valid
-            await self.ensure_valid_session()
+                await self.ensure_valid_session()
 
             # Prepare the data for the API request
             kwargs = self.prepare_data(kwargs)
@@ -161,71 +162,83 @@ class RenphoWeight:
                 return parsed_response
 
         except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError) as e:
-            _LOGGER.error(f"Client error occurred in _request: {e}")
+            _LOGGER.error(f"Aiohttp client error in _request: {e}")
             raise APIError(f"API request failed {method} {url}") from e
         except Exception as e:
             _LOGGER.error(f"Unexpected error occurred in _request: {e}")
             raise APIError(f"API request failed {method} {url}") from e
+        finally:
+            # Decrement active requests counter
+            async with self.session_lock:
+                self.active_requests -= 1
 
     @staticmethod
     def encrypt_password(public_key_str, password):
         try:
+            # Ensure the public key is imported correctly
             rsa_key = RSA.importKey(public_key_str)
+            # Create a cipher object using PKCS#1 v1.5
             cipher = PKCS1_v1_5.new(rsa_key)
-            return b64encode(cipher.encrypt(bytes(password, "utf-8")))
+            return b64encode(cipher.encrypt(password.encode("utf-8")))
         except Exception as e:
-            _LOGGER.error(f"Encryption error occurred in encrypt_password: {e}")
+            _LOGGER.error(f"Encryption error: {e}")
             raise
 
     async def auth(self):
-        if not self.email or not self.password:
-            await self.close()
-            raise AuthenticationError("Email and password must be provided")
-
-        # Check if public_key is None
-        if self.public_key is None:
-            _LOGGER.error("Public key is None.")
-            await self.close()
-            raise AuthenticationError("Public key is None.")
-
-        try:
-            encrypted_password = self.encrypt_password(self.public_key, self.password)
-        except Exception as e:
-            _LOGGER.error(f"An error occurred while encrypting the password: {e}")
-            await self.close()
+        if self.auth_in_progress:
             return
+        self.auth_in_progress = True
+        try:
+            if not self.email or not self.password:
+                await self.close()
+                raise AuthenticationError("Email and password must be provided")
 
-        data = {"secure_flag": "1", "email": self.email,
-                "password": encrypted_password}
-        parsed = await self._request("POST", API_AUTH_URL, json=data)
+            # Check if public_key is None
+            if self.public_key is None:
+                _LOGGER.error("Public key is None.")
+                await self.close()
+                raise AuthenticationError("Public key is None.")
 
-        # Check if parsed object is None
-        if parsed is None:
-            _LOGGER.error("Parsed object is None.")
+            encrypted_password = self.encrypt_password(self.public_key, self.password)
+
+            data = {"secure_flag": "1", "email": self.email,
+                    "password": encrypted_password}
+
+            parsed = await self._request("POST", API_AUTH_URL, json=data)
+
+            # Check if parsed object is None
+            if parsed is None:
+                _LOGGER.error("Parsed object is None.")
+                await self.close()
+                raise AuthenticationError("Received NoneType object.")
+
+            # Check for 'terminal_user_session_key'
+            if "terminal_user_session_key" not in parsed:
+                _LOGGER.error(
+                    "'terminal_user_session_key' not found in parsed object.")
+                await self.close()
+                raise AuthenticationError("'terminal_user_session_key' missing.")
+
+            # If everything is fine, set the session_key
+            self.session_key = parsed["terminal_user_session_key"]
+            self.session_key_expiry = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=10)
+            self.auth_in_progress = False
+            return parsed
+        except Exception as e:
+            _LOGGER.error(f"Authentication failed: {e}")
             await self.close()
-            raise AuthenticationError("Received NoneType object.")
-
-        # Check for 'terminal_user_session_key'
-        if "terminal_user_session_key" not in parsed:
-            _LOGGER.error(
-                "'terminal_user_session_key' not found in parsed object.")
-            await self.close()
-            raise AuthenticationError("'terminal_user_session_key' missing.")
-
-        # If everything is fine, set the session_key
-        self.session_key = parsed["terminal_user_session_key"]
-        self.session_key_expiry = datetime.datetime.now() + datetime.timedelta(minutes=10)
-        return parsed
+        finally:
+            self.auth_in_progress = False
 
     async def ensure_valid_session(self):
         """Ensure the session is valid and authenticated."""
-        if not self.is_session_valid():
+        if not self.is_session_valid() and not self.auth_in_progress:
             _LOGGER.warning("Session key expired or missing. Re-authenticating.")
             await self.auth()
 
     def is_session_valid(self):
         """Check if the session key is valid."""
-        return True
+        return self.session_key and datetime.datetime.now(datetime.timezone.utc) < self.session_key_expiry
 
     async def validate_credentials(self):
         """
@@ -233,7 +246,7 @@ class RenphoWeight:
         Returns True if authentication succeeds, False otherwise.
         """
         try:
-            await self.auth()
+            await self.ensure_valid_session()
             return True
         except Exception as e:
             _LOGGER.error(f"Validation failed: {e}")
@@ -244,6 +257,7 @@ class RenphoWeight:
         Fetch the list of users associated with the scale.
         """
         try:
+            await self.ensure_valid_session()
             url = f"{API_SCALE_USERS_URL}?locale=en&terminal_user_session_key={self.session_key}"
             parsed = await self._request("GET", url)
 
@@ -274,6 +288,7 @@ class RenphoWeight:
             Exception: For any other unexpected errors.
         """
         try:
+            await self.ensure_valid_session()
             ago_timestamp = int(time.mktime(datetime.date(1998, 1, 1).timetuple()))
             url = f"{API_MEASUREMENTS_URL}?user_id={self.user_id}&last_at={ago_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
             parsed = await self._request("GET", url)
@@ -337,6 +352,8 @@ class RenphoWeight:
         if user_id:
             self.set_user_id(user_id)
 
+        await self.ensure_valid_session()
+
         if metric_type == METRIC_TYPE_WEIGHT:
             last_measurement = await self.get_weight()
             if last_measurement and self.weight is not None:
@@ -377,16 +394,9 @@ class RenphoWeight:
         """
         Wrapper method to authenticate, fetch users, and get measurements.
         """
-        scale_users_task = self.get_scale_users()
-        measurements_task = self.get_measurements()
-    
-        # Execute tasks concurrently
-        results = await asyncio.gather(scale_users_task, measurements_task, return_exceptions=True)
-    
-        # Process and handle possible exceptions for each task
-        scale_users, measurements = results
-
-        return measurements
+        await self.ensure_valid_session()
+        await self.get_scale_users()
+        return await self.get_measurements()
 
     async def start_polling(self, refresh=0):
         """
@@ -640,12 +650,13 @@ class RenphoWeight:
         """
         Shutdown the executor when you are done using the RenphoWeight instance.
         """
-        self.stop_polling()  # Stop the polling
-        if self.session and not self.session.closed:
-            self.session_key = None
-            self.session_key_expiry = datetime.datetime.now()
-            await self.session.close()  # Close the session
-
+        async with self.session_lock:
+            self.stop_polling()  # Stop the polling
+            if self.session and not self.session.closed and self.active_requests == 0:
+                self.session_key = None
+                self.session_key_expiry = datetime.datetime.now(datetime.timezone.utc)
+                await self.session.close()  # Close the session
+                self.session = None
 
 class AuthenticationError(Exception):
     pass
