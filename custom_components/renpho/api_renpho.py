@@ -107,7 +107,7 @@ class RenphoWeight:
         """
         try:
             # Initialize session if it does not exist
-            if self.session is None:
+            if self.session is None or self.session.closed:
                 self.session = aiohttp.ClientSession()
 
             # Authenticate if session_key is missing, except for the auth URL itself
@@ -583,7 +583,7 @@ class RenphoWeight:
         Shutdown the executor when you are done using the RenphoWeight instance.
         """
         self.stop_polling()  # Stop the polling
-        if self.session:
+        if self.session and not self.session.closed:
             await self.session.close()  # Close the session
 
 
