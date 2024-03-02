@@ -135,7 +135,7 @@ class RenphoSensor(SensorEntity):
         """Return the unit of the sensor."""
         if self._unit_of_measurement == MASS_POUNDS and self._unit == MASS_KILOGRAM:
             return MASS_POUNDS
-        else if self._unit_of_measurement == MASS_KILOGRAM and self._unit == MASS_KILOGRAM:
+        elif self._unit_of_measurement == MASS_KILOGRAM and self._unit == MASS_KILOGRAM:
             return MASS_KILOGRAM
         return self._unit
 
