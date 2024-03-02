@@ -10,9 +10,9 @@ Make sure your GitHub repository meets the following requirements:
   {
     "name": "Renpho Weight Scale Integration",
     "domains": ["sensor"],
-    "documentation": "https://github.com/YOUR_USERNAME/YOUR_REPOSITORY/blob/main/README.md",
-    "codeowners": ["@YOUR_USERNAME"],
-    "icon": "https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPOSITORY/main/icon.png",
+    "documentation": "https://github.com/antoinebou12/hass_renpho/blob/main/README.md",
+    "codeowners": ["@antoinebou12"],
+    "icon": "https://raw.githubusercontent.com/antoinebou12/hass_renpho/main/custom_components/renpho/renpho.png",
     "country": ["us"]
   }
   ```

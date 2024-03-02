@@ -107,7 +107,7 @@ class RenphoWeight:
         """
         try:
             # Initialize session if it does not exist
-            if self.session is None:
+            if self.session is None or self.session.closed:
                 self.session = aiohttp.ClientSession()
 
             # Authenticate if session_key is missing, except for the auth URL itself
@@ -133,11 +133,11 @@ class RenphoWeight:
 
         except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError) as e:
             _LOGGER.error(f"Client error: {e}")
-            raise APIError(f"API request failed {method} {url}")
+            raise APIError(f"API request failed {method} {url}") from e
 
         except Exception as e:
             _LOGGER.error(f"Unexpected error: {e}")
-            raise APIError(f"API request failed {method} {url}")
+            raise APIError(f"API request failed {method} {url}") from e
 
     async def auth(self):
         if not self.email or not self.password:
@@ -288,8 +288,8 @@ class RenphoWeight:
 
         if metric_type == METRIC_TYPE_WEIGHT:
             last_measurement = await self.get_weight()
-            if self.weight is not None:
-                return last_measurement[1].get(metric, None)
+            if last_measurement and self.weight is not None:
+                return last_measurement[1].get(metric, None) if last_measurement[1] else None
         try:
             if metric_type == METRIC_TYPE_GIRTH_GOAL:
                 return await self.get_specific_girth_goal_metric(metric, user_id)
@@ -315,7 +315,7 @@ class RenphoWeight:
                 await self.close()
                 return None
 
-            return last_measurement.get(metric, None)
+            return last_measurement.get(metric, None) if last_measurement else None
 
         except Exception as e:
             _LOGGER.error(f"An error occurred: {e} {metric_type} {metric}")
@@ -583,7 +583,7 @@ class RenphoWeight:
         Shutdown the executor when you are done using the RenphoWeight instance.
         """
         self.stop_polling()  # Stop the polling
-        if self.session:
+        if self.session and not self.session.closed:
             await self.session.close()  # Close the session
 
 

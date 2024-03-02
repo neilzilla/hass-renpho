@@ -15,6 +15,7 @@ jobs:
 
       - name: Generate Changelog
         id: changelog
+        if: false
         run: |
           export CHANGELOG=$(git log $(git describe --tags --abbrev=0)..HEAD --pretty="- %s")
           echo "CHANGELOG=$CHANGELOG" >> $GITHUB_ENV
@@ -22,6 +23,7 @@ jobs:
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
+        if: false
         with:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
@@ -30,13 +32,16 @@ jobs:
           prerelease: false
 
       - name: Zip custom_components/renpho directory
+        if: false
         run: zip -r renpho_custom_component.zip custom_components/renpho
 
       - name: Zip complete code
+        if: false
         run: zip -r complete_code.zip .
 
       - name: Upload custom_components/renpho ZIP to Release
         uses: actions/upload-release-asset@v1
+        if: false
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./renpho_custom_component.zip
@@ -45,6 +50,7 @@ jobs:
 
       - name: Upload complete code ZIP to Release
         uses: actions/upload-release-asset@v1
+        if: false
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./complete_code.zip
