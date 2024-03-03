@@ -656,6 +656,7 @@ class RenphoWeight:
             self.stop_polling()  # Stop the polling
             if self.session and not self.session.closed and self.active_requests == 0:
                 await self.session.close()  # Close the session
+                self.session = None
 
 class AuthenticationError(Exception):
     pass
