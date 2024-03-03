@@ -655,10 +655,7 @@ class RenphoWeight:
         async with self.session_lock:
             self.stop_polling()  # Stop the polling
             if self.session and not self.session.closed and self.active_requests == 0:
-                self.session_key = None
-                self.session_key_expiry = datetime.datetime.now(datetime.timezone.utc)
                 await self.session.close()  # Close the session
-                self.session = None
 
 class AuthenticationError(Exception):
     pass
