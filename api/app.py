@@ -496,8 +496,6 @@ class RenphoWeight:
 
         kwargs = self.prepare_data(kwargs)
 
-        _LOGGER.error(f"API request: {method} {url} {kwargs}")
-
         try:
             async with session.request(method, url, **kwargs) as response:
                 response.raise_for_status()
@@ -561,8 +559,6 @@ class RenphoWeight:
 
         data = {"secure_flag": "1", "email": self.email,
                 "password": encrypted_password}
-
-        _LOGGER.error(f"Authentication data: {data}")
 
         try:
 

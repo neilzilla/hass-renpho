@@ -141,8 +141,6 @@ class RenphoWeight:
 
         kwargs = self.prepare_data(kwargs)
 
-        _LOGGER.error(f"API request: {method} {url} {kwargs}")
-
         try:
             async with session.request(method, url, **kwargs) as response:
                 response.raise_for_status()
@@ -219,8 +217,6 @@ class RenphoWeight:
             async with session.request("POST", API_AUTH_URL, json=data) as response:
                 response.raise_for_status()
                 parsed = await response.json()
-
-                _LOGGER.warning(f"Authentication response: {parsed}")
 
                 if parsed is None:
                     _LOGGER.error("Authentication failed. No response received.")
