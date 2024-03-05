@@ -321,7 +321,7 @@ class RenphoWeight:
             _LOGGER.error(f"Failed to fetch weight measurements: {e}")
             return None
 
-    async def get_weight(self) -> Union[float, None]:
+    async def get_weight(self):
         if self.weight and self.weight_info:
             return self.weight, self.weight_info
         self._last_updated_weight = time.time()
