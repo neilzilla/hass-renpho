@@ -8,13 +8,13 @@ from homeassistant.helpers.update_coordinator import (
     UpdateFailed,
 )
 
-from .const import DOMAIN, CONF_UNIT_OF_MEASUREMENT
+from .const import CONF_EMAIL, CONF_REFRESH, CONF_USER_ID, DOMAIN, CONF_UNIT_OF_MEASUREMENT
 
 _LOGGER = logging.getLogger(__name__)
 
-def create_coordinator(hass, config, api):
+def create_coordinator(hass, api, config):
     """Create the data update coordinator."""
-    return RenphoWeightCoordinator(hass, api=api, config=config)
+    return RenphoWeightCoordinator(hass=hass, api=api, config=config)
 
 
 class RenphoWeightCoordinator(DataUpdateCoordinator):
@@ -25,16 +25,12 @@ class RenphoWeightCoordinator(DataUpdateCoordinator):
         self.api = api
         self.config = config
         self.hass = hass
-        self._unit_of_measurement = config.get(CONF_UNIT_OF_MEASUREMENT, "kg")
-        self._user_id = config.get("user_id", None)
-        self._refresh = config.get("refresh", 60)
-        self._unit = config.get("unit", "kg")
-        self._email = config.get("email", None)
-        self._password = config.get("password", None)
+        self._unit_of_measurement = hass.data[CONF_UNIT_OF_MEASUREMENT]
+        self._user_id = hass.data[CONF_USER_ID]
+        self._refresh = hass.data[CONF_REFRESH]
+        self._email = hass.data[CONF_EMAIL]
         self._data = {}
         self._last_updated = None
-
-        self.api.auth()
 
         super().__init__(
             hass, _LOGGER, name=DOMAIN, update_interval=timedelta(seconds=self._refresh)
@@ -43,8 +39,10 @@ class RenphoWeightCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self):
         """Fetch data from API."""
         try:
-            with async_timeout.timeout(10):
-                await self.api.poll_data()
+            with async_timeout.timeout(self._refresh):
+                await self.api.get_info()
+                await self.api.list_girth()
+                await self.api.list_girth_goal()
                 self._last_updated = datetime.now()
         except Exception as e:
             _LOGGER.error(f"Error fetching data from Renpho API: {e}")

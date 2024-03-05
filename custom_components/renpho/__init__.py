@@ -33,16 +33,13 @@ async def async_setup(hass, config):
 
 async def async_setup_entry(hass, entry):
     """Set up Renpho from a config entry."""
-    try:
-        await setup_renpho(hass, entry.data)
+    await setup_renpho(hass, entry.data)
 
-        hass.async_create_task(
-            hass.config_entries.async_forward_entry_setup(entry, "sensor")
-        )
-        return True
-    except (asyncio.TimeoutError, TimeoutException) as ex:
-        _LOGGER.error("Error: %s", ex)
-        return False
+    hass.async_create_task(
+        hass.config_entries.async_forward_entry_setup(entry, "sensor")
+    )
+
+    return True
 
 
 async def async_unload_entry(hass, entry):
@@ -56,15 +53,13 @@ async def async_unload_entry(hass, entry):
 
 # ------------------- Helper Methods -------------------
 
-
 async def setup_renpho(hass, conf):
-    """Common setup logic for YAML and UI with enhanced error management."""
+    """Common setup logic for YAML and UI."""
     email = conf[CONF_EMAIL]
     password = conf[CONF_PASSWORD]
     unit_of_measurement = conf.get(CONF_UNIT_OF_MEASUREMENT, "kg")
     user_id = conf.get(CONF_USER_ID)
     refresh = conf.get(CONF_REFRESH, 60)
-
     renpho = RenphoWeight(
         email=email,
         password=password,
@@ -72,29 +67,13 @@ async def setup_renpho(hass, conf):
         refresh=refresh,
     )
 
-    try:
-        await renpho.get_info()
-    except Exception as e:
-        _LOGGER.error(f"Failed to initialize Renpho component: {e}")
-        # Here, decide whether to fail setup or not. If critical, consider:
-        return False
-
-    # Setup a cleanup callback to ensure resources are freed on HA stop
-    async def renpho_close(event):
-        await renpho.close()
-
-    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, renpho_close)
+    hass.data[DOMAIN] = renpho
 
     hass.data[DOMAIN] = renpho
     hass.data[CONF_EMAIL] = email
     hass.data[CONF_USER_ID] = user_id
     hass.data[CONF_REFRESH] = refresh
     hass.data[CONF_UNIT_OF_MEASUREMENT] = unit_of_measurement
-
-    # Forward the setup to your platform(s) like sensor
-    hass.async_create_task(
-        hass.config_entries.async_forward_entry_setup(conf, "sensor")
-    )
 
     return True
 

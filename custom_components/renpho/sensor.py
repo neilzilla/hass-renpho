@@ -25,6 +25,7 @@ from .const import (
 from .api_renpho import _LOGGER, RenphoWeight
 from .sensor_configs import sensor_configurations
 
+
 async def sensors_list(
     hass: HomeAssistant, config_entry: ConfigEntry, coordinator
 ) -> list[RenphoSensor]:
@@ -34,14 +35,19 @@ async def sensors_list(
         for sensor in sensor_configurations
     ]
 
-
-
 async def async_setup(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ):
-    sensor_entities = await sensors_list(hass, config_entry)
+    # Create the coordinator
+    coordinator = create_coordinator(hass, hass.data[DOMAIN], config_entry)
+
+    # Fetch initial data so we have data when entities subscribe
+    await coordinator.async_config_entry_first_refresh()
+
+    # Create sensor entities and pass them the coordinator
+    sensor_entities = await sensors_list(hass, config_entry, coordinator)
     async_add_entities(sensor_entities)
 
 
@@ -51,7 +57,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ):
     # Create the coordinator
-    coordinator = await create_coordinator(hass, hass.data[DOMAIN], config_entry)
+    coordinator = create_coordinator(hass, hass.data[DOMAIN], config_entry)
 
     # Fetch initial data so we have data when entities subscribe
     await coordinator.async_config_entry_first_refresh()
@@ -69,11 +75,19 @@ async def async_setup_platform(
 ):
     """Set up the sensor platform asynchronously."""
     try:
-        sensor_entities = await sensors_list(hass, discovery_info)
+        # Create the coordinator
+        coordinator = create_coordinator(hass, hass.data[DOMAIN], discovery_info)
+
+        # Fetch initial data so we have data when entities subscribe
+        await coordinator.async_config_entry_first_refresh()
+
+        # Create sensor entities and pass them the coordinator
+        sensor_entities = await sensors_list(hass, config, coordinator)
         async_add_entities(sensor_entities)
     except ConnectionError as ex:
         _LOGGER.error(f"Error: {ex}")
         return False
+
 
 
 class RenphoSensor(SensorEntity):
@@ -100,6 +114,7 @@ class RenphoSensor(SensorEntity):
         self._label = label
         self._unit_of_measurement = unit_of_measurement
         self._state = None
+        self._timestamp = None
 
     @property
     def should_poll(self) -> bool:
@@ -179,8 +194,12 @@ class RenphoSensor(SensorEntity):
             return self._unit
 
     @property
-    async def state(self):
+    def state(self):
         """Return the current state of the sensor."""
+        return self._state 
+
+    async def async_update_data(self):
+        """Request an immediate update of the coordinator data."""
         try:
             metric_value = await self.coordinator.get_specific_metric(
                 metric_type=self._metric,
@@ -209,7 +228,3 @@ class RenphoSensor(SensorEntity):
             _LOGGER.critical(
                 f"An unexpected error occurred while updating {self._name} for metric type {self._metric}: {e}"
             )
-
-    async def async_update_data(self):
-        """Request an immediate update of the coordinator data."""
-        await self.coordinator.async_request_refresh()

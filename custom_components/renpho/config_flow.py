@@ -46,9 +46,11 @@ async def async_validate_input(hass: HomeAssistant, data: dict) -> dict[str, Any
             },
         )
 
+    await renpho.get_scale_users()
+
     user_ids = [
         user.get("user_id", None)
-        for user in await renpho.users
+        for user in renpho.users
     ]
 
     if not user_ids:

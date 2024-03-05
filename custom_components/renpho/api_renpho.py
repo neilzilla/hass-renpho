@@ -130,11 +130,11 @@ class RenphoWeight:
 
         session = aiohttp.ClientSession(
             headers={"Content-Type": "application/json", "Accept": "application/json",
-                    "User-Agent": "Renpho/2.1.0 (iPhone; iOS 14.4; Scale/2.1.0; en-US)"
+                     "User-Agent": "Renpho/2.1.0 (iPhone; iOS 14.4; Scale/2.1.0; en-US)"
                     }
         )
 
-        if not self.token and not url.endswith("sign_in.json") and not skip_auth:
+        if not self.token and not url.endswith("sign_in.json"):
             auth_success = await self.auth()
             if not auth_success:
                 raise AuthenticationError("Authentication failed. Unable to proceed with the request.")
@@ -147,7 +147,7 @@ class RenphoWeight:
                 parsed_response = await response.json()
 
                 if parsed_response.get("status_code") == "40302":
-                    self.token = None
+                    pass
                 if parsed_response.get("status_code") == "50000":
                     raise APIError(f"Internal server error: {parsed_response.get('status_message')}")
                 if parsed_response.get("status_code") == "20000" and parsed_response.get("status_message") == "ok":
@@ -202,57 +202,76 @@ class RenphoWeight:
 
         encrypted_password = self.encrypt_password(self.public_key, self.password)
 
-        data = {"secure_flag": "1", "email": self.email,
-                "password": encrypted_password}
+        data = self.prepare_data({"secure_flag": "1", "email": self.email,
+                "password": encrypted_password})
 
         try:
-
             self.token = None
-            async with aiohttp.ClientSession(
-                        headers={"Content-Type": "application/json", "Accept": "application/json", "User-Agent": "Renpho/2.1.0 (iPhone; iOS 14.4; Scale/2.1.0; en-US)"}
-                    ) as session:
-                        async with session.request("POST", API_AUTH_URL, json=data) as response:
-                            response.raise_for_status()
-                            parsed = await response.json()
+            session = aiohttp.ClientSession(
+                headers={"Content-Type": "application/json", "Accept": "application/json", "User-Agent": "Renpho/2.1.0 (iPhone; iOS 14.4; Scale/2.1.0; en-US)"},
+            )
 
-                            _LOGGER.warning(f"Authentication response: {parsed}")
+            async with session.request("POST", API_AUTH_URL, json=data) as response:
+                response.raise_for_status()
+                parsed = await response.json()
 
-                            if parsed is None:
-                                raise AuthenticationError("Authentication failed. No response received.")
+                if parsed is None:
+                    _LOGGER.error("Authentication failed. No response received.")
+                    raise AuthenticationError("Authentication failed. No response received.")
 
-                            if parsed.get("status_code") == "50000" and parsed.get("status_message") == "Email was not registered":
-                                raise AuthenticationError("Email was not registered.")
+                if parsed.get("status_code") == "50000" and parsed.get("status_message") == "Email was not registered":
+                    _LOGGER.warning("Email was not registered.")
+                    raise AuthenticationError("Email was not registered.")
 
-                            if parsed.get("status_code") == "500" and parsed.get("status_message") == "Internal Server Error":
-                                raise AuthenticationError("Bad Password or Internal Server Error.")
+                if parsed.get("status_code") == "500" and parsed.get("status_message") == "Internal Server Error":
+                    _LOGGER.warning("Bad Password or Internal Server Error.")
+                    raise AuthenticationError("Bad Password or Internal Server Error.")
 
-                            if "terminal_user_session_key" not in parsed:
-                                raise AuthenticationError(f"Authentication failed: {parsed}")
+                if "terminal_user_session_key" not in parsed:
+                    _LOGGER.error(
+                        "'terminal_user_session_key' not found in parsed object.")
+                    raise AuthenticationError(f"Authentication failed: {parsed}")
 
-                            if parsed.get("status_code") == "20000" and parsed.get("status_message") == "ok":
-                                self.session_key = parsed.get("terminal_user_session_key")
-                                self.login_data = UserResponse(**parsed)
-                                if self.user_id is None:
-                                    self.user_id = self.login_data.id
-                                return True
+                if parsed.get("status_code") == "20000" and parsed.get("status_message") == "ok":
+                    if 'terminal_user_session_key' in parsed:
+                        self.token = parsed["terminal_user_session_key"]
+                    else:
+                        self.token = None
+                        raise AuthenticationError("Session key not found in response.")
+                    if 'device_binds_ary' in parsed:
+                        parsed['device_binds_ary'] = [DeviceBind(**device) for device in parsed['device_binds_ary']]
+                    else:
+                        parsed['device_binds_ary'] = []
+                    self.login_data = UserResponse(**parsed)
+                    if self.user_id is None:
+                        self.user_id = self.login_data.get("id", None)
+                    return True
         except Exception as e:
             _LOGGER.error(f"Authentication failed: {e}")
             raise AuthenticationError("Authentication failed due to an error. {e}") from e
         finally:
             self.auth_in_progress = False
+            await session.close()
 
     async def get_scale_users(self):
         """
         Fetch the list of users associated with the scale.
         """
-        url = f"{API_SCALE_USERS_URL}?locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
+        url = f"{API_SCALE_USERS_URL}?locale=en&app_id=Renpho&terminal_user_session_key={self.token}"
         # Perform the API request
         try:
             parsed = await self._request("GET", url, skip_auth=True)
 
             if not parsed:
                 _LOGGER.error("Failed to fetch scale users.")
-                return []
+                return Users(
+                    scale_user_id=None,
+                    user_id=None,
+                    mac=None,
+                    index=None,
+                    key=None,
+                    method=None
+                )
 
             # Check if the response is valid and contains 'scale_users'
             if "scale_users" in parsed:
@@ -261,7 +280,7 @@ class RenphoWeight:
             else:
                 _LOGGER.error("Failed to fetch scale users or no scale users found in the response.")
 
-            self.user_id = self.users[0]["user_id"]
+            self.user_id = self.users[0].user_id
             return self.users
         except Exception as e:
             _LOGGER.error(f"Failed to fetch scale users: {e}")
@@ -271,7 +290,7 @@ class RenphoWeight:
         """
         Fetch the most recent weight measurements for the user.
         """
-        url = f"{API_MEASUREMENTS_URL}?user_id={self.user_id}&last_at={self.get_timestamp()}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
+        url = f"{API_MEASUREMENTS_URL}?user_id={self.user_id}&last_at={self.get_timestamp()}&locale=en&app_id=Renpho&terminal_user_session_key={self.token}"
         try:
             parsed = await self._request("GET", url, skip_auth=True)
 
@@ -319,7 +338,7 @@ class RenphoWeight:
         """
         Fetch device information and update the class attribute with device bind details.
         """
-        url = f"{DEVICE_INFO_URL}?user_id={self.user_id}&last_updated_at={self.get_timestamp()}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
+        url = f"{DEVICE_INFO_URL}?user_id={self.user_id}&last_updated_at={self.get_timestamp()}&locale=en&app_id=Renpho&terminal_user_session_key={self.token}"
         try:
             parsed = await self._request("GET", url, skip_auth=True)
 
@@ -347,7 +366,7 @@ class RenphoWeight:
         """
         Fetch the latest model for the user.
         """
-        url = f"{LATEST_MODEL_URL}?user_id={self.user_id}&last_updated_at={self.get_timestamp()}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}$internal_model_json=%5B%22{self.weight_info.internal_model}%22%5D"
+        url = f"{LATEST_MODEL_URL}?user_id={self.user_id}&last_updated_at={self.get_timestamp()}&locale=en&app_id=Renpho&terminal_user_session_key={self.token}$internal_model_json=%5B%22{self.weight_info.internal_model}%22%5D"
         try:
             parsed = await self._request("GET", url, skip_auth=True)
 
@@ -366,7 +385,7 @@ class RenphoWeight:
             return None
 
     async def list_girth(self):
-        url = f"{GIRTH_URL}?user_id={self.user_id}&last_updated_at={self.get_timestamp()}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
+        url = f"{GIRTH_URL}?user_id={self.user_id}&last_updated_at={self.get_timestamp()}&locale=en&app_id=Renpho&terminal_user_session_key={self.token}"
         try:
             parsed = await self._request("GET", url, skip_auth=True)
 
@@ -390,7 +409,7 @@ class RenphoWeight:
         """
         Fetch the girth goal for the user.
         """
-        url = f"{GIRTH_GOAL_URL}?user_id={self.user_id}&last_updated_at={self.get_timestamp()}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
+        url = f"{GIRTH_GOAL_URL}?user_id={self.user_id}&last_updated_at={self.get_timestamp()}&locale=en&app_id=Renpho&terminal_user_session_key={self.token}"
         try:
             parsed = await self._request("GET", url, skip_auth=True)
 
@@ -415,7 +434,7 @@ class RenphoWeight:
         Fetch the growth record for the user.
         """
 
-        url = f"{GROWTH_RECORD_URL}?user_id={self.user_id}&last_updated_at={self.get_timestamp()}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
+        url = f"{GROWTH_RECORD_URL}?user_id={self.user_id}&last_updated_at={self.get_timestamp()}&locale=en&app_id=Renpho&terminal_user_session_key={self.token}"
         try:
             parsed = await self._request("GET", url, skip_auth=True)
 
@@ -438,7 +457,7 @@ class RenphoWeight:
         """
         Asynchronously list messages.
         """
-        url = f"{MESSAGE_LIST_URL}?user_id={self.user_id}&last_updated_at={self.get_timestamp()}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
+        url = f"{MESSAGE_LIST_URL}?user_id={self.user_id}&last_updated_at={self.get_timestamp()}&locale=en&app_id=Renpho&terminal_user_session_key={self.token}"
         try:
             parsed = await self._request("GET", url, skip_auth=True)
 
@@ -458,7 +477,7 @@ class RenphoWeight:
         """
         Asynchronously request user
         """
-        url = f"{USER_REQUEST_URL}?user_id={self.user_id}&last_updated_at={self.get_timestamp()}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
+        url = f"{USER_REQUEST_URL}?user_id={self.user_id}&last_updated_at={self.get_timestamp()}&locale=en&app_id=Renpho&terminal_user_session_key={self.token}"
         try:
             parsed = await self._request("GET", url, skip_auth=True)
 
@@ -479,7 +498,7 @@ class RenphoWeight:
         Asynchronously reach goal
         """
 
-        url = f"{USERS_REACH_GOAL}?user_id={self.user_id}&last_updated_at={self.get_timestamp()}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
+        url = f"{USERS_REACH_GOAL}?user_id={self.user_id}&last_updated_at={self.get_timestamp()}&locale=en&app_id=Renpho&terminal_user_session_key={self.token}"
         try:
             parsed = await self._request("GET", url, skip_auth=True)
 
