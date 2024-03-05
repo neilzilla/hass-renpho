@@ -83,7 +83,6 @@ class RenphoWeight:
 
     async def __aexit__(self, exc_type, exc, tb):
         await self.session.close()
-        self.session = None
 
     @staticmethod
     def get_timestamp() -> int:
@@ -112,7 +111,6 @@ class RenphoWeight:
             )
         if self.session:
             await self.session.close()
-            self.session = None
 
 
     async def _request(self, method: str, url: str, retries: int = 3, skip_auth=False, **kwargs):
