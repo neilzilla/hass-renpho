@@ -165,7 +165,7 @@ class RenphoWeight:
         try:
             rsa_key = RSA.importKey(public_key_str)
             cipher = PKCS1_v1_5.new(rsa_key)
-            return b64encode(cipher.encrypt(password.encode("utf-8"))).decode("utf-8")
+            return b64encode(cipher.encrypt(password.encode("utf-8")))
         except Exception as e:
             _LOGGER.error(f"Encryption error: {e}")
             raise
