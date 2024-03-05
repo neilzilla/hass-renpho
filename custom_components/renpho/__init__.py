@@ -1,6 +1,8 @@
 import asyncio
 import logging
 
+from httpcore import TimeoutException
+
 from .const import (
     CONF_EMAIL,
     CONF_PASSWORD,
@@ -31,13 +33,16 @@ async def async_setup(hass, config):
 
 async def async_setup_entry(hass, entry):
     """Set up Renpho from a config entry."""
-    await setup_renpho(hass, entry.data)
+    try:
+        await setup_renpho(hass, entry.data)
 
-    hass.async_create_task(
-        hass.config_entries.async_forward_entry_setup(entry, "sensor")
-    )
-
-    return True
+        hass.async_create_task(
+            hass.config_entries.async_forward_entry_setup(entry, "sensor")
+        )
+        return True
+    except (asyncio.TimeoutError, TimeoutException) as ex:
+        _LOGGER.error("Error: %s", ex)
+        return False
 
 
 async def async_unload_entry(hass, entry):
