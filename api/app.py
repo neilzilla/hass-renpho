@@ -483,7 +483,7 @@ class RenphoWeight:
             _LOGGER.error("Max retries exceeded for API request.")
             raise APIError("Max retries exceeded for API request.")
 
-        self.session = aiohttp.ClientSession(
+        session = aiohttp.ClientSession(
             headers={"Content-Type": "application/json", "Accept": "application/json"},
         )
 
@@ -497,7 +497,7 @@ class RenphoWeight:
         _LOGGER.error(f"API request: {method} {url} {kwargs}")
 
         try:
-            async with self.session.request(method, url, **kwargs) as response:
+            async with session.request(method, url, **kwargs) as response:
                 response.raise_for_status()
                 parsed_response = await response.json()
 
@@ -513,7 +513,7 @@ class RenphoWeight:
             _LOGGER.error(f"Client error: {e}")
             raise APIError(f"API request failed {method} {url}") from e
         finally:
-            await self.session.close()
+            await session.close()
 
     @staticmethod
     def encrypt_password(public_key_str, password):
@@ -565,7 +565,7 @@ class RenphoWeight:
         try:
 
             self.token = None
-            self.session = aiohttp.ClientSession(
+            session = aiohttp.ClientSession(
                 headers={"Content-Type": "application/json", "Accept": "application/json"},
             )
 
@@ -612,7 +612,7 @@ class RenphoWeight:
             raise AuthenticationError("Authentication failed due to an error. {e}") from e
         finally:
             self.auth_in_progress = False
-            await self.session.close()
+            await session.close()
 
     async def get_scale_users(self) -> List[Users]:
         """
