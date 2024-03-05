@@ -262,55 +262,6 @@ class GirthGoalsResponse(BaseModel):
     status_code: str
     status_message: str
     girth_goals: List[GirthGoal]
-    new_bodyage_logic_flag: int
-    cooling_period_flag: int
-    id: int
-    email: str
-    account_name: str
-    gender: int
-    height: float
-    height_unit: int
-    waistline: int
-    hip: int
-    person_type: int
-    category_type: int
-    weight_unit: int
-    current_goal_weight: float
-    weight_goal_unit: int
-    weight_goal: float
-    locale: str
-    birthday: str
-    weight_goal_date: str
-    avatar_url: str
-    weight: float
-    facebook_account: str
-    twitter_account: str
-    line_account: str
-    sport_goal: int
-    sleep_goal: int
-    bodyfat_goal: float
-    initial_weight: float
-    initial_bodyfat: float
-    area_code: str
-    method: int
-    user_code: str
-    agree_flag: int
-    reach_goal_weight_flag: int
-    reach_goal_bodyfat_flag: int
-    set_goal_at: int
-    sell_flag: int
-    allow_notification_flag: int
-    phone: str
-    region_code: str
-    dump_flag: int
-    weighing_mode: int
-    password_present_flag: int
-    stature: float
-    custom: str
-    index_extension: int
-    person_body_shape: int
-    person_goal: int
-    accuracy_flag: int
 
     def get(self, key, default=None):
         return getattr(self, key, default)
@@ -380,7 +331,6 @@ class Girth(BaseModel):
 class GirthResponse(BaseModel):
     status_code: str
     status_message: str
-    terminal_user_session_key: str
     girths: List[Girth]
     deleted_girth_ids: List[int]
     last_updated_at: int
