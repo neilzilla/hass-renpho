@@ -39,19 +39,17 @@ IiOL2CUBzu+HmIfUbQIDAQAB
 _LOGGER = logging.getLogger(__name__)
 
 # API Endpoints
-API_AUTH_URL = "https://renpho.qnclouds.com/api/v3/users/sign_in.json?app_id=Renpho"
-API_SCALE_USERS_URL = "https://renpho.qnclouds.com/api/v3/scale_users/list_scale_user"
-API_MEASUREMENTS_URL = "https://renpho.qnclouds.com/api/v2/measurements/list.json"
-DEVICE_INFO_URL = "https://renpho.qnclouds.com/api/v2/device_binds/get_device.json"
-LATEST_MODEL_URL = "https://renpho.qnclouds.com/api/v3/devices/list_lastest_model.json"
-GIRTH_URL = "https://renpho.qnclouds.com/api/v3/girths/list_girth.json"
-GIRTH_GOAL_URL = "https://renpho.qnclouds.com/api/v3/girth_goals/list_girth_goal.json"
-GROWTH_RECORD_URL = (
-    "https://renpho.qnclouds.com/api/v3/growth_records/list_growth_record.json"
-)
-MESSAGE_LIST_URL = "https://renpho.qnclouds.com/api/v2/messages/list.json"
-USER_REQUEST_URL = "https://renpho.qnclouds.com/api/v2/users/request_user.json"
-USERS_REACH_GOAL = "https://renpho.qnclouds.com/api/v3/users/reach_goal.json"
+API_AUTH_URL = "https://renpho.qnclouds.com/api/v3/users/sign_in.json?app_id=Renpho" # Authentication Post
+API_SCALE_USERS_URL = "https://renpho.qnclouds.com/api/v3/scale_users/list_scale_user" # Scale users
+API_MEASUREMENTS_URL = "https://renpho.qnclouds.com/api/v2/measurements/list.json" # Measurements
+DEVICE_INFO_URL = "https://renpho.qnclouds.com/api/v2/device_binds/get_device.json" # Device info
+LATEST_MODEL_URL = "https://renpho.qnclouds.com/api/v3/devices/list_lastest_model.json" # Latest model
+GIRTH_URL = "https://renpho.qnclouds.com/api/v3/girths/list_girth.json" # Girth
+GIRTH_GOAL_URL = "https://renpho.qnclouds.com/api/v3/girth_goals/list_girth_goal.json" # Girth goal
+GROWTH_RECORD_URL = "https://renpho.qnclouds.com/api/v3/growth_records/list_growth_record.json" # Growth record
+MESSAGE_LIST_URL = "https://renpho.qnclouds.com/api/v2/messages/list.json" # message to support
+USER_REQUEST_URL = "https://renpho.qnclouds.com/api/v2/users/request_user.json" # error
+USERS_REACH_GOAL = "https://renpho.qnclouds.com/api/v3/users/reach_goal.json" # error 404
 
 
 from dataclasses import dataclass
@@ -455,7 +453,12 @@ class RenphoWeight:
         """
         if self.session is None or self.session.closed:
             self.token = None
-            self.session = aiohttp.ClientSession()
+            self.session = aiohttp.ClientSession(
+                headers={"Content-Type": "application/json", "Accept": "application/json"}
+            )
+        if self.session:
+            self.session.close()
+            self.session = None
 
     async def _request(self, method: str, url: str, retries: int = 3, skip_auth=False, **kwargs):
         """
@@ -476,9 +479,7 @@ class RenphoWeight:
             _LOGGER.error("Max retries exceeded for API request.")
             raise APIError("Max retries exceeded for API request.")
 
-        self.session = aiohttp.ClientSession(
-            headers={"Content-Type": "application/json", "Accept": "application/json"}
-        )
+        await self.open_session()
 
         if not self.token and not url.endswith("sign_in.json") and not skip_auth:
             auth_success = await self.auth()
@@ -793,7 +794,7 @@ class RenphoWeight:
         """
         Asynchronously list messages.
         """
-        url = f"{MESSAGE_LIST_URL}?user_id={self.user_id}&last_updated_at={self.get_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
+        url = f"{MESSAGE_LIST_URL}?user_id={self.user_id}&last_updated_at={self.get_timestamp()}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
         try:
             parsed = await self._request("GET", url, skip_auth=True)
 

@@ -98,7 +98,13 @@ class RenphoWeight:
         """
         if self.session is None or self.session.closed:
             self.token = None
-            self.session = aiohttp.ClientSession()
+            self.session = aiohttp.ClientSession(
+                headers={"Content-Type": "application/json", "Accept": "application/json"}
+            )
+        if self.session:
+            self.session.close()
+            self.session = None
+
 
     async def _request(self, method: str, url: str, retries: int = 3, skip_auth=False, **kwargs):
         """
@@ -119,9 +125,7 @@ class RenphoWeight:
             _LOGGER.error("Max retries exceeded for API request.")
             raise APIError("Max retries exceeded for API request.")
 
-        self.session = aiohttp.ClientSession(
-            headers={"Content-Type": "application/json", "Accept": "application/json"}
-        )
+        await self.open_session()
 
         if not self.token and not url.endswith("sign_in.json") and not skip_auth:
             auth_success = await self.auth()
