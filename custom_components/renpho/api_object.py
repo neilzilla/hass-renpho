@@ -18,6 +18,9 @@ class DeviceBind(BaseModel):
     wifi_name: str
     product_category: int
 
+    def get(self, key, default=None):
+        return getattr(self, key, default)
+
 class UserResponse(BaseModel):
     status_code: str
     status_message: str
@@ -72,6 +75,9 @@ class UserResponse(BaseModel):
     person_body_shape: int
     person_goal: int
     accuracy_flag: int
+
+    def get(self, key, default=None):
+        return getattr(self, key, default)
 
 class MeasurementDetail(BaseModel):
     id: int
@@ -156,6 +162,9 @@ class MeasurementDetail(BaseModel):
     sea_right_thigh: Optional[float] = None
     origin_resistances: Optional[str] = None
 
+    def get(self, key, default=None):
+        return getattr(self, key, default)
+
 
 class MeasurementResponse(BaseModel):
     status_code: str
@@ -165,6 +174,9 @@ class MeasurementResponse(BaseModel):
     previous_at: int
     measurements: List[MeasurementDetail]
 
+    def get(self, key, default=None):
+        return getattr(self, key, default)
+
 
 class Users(BaseModel):
     scale_user_id: str
@@ -173,6 +185,8 @@ class Users(BaseModel):
     index: int
     key: int
     method: int
+    def get(self, key, default=None):
+        return getattr(self, key, default)
 
 class GirthGoal(BaseModel):
     girth_goal_id: int
@@ -186,6 +200,9 @@ class GirthGoal(BaseModel):
     finish_goal_at: int
     finish_value: float
     finish_unit: int
+
+    def get(self, key, default=None):
+        return getattr(self, key, default)
 
 class GirthGoalsResponse(BaseModel):
     status_code: str
@@ -241,6 +258,9 @@ class GirthGoalsResponse(BaseModel):
     person_body_shape: int
     person_goal: int
     accuracy_flag: int
+
+    def get(self, key, default=None):
+        return getattr(self, key, default)
 
 class Girth(BaseModel):
     girth_id: int
@@ -301,6 +321,9 @@ class Girth(BaseModel):
     custom_value5: float
     custom_unit5: int
 
+    def get(self, key, default=None):
+        return getattr(self, key, default)
+
 class GirthResponse(BaseModel):
     status_code: str
     status_message: str
@@ -308,3 +331,6 @@ class GirthResponse(BaseModel):
     girths: List[Girth]
     deleted_girth_ids: List[int]
     last_updated_at: int
+
+    def get(self, key, default=None):
+        return getattr(self, key, default)

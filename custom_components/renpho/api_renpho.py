@@ -130,7 +130,7 @@ class RenphoWeight:
         if not self.token and not url.endswith("sign_in.json") and not skip_auth:
             await self.auth()
 
-        if self.is_valid_session():
+        if await self.is_valid_session():
             kwargs = self.prepare_data(kwargs)
         try:
             async with self.session.request(method, url, **kwargs) as response:
@@ -193,7 +193,6 @@ class RenphoWeight:
 
         if self.public_key is None:
             _LOGGER.error("Public key is None.")
-            await self.close()
             raise AuthenticationError("Public key is None.")
 
         encrypted_password = self.encrypt_password(self.public_key, self.password)
@@ -207,19 +206,23 @@ class RenphoWeight:
 
             if parsed is None:
                 _LOGGER.error("Authentication failed.")
+                self.auth_in_progress = False
                 raise AuthenticationError("Authentication failed.")
 
             if parsed.get("status_code") == "50000" and parsed.get("status_message") == "Email was not registered":
                 _LOGGER.warning("Email was not registered.")
+                self.auth_in_progress = False
                 raise AuthenticationError("Email was not registered.")
 
             if parsed.get("status_code") == "500" and parsed.get("status_message") == "Internal Server Error":
                 _LOGGER.warning("Bad Password or Internal Server Error.")
+                self.auth_in_progress = False
                 raise AuthenticationError("Bad Password or Internal Server Error.")
 
             if "terminal_user_session_key" not in parsed:
                 _LOGGER.error(
                     "'terminal_user_session_key' not found in parsed object.")
+                self.auth_in_progress = False
                 raise AuthenticationError(f"Authentication failed: {parsed}")
 
             if parsed.get("status_code") == "20000" and parsed.get("status_message") == "ok":
@@ -233,7 +236,8 @@ class RenphoWeight:
                 else:
                     parsed['device_binds_ary'] = []
                 self.login_data = UserResponse(**parsed)
-                self.user_id = self.login_data.get("id", None)
+                if self.user_id is None:
+                    self.user_id = self.login_data.get("id", None)
                 self.auth_in_progress = False
                 return True
         except Exception as e:
@@ -661,8 +665,9 @@ class RenphoWeight:
         Clean up resources, stop polling, and close sessions.
         """
         self.stop_polling()
-        # Add any session closing or cleanup logic here
-        _LOGGER.info("Client closed.")
+        if self.session:
+            await self.session.close()
+            _LOGGER.info("Aiohttp session closed")
 
 
 

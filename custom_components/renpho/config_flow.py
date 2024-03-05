@@ -33,7 +33,6 @@ async def async_validate_input(hass: HomeAssistant, data: dict) -> dict[str, Any
     """Validate the user input allows us to connect."""
     _LOGGER.debug("Starting to validate input: %s", data)
     renpho = RenphoWeight(
-        public_key=CONF_PUBLIC_KEY,
         email=data[CONF_EMAIL],
         password=data[CONF_PASSWORD],
         refresh=data.get(CONF_REFRESH, 60)

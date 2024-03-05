@@ -58,31 +58,41 @@ async def async_unload_entry(hass, entry):
 
 
 async def setup_renpho(hass, conf):
-    """Common setup logic for YAML and UI."""
+    """Common setup logic for YAML and UI with enhanced error management."""
     email = conf[CONF_EMAIL]
     password = conf[CONF_PASSWORD]
     unit_of_measurement = conf.get(CONF_UNIT_OF_MEASUREMENT, "kg")
-    user_id = conf.get(CONF_USER_ID, None)
+    user_id = conf.get(CONF_USER_ID)
     refresh = conf.get(CONF_REFRESH, 600)
+
     renpho = RenphoWeight(CONF_PUBLIC_KEY, email, password, user_id, refresh)
-    await renpho.get_info()
+
+    try:
+        await renpho.get_info()
+    except Exception as e:
+        _LOGGER.error(f"Failed to initialize Renpho component: {e}")
+        # Here, decide whether to fail setup or not. If critical, consider:
+        return False
+
+    # Setup a cleanup callback to ensure resources are freed on HA stop
+    async def renpho_close(event):
+        await renpho.close()
+
+    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, renpho_close)
+
     hass.data[DOMAIN] = renpho
     hass.data[CONF_EMAIL] = email
     hass.data[CONF_USER_ID] = user_id
     hass.data[CONF_REFRESH] = refresh
     hass.data[CONF_UNIT_OF_MEASUREMENT] = unit_of_measurement
 
+    # Forward the setup to your platform(s) like sensor
+    hass.async_create_task(
+        hass.config_entries.async_forward_entry_setup(conf, "sensor")
+    )
 
-async def async_prepare(hass, renpho, refresh):
-    """Prepare and start polling."""
-    await renpho.start_polling(refresh)
-    await renpho.get_info()
-    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, async_cleanup(renpho))
+    return True
 
-
-async def async_cleanup(renpho):
-    """Cleanup logic."""
-    await renpho.close()
 
 # ------------------- Main Method for Testing -------------------
 
