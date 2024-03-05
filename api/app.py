@@ -840,14 +840,14 @@ class RenphoWeight:
             elif metric_type == METRIC_TYPE_GIRTH:
                 if self._last_updated_girth is None or time.time() - self._last_updated_girth > self.refresh:
                     last_measurement = (
-                        self.girth_info[0]
+                        self.girth_info["girths"][0]
                         if self.girth_info
                         else None
                     )
                     return last_measurement.get(metric, None) if last_measurement else None
             elif metric_type == METRIC_TYPE_GIRTH_GOAL:
                 last_goal = next(
-                    (goal for goal in self.girth_goal if goal['girth_type'] == metric),
+                    (goal for goal in self.girth_goal['girth_goals'] if goal['girth_type'] == metric),
                     None
                 )
                 if self._last_updated_girth_goal is None or time.time() - self._last_updated_girth_goal > self.refresh:
