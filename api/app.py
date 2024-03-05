@@ -390,6 +390,7 @@ class GirthResponse(BaseModel):
         return getattr(self, key, default)
 
 
+
 class RenphoWeight:
     """
     A class to interact with Renpho's weight scale API.
@@ -431,6 +432,7 @@ class RenphoWeight:
         self.auth_in_progress = False
         self.is_polling_active = False
 
+
     async def __aenter__(self):
         await self.open_session()
         return self
@@ -461,10 +463,11 @@ class RenphoWeight:
         if self.session is None or self.session.closed:
             self.token = None
             self.session = aiohttp.ClientSession(
-                headers={"Content-Type": "application/json", "Accept": "application/json"}
+                headers={"Content-Type": "application/json", "Accept": "application/json"},
             )
         if self.session:
             await self.session.close()
+
 
     async def _request(self, method: str, url: str, retries: int = 3, skip_auth=False, **kwargs):
         """
@@ -562,41 +565,45 @@ class RenphoWeight:
 
         try:
 
-            parsed = await self._request("POST", API_AUTH_URL, json=data, skip_auth=True)
+            await self.open_session()
 
-            _LOGGER.warning(f"Authentication response: {parsed}")
+            async with self.session.request("POST", API_AUTH_URL, json=data) as response:
+                response.raise_for_status()
+                parsed = await response.json()
 
-            if parsed is None:
-                _LOGGER.error("Authentication failed. No response received.")
-                raise AuthenticationError("Authentication failed. No response received.")
+                _LOGGER.warning(f"Authentication response: {parsed}")
 
-            if parsed.get("status_code") == "50000" and parsed.get("status_message") == "Email was not registered":
-                _LOGGER.warning("Email was not registered.")
-                raise AuthenticationError("Email was not registered.")
+                if parsed is None:
+                    _LOGGER.error("Authentication failed. No response received.")
+                    raise AuthenticationError("Authentication failed. No response received.")
 
-            if parsed.get("status_code") == "500" and parsed.get("status_message") == "Internal Server Error":
-                _LOGGER.warning("Bad Password or Internal Server Error.")
-                raise AuthenticationError("Bad Password or Internal Server Error.")
+                if parsed.get("status_code") == "50000" and parsed.get("status_message") == "Email was not registered":
+                    _LOGGER.warning("Email was not registered.")
+                    raise AuthenticationError("Email was not registered.")
 
-            if "terminal_user_session_key" not in parsed:
-                _LOGGER.error(
-                    "'terminal_user_session_key' not found in parsed object.")
-                raise AuthenticationError(f"Authentication failed: {parsed}")
+                if parsed.get("status_code") == "500" and parsed.get("status_message") == "Internal Server Error":
+                    _LOGGER.warning("Bad Password or Internal Server Error.")
+                    raise AuthenticationError("Bad Password or Internal Server Error.")
 
-            if parsed.get("status_code") == "20000" and parsed.get("status_message") == "ok":
-                if 'terminal_user_session_key' in parsed:
-                    self.session_key = parsed["terminal_user_session_key"]
-                else:
-                    self.session_key = None
-                    raise AuthenticationError("Session key not found in response.")
-                if 'device_binds_ary' in parsed:
-                    parsed['device_binds_ary'] = [DeviceBind(**device) for device in parsed['device_binds_ary']]
-                else:
-                    parsed['device_binds_ary'] = []
-                self.login_data = UserResponse(**parsed)
-                if self.user_id is None:
-                    self.user_id = self.login_data.get("id", None)
-                return True
+                if "terminal_user_session_key" not in parsed:
+                    _LOGGER.error(
+                        "'terminal_user_session_key' not found in parsed object.")
+                    raise AuthenticationError(f"Authentication failed: {parsed}")
+
+                if parsed.get("status_code") == "20000" and parsed.get("status_message") == "ok":
+                    if 'terminal_user_session_key' in parsed:
+                        self.session_key = parsed["terminal_user_session_key"]
+                    else:
+                        self.session_key = None
+                        raise AuthenticationError("Session key not found in response.")
+                    if 'device_binds_ary' in parsed:
+                        parsed['device_binds_ary'] = [DeviceBind(**device) for device in parsed['device_binds_ary']]
+                    else:
+                        parsed['device_binds_ary'] = []
+                    self.login_data = UserResponse(**parsed)
+                    if self.user_id is None:
+                        self.user_id = self.login_data.get("id", None)
+                    return True
         except Exception as e:
             _LOGGER.error(f"Authentication failed: {e}")
             raise AuthenticationError("Authentication failed due to an error. {e}") from e
@@ -800,7 +807,7 @@ class RenphoWeight:
         """
         Asynchronously list messages.
         """
-        url = f"{MESSAGE_LIST_URL}?user_id={self.user_id}&last_updated_at={self.get_timestamp()}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
+        url = f"{MESSAGE_LIST_URL}?user_id={self.user_id}&last_updated_at={self.get_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
         try:
             parsed = await self._request("GET", url, skip_auth=True)
 
@@ -1046,188 +1053,3 @@ class APIError(Exception):
 
 class ClientSSLError(Exception):
     pass
-
-# Initialize FastAPI and Jinja2
-app = FastAPI(docs_url="/docs", redoc_url=None)
-
-current_directory = os.path.dirname(os.path.abspath(__file__))
-templates = Jinja2Templates(directory=os.path.join(current_directory, "templates"))
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-security = HTTPBasic()
-
-
-class APIResponse(BaseModel):
-    status: str
-    message: str
-    data: Optional[Any] = None
-
-
-async def get_current_user(credentials: HTTPBasicCredentials = Depends(security)):
-    try:
-        user = RenphoWeight(email=credentials.username, password=credentials.password)
-        await user.auth()  # Ensure that user can authenticate
-        return user
-    except Exception as e:
-        _LOGGER.error(f"Authentication failed: {e}")
-        raise HTTPException(status_code=401, detail="Authentication failed") from e
-
-
-@app.get("/")
-def read_root(request: Request):
-    return "Renpho API"
-
-@app.get("/auth", response_model=APIResponse)
-async def auth(renpho: RenphoWeight = Depends(get_current_user)):
-    # If this point is reached, authentication was successful
-    return APIResponse(status="success", message="Authentication successful.")
-
-@app.get("/info", response_model=APIResponse)
-async def get_info(renpho: RenphoWeight = Depends(get_current_user)):
-    try:
-        info = await renpho.get_info()
-        if info:
-            return APIResponse(status="success", message="Fetched user info.", data=info)
-        await renpho.close()
-        return APIResponse(status="error", message="User info not found.")
-    except Exception as e:
-        _LOGGER.error(f"Error fetching user info: {e}")
-        await renpho.close()
-        return APIResponse(status="error", message="Failed to fetch user info.")
-
-@app.get("/users", response_model=APIResponse)
-async def get_scale_users(request: Request, renpho: RenphoWeight = Depends(get_current_user)):
-    try:
-        users = await renpho.get_scale_users()
-        if users:
-            return APIResponse(status="success", message="Fetched scale users.", data={"users": users})
-        await renpho.close()
-        raise HTTPException(status_code=404, detail="Users not found")
-    except Exception as e:
-        _LOGGER.error(f"Error fetching scale users: {e}")
-        await renpho.close()
-        return APIResponse(status="error", message=str(e))
-
-@app.get("/measurements", response_model=APIResponse)
-async def get_measurements(request: Request, renpho: RenphoWeight = Depends(get_current_user)):
-    try:
-        measurements = await renpho.get_measurements()
-        if measurements:
-            return APIResponse(status="success", message="Fetched measurements.", data={"measurements": measurements})
-        await renpho.close()
-        raise HTTPException(status_code=404, detail="Measurements not found")
-    except Exception as e:
-        await renpho.close()
-        _LOGGER.error(f"Error fetching measurements: {e}")
-        return APIResponse(status="error", message=str(e))
-
-@app.get("/weight", response_model=APIResponse)
-async def get_weight(request: Request, renpho: RenphoWeight = Depends(get_current_user)):
-    try:
-        weight = await renpho.get_weight()
-        if weight:
-            return APIResponse(status="success", message="Fetched weight.", data={"weight": weight})
-        await renpho.close()
-        raise HTTPException(status_code=404, detail="Weight not found")
-    except Exception as e:
-        await renpho.close()
-        _LOGGER.error(f"Error fetching weight: {e}")
-        return APIResponse(status="error", message=str(e))
-
-@app.get("/specific_metric", response_model=APIResponse)
-async def get_specific_metric(request: Request, metric: str, metric_id: str, renpho: RenphoWeight = Depends(get_current_user)):
-    try:
-        specific_metric = await renpho.get_specific_metric(metric, metric_id)
-        if specific_metric:
-            return APIResponse(status="success", message=f"Fetched specific metric: {metric} {metric_id}.", data={metric: specific_metric})
-        await renpho.close()
-        raise HTTPException(status_code=404, detail=f"Specific metric {metric} {metric_id} not found")
-    except Exception as e:
-        await renpho.close()
-        _LOGGER.error(f"Error fetching specific metric: {e}")
-        return APIResponse(status="error", message=str(e))
-
-@app.get("/device_info", response_model=APIResponse)
-async def get_device_info(request: Request, renpho: RenphoWeight = Depends(get_current_user)):
-    try:
-        device_info = await renpho.get_device_info()
-        if device_info:
-            return APIResponse(status="success", message="Fetched device info.", data=device_info)
-        await renpho.close()
-        raise HTTPException(status_code=404, detail="Device info not found")
-    except Exception as e:
-        await renpho.close()
-        _LOGGER.error(f"Error fetching device info: {e}")
-        return APIResponse(status="error", message=str(e))
-
-@app.get("/latest_model", response_model=APIResponse)
-async def list_latest_model(request: Request, renpho: RenphoWeight = Depends(get_current_user)):
-    try:
-        latest_model = await renpho.list_latest_model()
-        if latest_model:
-            return APIResponse(status="success", message="Fetched latest model.", data=latest_model)
-        await renpho.close()
-        raise HTTPException(status_code=404, detail="Latest model not found")
-    except Exception as e:
-        await renpho.close()
-        _LOGGER.error(f"Error fetching latest model: {e}")
-        return APIResponse(status="error", message=str(e))
-
-@app.get("/girth_info", response_model=APIResponse)
-async def list_girth(request: Request, renpho: RenphoWeight = Depends(get_current_user)):
-    try:
-        girth_info = await renpho.list_girth()
-        if girth_info:
-            return APIResponse(status="success", message="Fetched girth info.", data=girth_info)
-        await renpho.close()
-        raise HTTPException(status_code=404, detail="Girth info not found")
-    except Exception as e:
-        await renpho.close()
-        _LOGGER.error(f"Error fetching girth info: {e}")
-        return APIResponse(status="error", message=str(e))
-
-@app.get("/girth_goal", response_model=APIResponse)
-async def list_girth_goal(request: Request, renpho: RenphoWeight = Depends(get_current_user)):
-    try:
-        girth_goal = await renpho.list_girth_goal()
-        if girth_goal:
-            return APIResponse(status="success", message="Fetched girth goal.", data=girth_goal)
-        await renpho.close()
-        raise HTTPException(status_code=404, detail="Girth goal not found")
-    except Exception as e:
-        await renpho.close()
-        _LOGGER.error(f"Error fetching girth goal: {e}")
-        return APIResponse(status="error", message=str(e))
-
-@app.get("/growth_record", response_model=APIResponse)
-async def list_growth_record(request: Request, renpho: RenphoWeight = Depends(get_current_user)):
-    try:
-        growth_record = await renpho.list_growth_record()
-        if growth_record:
-            return APIResponse(status="success", message="Fetched growth record.", data=growth_record)
-        await renpho.close()
-        raise HTTPException(status_code=404, detail="Growth record not found")
-    except Exception as e:
-        await renpho.close()
-        _LOGGER.error(f"Error fetching growth record: {e}")
-        return APIResponse(status="error", message=str(e))
-
-@app.get("/message_list", response_model=APIResponse)
-async def message_list(request: Request, renpho: RenphoWeight = Depends(get_current_user)):
-    try:
-        messages = await renpho.message_list()
-        if messages:
-            return APIResponse(status="success", message="Fetched message list.", data=messages)
-        await renpho.close()
-        raise HTTPException(status_code=404, detail="Message list not found")
-    except Exception as e:
-        await renpho.close()
-        _LOGGER.error(f"Error fetching message list: {e}")
-        return APIResponse(status="error", message=str(e))

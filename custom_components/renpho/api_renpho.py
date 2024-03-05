@@ -209,41 +209,45 @@ class RenphoWeight:
 
         try:
 
-            parsed = await self._request("POST", API_AUTH_URL, json=data, skip_auth=True)
+            await self.open_session()
 
-            _LOGGER.warning(f"Authentication response: {parsed}")
+            async with self.session.request("POST", API_AUTH_URL, json=data) as response:
+                response.raise_for_status()
+                parsed = await response.json()
 
-            if parsed is None:
-                _LOGGER.error("Authentication failed. No response received.")
-                raise AuthenticationError("Authentication failed. No response received.")
+                _LOGGER.warning(f"Authentication response: {parsed}")
 
-            if parsed.get("status_code") == "50000" and parsed.get("status_message") == "Email was not registered":
-                _LOGGER.warning("Email was not registered.")
-                raise AuthenticationError("Email was not registered.")
+                if parsed is None:
+                    _LOGGER.error("Authentication failed. No response received.")
+                    raise AuthenticationError("Authentication failed. No response received.")
 
-            if parsed.get("status_code") == "500" and parsed.get("status_message") == "Internal Server Error":
-                _LOGGER.warning("Bad Password or Internal Server Error.")
-                raise AuthenticationError("Bad Password or Internal Server Error.")
+                if parsed.get("status_code") == "50000" and parsed.get("status_message") == "Email was not registered":
+                    _LOGGER.warning("Email was not registered.")
+                    raise AuthenticationError("Email was not registered.")
 
-            if "terminal_user_session_key" not in parsed:
-                _LOGGER.error(
-                    "'terminal_user_session_key' not found in parsed object.")
-                raise AuthenticationError(f"Authentication failed: {parsed}")
+                if parsed.get("status_code") == "500" and parsed.get("status_message") == "Internal Server Error":
+                    _LOGGER.warning("Bad Password or Internal Server Error.")
+                    raise AuthenticationError("Bad Password or Internal Server Error.")
 
-            if parsed.get("status_code") == "20000" and parsed.get("status_message") == "ok":
-                if 'terminal_user_session_key' in parsed:
-                    self.session_key = parsed["terminal_user_session_key"]
-                else:
-                    self.session_key = None
-                    raise AuthenticationError("Session key not found in response.")
-                if 'device_binds_ary' in parsed:
-                    parsed['device_binds_ary'] = [DeviceBind(**device) for device in parsed['device_binds_ary']]
-                else:
-                    parsed['device_binds_ary'] = []
-                self.login_data = UserResponse(**parsed)
-                if self.user_id is None:
-                    self.user_id = self.login_data.get("id", None)
-                return True
+                if "terminal_user_session_key" not in parsed:
+                    _LOGGER.error(
+                        "'terminal_user_session_key' not found in parsed object.")
+                    raise AuthenticationError(f"Authentication failed: {parsed}")
+
+                if parsed.get("status_code") == "20000" and parsed.get("status_message") == "ok":
+                    if 'terminal_user_session_key' in parsed:
+                        self.session_key = parsed["terminal_user_session_key"]
+                    else:
+                        self.session_key = None
+                        raise AuthenticationError("Session key not found in response.")
+                    if 'device_binds_ary' in parsed:
+                        parsed['device_binds_ary'] = [DeviceBind(**device) for device in parsed['device_binds_ary']]
+                    else:
+                        parsed['device_binds_ary'] = []
+                    self.login_data = UserResponse(**parsed)
+                    if self.user_id is None:
+                        self.user_id = self.login_data.get("id", None)
+                    return True
         except Exception as e:
             _LOGGER.error(f"Authentication failed: {e}")
             raise AuthenticationError("Authentication failed due to an error. {e}") from e
