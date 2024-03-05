@@ -257,7 +257,7 @@ class RenphoWeight:
             self.auth_in_progress = False
             await session.close()
 
-    async def get_scale_users(self) -> List[Users]:
+    async def get_scale_users(self):
         """
         Fetch the list of users associated with the scale.
         """
