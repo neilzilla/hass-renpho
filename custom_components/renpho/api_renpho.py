@@ -99,10 +99,10 @@ class RenphoWeight:
         if self.session is None or self.session.closed:
             self.token = None
             self.session = aiohttp.ClientSession(
-                headers={"Content-Type": "application/json", "Accept": "application/json"}
+                headers={"Content-Type": "application/json", "Accept": "application/json"},
             )
         if self.session:
-            self.session.close()
+            await self.session.close()
             self.session = None
 
 

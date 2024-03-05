@@ -457,7 +457,7 @@ class RenphoWeight:
                 headers={"Content-Type": "application/json", "Accept": "application/json"}
             )
         if self.session:
-            self.session.close()
+            await self.session.close()
             self.session = None
 
     async def _request(self, method: str, url: str, retries: int = 3, skip_auth=False, **kwargs):
