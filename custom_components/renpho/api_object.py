@@ -207,7 +207,6 @@ class GirthGoal(BaseModel):
 class GirthGoalsResponse(BaseModel):
     status_code: str
     status_message: str
-    terminal_user_session_key: str
     girth_goals: List[GirthGoal]
     new_bodyage_logic_flag: int
     cooling_period_flag: int
