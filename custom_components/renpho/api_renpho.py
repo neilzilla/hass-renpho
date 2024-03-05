@@ -111,6 +111,10 @@ class RenphoWeight:
             )
         if self.session:
             await self.session.close()
+            self.session = aiohttp.ClientSession(
+                headers={"Content-Type": "application/json", "Accept": "application/json"},
+            )
+
 
 
     async def _request(self, method: str, url: str, retries: int = 3, skip_auth=False, **kwargs):
