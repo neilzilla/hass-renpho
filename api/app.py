@@ -412,17 +412,17 @@ class RenphoWeight:
         self.token: str = None
         self.session = None
         self.polling = False
-        self.login_data: Optional[UserResponse] = None
-        self.users: List[Users] = []
-        self.weight_info: Optional[MeasurementDetail] = None
-        self.weight_history: List[MeasurementDetail] = []
+        self.login_data = None
+        self.users = []
+        self.weight_info = None
+        self.weight_history = []
         self.weight: float = None
         self.weight_goal = {}
-        self.device_info: Optional[List[DeviceBind]] = None
-        self.latest_model: Optional[Dict] = None
-        self.girth_info: Optional[Dict] = None
-        self.girth_goal: Optional[Dict] = None
-        self.growth_record: Optional[Dict] = None
+        self.device_info = None
+        self.latest_model = None
+        self.girth_info = None
+        self.girth_goal = None
+        self.growth_record = None
         self._last_updated = None
         self._last_updated_weight = None
         self._last_updated_girth = None
@@ -603,7 +603,6 @@ class RenphoWeight:
                     self.login_data = UserResponse(**parsed)
                     if self.user_id is None:
                         self.user_id = self.login_data.get("id", None)
-                    await self.session.close()
                     return True
         except Exception as e:
             _LOGGER.error(f"Authentication failed: {e}")
