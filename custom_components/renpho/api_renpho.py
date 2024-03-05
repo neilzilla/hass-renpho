@@ -57,17 +57,17 @@ class RenphoWeight:
         self.token: str = None
         self.session = None
         self.polling = False
-        self.login_data: Optional[UserResponse] = None
-        self.users: List[Users] = []
-        self.weight_info: Optional[MeasurementDetail] = None
-        self.weight_history: List[MeasurementDetail] = []
+        self.login_data = None
+        self.users = []
+        self.weight_info = None
+        self.weight_history = []
         self.weight: float = None
         self.weight_goal = {}
-        self.device_info: Optional[List[DeviceBind]] = None
-        self.latest_model: Optional[Dict] = None
-        self.girth_info: Optional[Dict] = None
-        self.girth_goal: Optional[Dict] = None
-        self.growth_record: Optional[Dict] = None
+        self.device_info = None
+        self.latest_model = None
+        self.girth_info = None
+        self.girth_goal = None
+        self.growth_record = None
         self._last_updated = None
         self._last_updated_weight = None
         self._last_updated_girth = None
@@ -165,7 +165,7 @@ class RenphoWeight:
         try:
             rsa_key = RSA.importKey(public_key_str)
             cipher = PKCS1_v1_5.new(rsa_key)
-            return b64encode(cipher.encrypt(password.encode("utf-8")))
+            return b64encode(cipher.encrypt(password.encode("utf-8"))).decode("utf-8")
         except Exception as e:
             _LOGGER.error(f"Encryption error: {e}")
             raise
@@ -205,57 +205,41 @@ class RenphoWeight:
         data = {"secure_flag": "1", "email": self.email,
                 "password": encrypted_password}
 
-        _LOGGER.error(f"Authentication data: {data}")
-
         try:
 
             self.token = None
-            session = aiohttp.ClientSession(
-                headers={"Content-Type": "application/json", "Accept": "application/json", "User-Agent": "Renpho/2.1.0 (iPhone; iOS 14.4; Scale/2.1.0; en-US)"},
-            )
+            async with aiohttp.ClientSession(
+                        headers={"Content-Type": "application/json", "Accept": "application/json", "User-Agent": "Renpho/2.1.0 (iPhone; iOS 14.4; Scale/2.1.0; en-US)"}
+                    ) as session:
+                        async with session.request("POST", API_AUTH_URL, json=data) as response:
+                            response.raise_for_status()
+                            parsed = await response.json()
 
-            async with session.request("POST", API_AUTH_URL, json=data) as response:
-                response.raise_for_status()
-                parsed = await response.json()
+                            _LOGGER.warning(f"Authentication response: {parsed}")
 
-                if parsed is None:
-                    _LOGGER.error("Authentication failed. No response received.")
-                    raise AuthenticationError("Authentication failed. No response received.")
+                            if parsed is None:
+                                raise AuthenticationError("Authentication failed. No response received.")
 
-                if parsed.get("status_code") == "50000" and parsed.get("status_message") == "Email was not registered":
-                    _LOGGER.warning("Email was not registered.")
-                    raise AuthenticationError("Email was not registered.")
+                            if parsed.get("status_code") == "50000" and parsed.get("status_message") == "Email was not registered":
+                                raise AuthenticationError("Email was not registered.")
 
-                if parsed.get("status_code") == "500" and parsed.get("status_message") == "Internal Server Error":
-                    _LOGGER.warning("Bad Password or Internal Server Error.")
-                    raise AuthenticationError("Bad Password or Internal Server Error.")
+                            if parsed.get("status_code") == "500" and parsed.get("status_message") == "Internal Server Error":
+                                raise AuthenticationError("Bad Password or Internal Server Error.")
 
-                if "terminal_user_session_key" not in parsed:
-                    _LOGGER.error(
-                        "'terminal_user_session_key' not found in parsed object.")
-                    raise AuthenticationError(f"Authentication failed: {parsed}")
+                            if "terminal_user_session_key" not in parsed:
+                                raise AuthenticationError(f"Authentication failed: {parsed}")
 
-                if parsed.get("status_code") == "20000" and parsed.get("status_message") == "ok":
-                    if 'terminal_user_session_key' in parsed:
-                        self.session_key = parsed["terminal_user_session_key"]
-                    else:
-                        self.session_key = None
-                        raise AuthenticationError("Session key not found in response.")
-                    if 'device_binds_ary' in parsed:
-                        parsed['device_binds_ary'] = [DeviceBind(**device) for device in parsed['device_binds_ary']]
-                    else:
-                        parsed['device_binds_ary'] = []
-                    self.login_data = UserResponse(**parsed)
-                    if self.user_id is None:
-                        self.user_id = self.login_data.get("id", None)
-                    await self.session.close()
-                    return True
+                            if parsed.get("status_code") == "20000" and parsed.get("status_message") == "ok":
+                                self.session_key = parsed.get("terminal_user_session_key")
+                                self.login_data = UserResponse(**parsed)
+                                if self.user_id is None:
+                                    self.user_id = self.login_data.id
+                                return True
         except Exception as e:
             _LOGGER.error(f"Authentication failed: {e}")
             raise AuthenticationError("Authentication failed due to an error. {e}") from e
         finally:
             self.auth_in_progress = False
-            await session.close()
 
     async def get_scale_users(self):
         """
@@ -331,7 +315,7 @@ class RenphoWeight:
         self._last_updated_weight = time.time()
         return await self.get_measurements()
 
-    async def get_device_info(self) -> Optional[List[DeviceBind]]:
+    async def get_device_info(self):
         """
         Fetch device information and update the class attribute with device bind details.
         """
@@ -344,7 +328,7 @@ class RenphoWeight:
                 return None
 
             # Check for successful response code
-            if parsed.get("status_code") == "20000":
+            if parsed.get("status_code") == "20000" and "device_binds_ary" in parsed:
                 device_info = [DeviceBind(**device) for device in parsed["device_binds_ary"]]
                 self.device_info = device_info
                 return device_info
@@ -363,7 +347,7 @@ class RenphoWeight:
         """
         Fetch the latest model for the user.
         """
-        url = f"{LATEST_MODEL_URL}?user_id={self.user_id}&last_updated_at={self.get_timestamp()}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}$internal_model_json=%5B%22{self.login_data.internal_model}%22%5D"
+        url = f"{LATEST_MODEL_URL}?user_id={self.user_id}&last_updated_at={self.get_timestamp()}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}$internal_model_json=%5B%22{self.weight_info.internal_model}%22%5D"
         try:
             parsed = await self._request("GET", url, skip_auth=True)
 
@@ -381,7 +365,7 @@ class RenphoWeight:
             _LOGGER.error(f"Failed to fetch latest model: {e}")
             return None
 
-    async def list_girth(self) -> Optional[dict]:
+    async def list_girth(self):
         url = f"{GIRTH_URL}?user_id={self.user_id}&last_updated_at={self.get_timestamp()}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
         try:
             parsed = await self._request("GET", url, skip_auth=True)
@@ -392,8 +376,8 @@ class RenphoWeight:
 
             if "status_code" in parsed and parsed["status_code"] == "20000":
                 response = GirthResponse(**parsed)
-                self.girth_info = response.get("girths", {})
-                return parsed
+                self.girth_info = response.girths
+                return self.girth_info
             else:
                 _LOGGER.error(f"Error fetching girth info: {parsed.get('status_message')}")
                 return None
@@ -415,11 +399,10 @@ class RenphoWeight:
                 return None
 
             if "status_code" in parsed and parsed["status_code"] == "20000":
-                _LOGGER.error(f"parsed: {parsed}")
                 response = GirthGoalsResponse(**parsed)
-                self.girth_goal = GirthGoal(**response.get("girth_goals", {}))
+                self.girth_goal = response.girth_goals
                 self._last_updated_girth_goal = time.time()
-                return parsed
+                return self.girth_goal
             else:
                 _LOGGER.error(f"Error fetching girth goal: {parsed.get('status_message')}")
                 return None
@@ -687,9 +670,6 @@ class RenphoWeight:
         if self.session:
             await self.session.close()
             _LOGGER.info("Aiohttp session closed")
-
-
-
 
 class AuthenticationError(Exception):
     pass
