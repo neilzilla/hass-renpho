@@ -520,7 +520,7 @@ class RenphoWeight:
         try:
             rsa_key = RSA.importKey(public_key_str)
             cipher = PKCS1_v1_5.new(rsa_key)
-            return b64encode(cipher.encrypt(password.encode("utf-8"))).decode("utf-8")
+            return b64encode(cipher.encrypt(password.encode("utf-8")))
         except Exception as e:
             _LOGGER.error(f"Encryption error: {e}")
             raise
@@ -612,7 +612,7 @@ class RenphoWeight:
             self.auth_in_progress = False
             await session.close()
 
-    async def get_scale_users(self) -> List[Users]:
+    async def get_scale_users(self):
         """
         Fetch the list of users associated with the scale.
         """
@@ -676,7 +676,7 @@ class RenphoWeight:
             _LOGGER.error(f"Failed to fetch weight measurements: {e}")
             return None
 
-    async def get_weight(self) -> Union[float, None]:
+    async def get_weight(self):
         if self.weight and self.weight_info:
             return self.weight, self.weight_info
         self._last_updated_weight = time.time()
@@ -686,7 +686,7 @@ class RenphoWeight:
         self._last_updated_weight = time.time()
         return await self.get_measurements()
 
-    async def get_device_info(self) -> Optional[List[DeviceBind]]:
+    async def get_device_info(self):
         """
         Fetch device information and update the class attribute with device bind details.
         """
@@ -736,7 +736,7 @@ class RenphoWeight:
             _LOGGER.error(f"Failed to fetch latest model: {e}")
             return None
 
-    async def list_girth(self) -> Optional[dict]:
+    async def list_girth(self):
         url = f"{GIRTH_URL}?user_id={self.user_id}&last_updated_at={self.get_timestamp()}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
         try:
             parsed = await self._request("GET", url, skip_auth=True)
