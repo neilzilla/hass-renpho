@@ -237,6 +237,7 @@ Certainly, you can expand the existing table to include the "Unit of Measurement
 
 ## Roadmap
 
+
 1. Add support for all user information.
    ```yaml
    sensor:
