@@ -392,7 +392,6 @@ class GirthResponse(BaseModel):
         return getattr(self, key, default)
 
 
-
 class RenphoWeight:
     """
     A class to interact with Renpho's weight scale API.
@@ -432,6 +431,7 @@ class RenphoWeight:
         self._last_updated_girth_goal = None
         self._last_updated_growth_record = None
         self.auth_in_progress = False
+        self.is_polling_active = False
 
     @staticmethod
     def get_timestamp() -> int:
@@ -1223,30 +1223,4 @@ async def message_list(request: Request, renpho: RenphoWeight = Depends(get_curr
     except Exception as e:
         await renpho.close()
         _LOGGER.error(f"Error fetching message list: {e}")
-        return APIResponse(status="error", message=str(e))
-
-@app.get("/reach_goal", response_model=APIResponse)
-async def reach_goal(request: Request, renpho: RenphoWeight = Depends(get_current_user)):
-    try:
-        reach_goal = await renpho.reach_goal()
-        if reach_goal:
-            return APIResponse(status="success", message="Fetched reach goal.", data=reach_goal)
-        renpho.close()
-        raise HTTPException(status_code=404, detail="Reach goal not found")
-    except Exception as e:
-        await renpho.close()
-        _LOGGER.error(f"Error fetching reach goal: {e}")
-        return APIResponse(status="error", message=str(e))
-
-@app.get("/request_user", response_model=APIResponse)
-async def request_user(request: Request, renpho: RenphoWeight = Depends(get_current_user)):
-    try:
-        user_request = await renpho.request_user()
-        if user_request:
-            return APIResponse(status="success", message="Fetched request user.", data=user_request)
-        await renpho.close()
-        raise HTTPException(status_code=404, detail="Request user not found")
-    except Exception as e:
-        await renpho.close()
-        _LOGGER.error(f"Error fetching request user: {e}")
         return APIResponse(status="error", message=str(e))

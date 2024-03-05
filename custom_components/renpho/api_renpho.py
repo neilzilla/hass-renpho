@@ -74,6 +74,7 @@ class RenphoWeight:
         self._last_updated_girth_goal = None
         self._last_updated_growth_record = None
         self.auth_in_progress = False
+        self.is_polling_active = False
 
     @staticmethod
     def get_timestamp() -> int:
