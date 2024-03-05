@@ -431,6 +431,14 @@ class RenphoWeight:
         self.auth_in_progress = False
         self.is_polling_active = False
 
+    async def __aenter__(self):
+        await self.open_session()
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        await self.session.close()
+        self.session = None
+
     @staticmethod
     def get_timestamp() -> int:
         start_date = datetime.date(1998, 1, 1)
@@ -1070,8 +1078,8 @@ async def get_current_user(credentials: HTTPBasicCredentials = Depends(security)
         await user.auth()  # Ensure that user can authenticate
         return user
     except Exception as e:
-        __LOGGER.error(f"Authentication failed: {e}")
-        raise HTTPException(status_code=401, detail="Authentication failed")
+        _LOGGER.error(f"Authentication failed: {e}")
+        raise HTTPException(status_code=401, detail="Authentication failed") from e
 
 
 @app.get("/")
