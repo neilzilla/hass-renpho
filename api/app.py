@@ -261,7 +261,6 @@ class GirthGoal(BaseModel):
 class GirthGoalsResponse(BaseModel):
     status_code: str
     status_message: str
-    terminal_user_session_key: str
     girth_goals: List[GirthGoal]
     new_bodyage_logic_flag: int
     cooling_period_flag: int
@@ -696,7 +695,7 @@ class RenphoWeight:
                 return None
 
             # Check for successful response code
-            if parsed.get("status_code") == "20000":
+            if parsed.get("status_code") == "20000" and "device_binds_ary" in parsed:
                 device_info = [DeviceBind(**device) for device in parsed["device_binds_ary"]]
                 self.device_info = device_info
                 return device_info
@@ -744,8 +743,8 @@ class RenphoWeight:
 
             if "status_code" in parsed and parsed["status_code"] == "20000":
                 response = GirthResponse(**parsed)
-                self.girth_info = response.get("girths", {})
-                return parsed
+                self.girth_info = response.girths
+                return self.girth_info
             else:
                 _LOGGER.error(f"Error fetching girth info: {parsed.get('status_message')}")
                 return None
@@ -767,11 +766,10 @@ class RenphoWeight:
                 return None
 
             if "status_code" in parsed and parsed["status_code"] == "20000":
-                _LOGGER.error(f"parsed: {parsed}")
                 response = GirthGoalsResponse(**parsed)
-                self.girth_goal = GirthGoal(**response.get("girth_goals", {}))
+                self.girth_goal = response.girth_goals
                 self._last_updated_girth_goal = time.time()
-                return parsed
+                return self.girth_goal
             else:
                 _LOGGER.error(f"Error fetching girth goal: {parsed.get('status_message')}")
                 return None
