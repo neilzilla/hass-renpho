@@ -484,7 +484,9 @@ class RenphoWeight:
             raise APIError("Max retries exceeded for API request.")
 
         session = aiohttp.ClientSession(
-            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            headers={"Content-Type": "application/json", "Accept": "application/json",
+                    "User-Agent": "Renpho/2.1.0 (iPhone; iOS 14.4; Scale/2.1.0; en-US)"
+                    }
         )
 
         if not self.token and not url.endswith("sign_in.json") and not skip_auth:
@@ -566,7 +568,7 @@ class RenphoWeight:
 
             self.token = None
             session = aiohttp.ClientSession(
-                headers={"Content-Type": "application/json", "Accept": "application/json"},
+                headers={"Content-Type": "application/json", "Accept": "application/json", "User-Agent": "Renpho/2.1.0 (iPhone; iOS 14.4; Scale/2.1.0; en-US)"},
             )
 
             async with session.request("POST", API_AUTH_URL, json=data) as response:

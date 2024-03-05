@@ -76,14 +76,6 @@ class RenphoWeight:
         self.auth_in_progress = False
         self.is_polling_active = False
 
-
-    async def __aenter__(self):
-        await self.open_session()
-        return self
-
-    async def __aexit__(self, exc_type, exc, tb):
-        await self.session.close()
-
     @staticmethod
     def get_timestamp() -> int:
         start_date = datetime.date(1998, 1, 1)
@@ -136,7 +128,11 @@ class RenphoWeight:
             _LOGGER.error("Max retries exceeded for API request.")
             raise APIError("Max retries exceeded for API request.")
 
-        await self.open_session()
+        session = aiohttp.ClientSession(
+            headers={"Content-Type": "application/json", "Accept": "application/json",
+                    "User-Agent": "Renpho/2.1.0 (iPhone; iOS 14.4; Scale/2.1.0; en-US)"
+                    }
+        )
 
         if not self.token and not url.endswith("sign_in.json") and not skip_auth:
             auth_success = await self.auth()
@@ -148,7 +144,7 @@ class RenphoWeight:
         _LOGGER.error(f"API request: {method} {url} {kwargs}")
 
         try:
-            async with self.session.request(method, url, **kwargs) as response:
+            async with session.request(method, url, **kwargs) as response:
                 response.raise_for_status()
                 parsed_response = await response.json()
 
@@ -163,6 +159,8 @@ class RenphoWeight:
         except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError) as e:
             _LOGGER.error(f"Client error: {e}")
             raise APIError(f"API request failed {method} {url}") from e
+        finally:
+            await session.close()
 
     @staticmethod
     def encrypt_password(public_key_str, password):
@@ -213,9 +211,12 @@ class RenphoWeight:
 
         try:
 
-            await self.open_session()
+            self.token = None
+            session = aiohttp.ClientSession(
+                headers={"Content-Type": "application/json", "Accept": "application/json", "User-Agent": "Renpho/2.1.0 (iPhone; iOS 14.4; Scale/2.1.0; en-US)"},
+            )
 
-            async with self.session.request("POST", API_AUTH_URL, json=data) as response:
+            async with session.request("POST", API_AUTH_URL, json=data) as response:
                 response.raise_for_status()
                 parsed = await response.json()
 
@@ -251,18 +252,20 @@ class RenphoWeight:
                     self.login_data = UserResponse(**parsed)
                     if self.user_id is None:
                         self.user_id = self.login_data.get("id", None)
+                    await self.session.close()
                     return True
         except Exception as e:
             _LOGGER.error(f"Authentication failed: {e}")
             raise AuthenticationError("Authentication failed due to an error. {e}") from e
         finally:
             self.auth_in_progress = False
+            await session.close()
 
     async def get_scale_users(self) -> List[Users]:
         """
         Fetch the list of users associated with the scale.
         """
-        url = f"{API_SCALE_USERS_URL}?user_id={self.user_id}&last_updated_at={self.get_timestamp()}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
+        url = f"{API_SCALE_USERS_URL}?locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
         # Perform the API request
         try:
             parsed = await self._request("GET", url, skip_auth=True)
@@ -345,13 +348,13 @@ class RenphoWeight:
                 return None
 
             # Check for successful response code
-            if parsed.get("status_code") == "20000" and "device_binds_ary" in parsed:
+            if parsed.get("status_code") == "20000":
                 device_info = [DeviceBind(**device) for device in parsed["device_binds_ary"]]
                 self.device_info = device_info
                 return device_info
             else:
                 # Handling different error scenarios
-                if "status_code" not in parsed or "device_binds_ary" not in parsed:
+                if "status_code" not in parsed:
                     _LOGGER.error("Invalid response format received from device info endpoint.")
                 else:
                     _LOGGER.error(f"Error fetching device info: Status Code {parsed.get('status_code')} - {parsed.get('status_message')}")
@@ -416,6 +419,7 @@ class RenphoWeight:
                 return None
 
             if "status_code" in parsed and parsed["status_code"] == "20000":
+                _LOGGER.error(f"parsed: {parsed}")
                 response = GirthGoalsResponse(**parsed)
                 self.girth_goal = GirthGoal(**response.get("girth_goals", {}))
                 self._last_updated_girth_goal = time.time()
