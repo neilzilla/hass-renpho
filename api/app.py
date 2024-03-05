@@ -485,7 +485,7 @@ class RenphoWeight:
 
         session = aiohttp.ClientSession(
             headers={"Content-Type": "application/json", "Accept": "application/json",
-                    "User-Agent": "Renpho/2.1.0 (iPhone; iOS 14.4; Scale/2.1.0; en-US)"
+                     "User-Agent": "Renpho/2.1.0 (iPhone; iOS 14.4; Scale/2.1.0; en-US)"
                     }
         )
 
@@ -557,8 +557,8 @@ class RenphoWeight:
 
         encrypted_password = self.encrypt_password(self.public_key, self.password)
 
-        data = {"secure_flag": "1", "email": self.email,
-                "password": encrypted_password}
+        data = self.prepare_data({"secure_flag": "1", "email": self.email,
+                "password": encrypted_password})
 
         try:
 
