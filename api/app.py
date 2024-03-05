@@ -624,14 +624,12 @@ class RenphoWeight:
                 _LOGGER.error("Failed to fetch scale users.")
                 return []
 
-            # Check if the response is valid and contains 'scale_users'
             if "scale_users" in parsed:
-                # Update the 'users' attribute with parsed and validated ScaleUser objects
                 self.users = [Users(**user) for user in parsed["scale_users"]]
             else:
                 _LOGGER.error("Failed to fetch scale users or no scale users found in the response.")
 
-            self.user_id = self.users[0]["user_id"]
+            self.user_id = self.users[0].user_id
             return self.users
         except Exception as e:
             _LOGGER.error(f"Failed to fetch scale users: {e}")
@@ -717,7 +715,7 @@ class RenphoWeight:
         """
         Fetch the latest model for the user.
         """
-        url = f"{LATEST_MODEL_URL}?user_id={self.user_id}&last_updated_at={self.get_timestamp()}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}$internal_model_json=%5B%22{self.login_data.internal_model}%22%5D"
+        url = f"{LATEST_MODEL_URL}?user_id={self.user_id}&last_updated_at={self.get_timestamp()}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}$internal_model_json=%5B%22{self.weight_info.internal_model}%22%5D"
         try:
             parsed = await self._request("GET", url, skip_auth=True)
 
@@ -1104,11 +1102,9 @@ async def get_info(renpho: RenphoWeight = Depends(get_current_user)):
         info = await renpho.get_info()
         if info:
             return APIResponse(status="success", message="Fetched user info.", data=info)
-        await renpho.close()
         return APIResponse(status="error", message="User info not found.")
     except Exception as e:
         _LOGGER.error(f"Error fetching user info: {e}")
-        await renpho.close()
         return APIResponse(status="error", message="Failed to fetch user info.")
 
 @app.get("/users", response_model=APIResponse)
@@ -1117,11 +1113,9 @@ async def get_scale_users(request: Request, renpho: RenphoWeight = Depends(get_c
         users = await renpho.get_scale_users()
         if users:
             return APIResponse(status="success", message="Fetched scale users.", data={"users": users})
-        await renpho.close()
         raise HTTPException(status_code=404, detail="Users not found")
     except Exception as e:
         _LOGGER.error(f"Error fetching scale users: {e}")
-        await renpho.close()
         return APIResponse(status="error", message=str(e))
 
 @app.get("/measurements", response_model=APIResponse)
@@ -1130,10 +1124,8 @@ async def get_measurements(request: Request, renpho: RenphoWeight = Depends(get_
         measurements = await renpho.get_measurements()
         if measurements:
             return APIResponse(status="success", message="Fetched measurements.", data={"measurements": measurements})
-        await renpho.close()
         raise HTTPException(status_code=404, detail="Measurements not found")
     except Exception as e:
-        await renpho.close()
         _LOGGER.error(f"Error fetching measurements: {e}")
         return APIResponse(status="error", message=str(e))
 
@@ -1143,10 +1135,8 @@ async def get_weight(request: Request, renpho: RenphoWeight = Depends(get_curren
         weight = await renpho.get_weight()
         if weight:
             return APIResponse(status="success", message="Fetched weight.", data={"weight": weight})
-        await renpho.close()
         raise HTTPException(status_code=404, detail="Weight not found")
     except Exception as e:
-        await renpho.close()
         _LOGGER.error(f"Error fetching weight: {e}")
         return APIResponse(status="error", message=str(e))
 
@@ -1156,10 +1146,8 @@ async def get_specific_metric(request: Request, metric: str, metric_id: str, ren
         specific_metric = await renpho.get_specific_metric(metric, metric_id)
         if specific_metric:
             return APIResponse(status="success", message=f"Fetched specific metric: {metric} {metric_id}.", data={metric: specific_metric})
-        await renpho.close()
         raise HTTPException(status_code=404, detail=f"Specific metric {metric} {metric_id} not found")
     except Exception as e:
-        await renpho.close()
         _LOGGER.error(f"Error fetching specific metric: {e}")
         return APIResponse(status="error", message=str(e))
 
@@ -1169,10 +1157,8 @@ async def get_device_info(request: Request, renpho: RenphoWeight = Depends(get_c
         device_info = await renpho.get_device_info()
         if device_info:
             return APIResponse(status="success", message="Fetched device info.", data=device_info)
-        await renpho.close()
         raise HTTPException(status_code=404, detail="Device info not found")
     except Exception as e:
-        await renpho.close()
         _LOGGER.error(f"Error fetching device info: {e}")
         return APIResponse(status="error", message=str(e))
 
@@ -1182,10 +1168,8 @@ async def list_latest_model(request: Request, renpho: RenphoWeight = Depends(get
         latest_model = await renpho.list_latest_model()
         if latest_model:
             return APIResponse(status="success", message="Fetched latest model.", data=latest_model)
-        await renpho.close()
         raise HTTPException(status_code=404, detail="Latest model not found")
     except Exception as e:
-        await renpho.close()
         _LOGGER.error(f"Error fetching latest model: {e}")
         return APIResponse(status="error", message=str(e))
 
@@ -1195,10 +1179,8 @@ async def list_girth(request: Request, renpho: RenphoWeight = Depends(get_curren
         girth_info = await renpho.list_girth()
         if girth_info:
             return APIResponse(status="success", message="Fetched girth info.", data=girth_info)
-        await renpho.close()
         raise HTTPException(status_code=404, detail="Girth info not found")
     except Exception as e:
-        await renpho.close()
         _LOGGER.error(f"Error fetching girth info: {e}")
         return APIResponse(status="error", message=str(e))
 
@@ -1208,10 +1190,8 @@ async def list_girth_goal(request: Request, renpho: RenphoWeight = Depends(get_c
         girth_goal = await renpho.list_girth_goal()
         if girth_goal:
             return APIResponse(status="success", message="Fetched girth goal.", data=girth_goal)
-        await renpho.close()
         raise HTTPException(status_code=404, detail="Girth goal not found")
     except Exception as e:
-        await renpho.close()
         _LOGGER.error(f"Error fetching girth goal: {e}")
         return APIResponse(status="error", message=str(e))
 
@@ -1221,10 +1201,8 @@ async def list_growth_record(request: Request, renpho: RenphoWeight = Depends(ge
         growth_record = await renpho.list_growth_record()
         if growth_record:
             return APIResponse(status="success", message="Fetched growth record.", data=growth_record)
-        await renpho.close()
         raise HTTPException(status_code=404, detail="Growth record not found")
     except Exception as e:
-        await renpho.close()
         _LOGGER.error(f"Error fetching growth record: {e}")
         return APIResponse(status="error", message=str(e))
 
@@ -1234,9 +1212,7 @@ async def message_list(request: Request, renpho: RenphoWeight = Depends(get_curr
         messages = await renpho.message_list()
         if messages:
             return APIResponse(status="success", message="Fetched message list.", data=messages)
-        await renpho.close()
         raise HTTPException(status_code=404, detail="Message list not found")
     except Exception as e:
-        await renpho.close()
         _LOGGER.error(f"Error fetching message list: {e}")
         return APIResponse(status="error", message=str(e))
