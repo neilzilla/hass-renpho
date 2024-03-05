@@ -455,7 +455,7 @@ class RenphoWeight:
         """
         Asynchronously list messages.
         """
-        url = f"{MESSAGE_LIST_URL}?user_id={self.user_id}&last_updated_at={self.get_timestamp}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
+        url = f"{MESSAGE_LIST_URL}?user_id={self.user_id}&last_updated_at={self.get_timestamp()}&locale=en&app_id=Renpho&terminal_user_session_key={self.session_key}"
         try:
             parsed = await self._request("GET", url, skip_auth=True)
 
