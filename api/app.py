@@ -520,8 +520,6 @@ class RenphoWeight:
                 response.raise_for_status()
                 parsed = await response.json()
 
-                _LOGGER.warning(f"Authentication response: {parsed}")
-
                 if parsed is None:
                     _LOGGER.error("Authentication failed. No response received.")
                     raise AuthenticationError("Authentication failed. No response received.")
