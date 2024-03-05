@@ -530,34 +530,26 @@ class RenphoWeight:
 
         try:
             if metric_type == METRIC_TYPE_WEIGHT:
-                if self.weight_info:
-                    return self.weight_info.get(metric, None)
                 if self._last_updated_weight is None or time.time() - self._last_updated_weight > self.refresh:
                     last_measurement = await self.get_weight()
                     if last_measurement and self.weight is not None:
                         return last_measurement[1].get(metric, None) if last_measurement[1] else None
             elif metric_type == METRIC_TYPE_GIRTH:
-                if not self.girth_info:
-                    return await self.list_girth()
                 if self._last_updated_girth is None or time.time() - self._last_updated_girth > self.refresh:
                     last_measurement = (
-                        self.girth_info.get("girths", [])[0]
-                        if self.girth_info.get("girths")
+                        self.girth_info[0]
+                        if self.girth_info
                         else None
                     )
                     return last_measurement.get(metric, None) if last_measurement else None
             elif metric_type == METRIC_TYPE_GIRTH_GOAL:
-                if not self.girth_goal:
-                    return await self.get_specific_girth_goal_metric(metric)
                 last_goal = next(
-                    (goal for goal in self.girth_goal['girth_goals'] if goal['girth_type'] == metric),
+                    (goal for goal in self.girth_goal if goal['girth_type'] == metric),
                     None
                 )
                 if self._last_updated_girth_goal is None or time.time() - self._last_updated_girth_goal > self.refresh:
                     return last_goal.get('goal_value', None)
             elif metric_type == METRIC_TYPE_GROWTH_RECORD:
-                if not self.growth_record:
-                    return await self.list_growth_record()
                 if self._last_updated_growth_record is None or time.time() - self._last_updated_growth_record > self.refresh:
                     last_measurement = (
                         self.growth_record.get("growths", [])[0]
