@@ -431,14 +431,6 @@ class RenphoWeight:
         self.auth_in_progress = False
         self.is_polling_active = False
 
-
-    async def __aenter__(self):
-        await self.open_session()
-        return self
-
-    async def __aexit__(self, exc_type, exc, tb):
-        await self.session.close()
-
     @staticmethod
     def get_timestamp() -> int:
         start_date = datetime.date(1998, 1, 1)
