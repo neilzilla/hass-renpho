@@ -569,7 +569,7 @@ class RenphoWeight:
                 headers={"Content-Type": "application/json", "Accept": "application/json"},
             )
 
-            async with self.session.request("POST", API_AUTH_URL, json=data) as response:
+            async with session.request("POST", API_AUTH_URL, json=data) as response:
                 response.raise_for_status()
                 parsed = await response.json()
 
