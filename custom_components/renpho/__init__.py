@@ -63,9 +63,14 @@ async def setup_renpho(hass, conf):
     password = conf[CONF_PASSWORD]
     unit_of_measurement = conf.get(CONF_UNIT_OF_MEASUREMENT, "kg")
     user_id = conf.get(CONF_USER_ID)
-    refresh = conf.get(CONF_REFRESH, 600)
+    refresh = conf.get(CONF_REFRESH, 60)
 
-    renpho = RenphoWeight(CONF_PUBLIC_KEY, email, password, user_id, refresh)
+    renpho = RenphoWeight(
+        email=email,
+        password=password,
+        user_id=user_id,
+        refresh=refresh,
+    )
 
     try:
         await renpho.get_info()
@@ -92,6 +97,7 @@ async def setup_renpho(hass, conf):
     )
 
     return True
+
 
 
 # ------------------- Main Method for Testing -------------------

@@ -35,9 +35,6 @@ USER_REQUEST_URL = "https://renpho.qnclouds.com/api/v2/users/request_user.json" 
 USERS_REACH_GOAL = "https://renpho.qnclouds.com/api/v3/users/reach_goal.json" # error 404
 
 
-
-
-
 class RenphoWeight:
     """
     A class to interact with Renpho's weight scale API.
@@ -101,37 +98,39 @@ class RenphoWeight:
         if self.session is None or self.session.closed:
             self.token = None
             self.session = aiohttp.ClientSession()
-        if await self.is_valid_session():
-            await self.auth()
 
-    async def _request(self, method: str, url: str, retries: int = 3, skip_auth=False, **kwargs) -> Union[Dict, List]:
+    async def _request(self, method: str, url: str, retries: int = 3, skip_auth=False, **kwargs):
         """
-        Asynchronous function to make API requests.
+        Perform an API request and return the parsed JSON response.
 
         Parameters:
-            method (str): The HTTP method to use ('GET', 'POST', etc.)
-            url (str): The URL to send the request to.
-            **kwargs: Additional keyword arguments to pass to the aiohttp request.
+            method (str): The HTTP method to use for the request (e.g., "GET", "POST").
+            url (str): The URL to which the request should be made.
+            retries (int, optional): The number of times to retry the request if it fails. Defaults to 3.
+            skip_auth (bool, optional): Whether to skip authentication. Defaults to False.
+            **kwargs: Additional keyword arguments to pass to the request.
 
         Returns:
-            Union[Dict, List]: The parsed JSON response from the API as a dictionary or list.
-
-        Raises:
-            APIError: Custom exception for API-related errors.
+            Union[Dict, List]: The parsed JSON response from the API request.
         """
 
         if retries < 1:
             _LOGGER.error("Max retries exceeded for API request.")
             raise APIError("Max retries exceeded for API request.")
 
-        if not self.session or self.session.closed:
-            await self.open_session()
+        self.session = aiohttp.ClientSession(
+            headers={"Content-Type": "application/json", "Accept": "application/json"}
+        )
 
         if not self.token and not url.endswith("sign_in.json") and not skip_auth:
-            await self.auth()
+            auth_success = await self.auth()
+            if not auth_success:
+                raise AuthenticationError("Authentication failed. Unable to proceed with the request.")
 
-        if await self.is_valid_session():
-            kwargs = self.prepare_data(kwargs)
+        kwargs = self.prepare_data(kwargs)
+
+        _LOGGER.error(f"API request: {method} {url} {kwargs}")
+
         try:
             async with self.session.request(method, url, **kwargs) as response:
                 response.raise_for_status()
@@ -139,7 +138,6 @@ class RenphoWeight:
 
                 if parsed_response.get("status_code") == "40302":
                     self.token = None
-                    return await self._request(method, url, retries - 1, skip_auth=False, **kwargs)
                 if parsed_response.get("status_code") == "50000":
                     raise APIError(f"Internal server error: {parsed_response.get('status_message')}")
                 if parsed_response.get("status_code") == "20000" and parsed_response.get("status_message") == "ok":
@@ -152,15 +150,10 @@ class RenphoWeight:
 
     @staticmethod
     def encrypt_password(public_key_str, password):
-        """
-        Encrypt the password using the public key.
-        """
         try:
-            # Ensure the public key is imported correctly
             rsa_key = RSA.importKey(public_key_str)
-            # Create a cipher object using PKCS#1 v1.5
             cipher = PKCS1_v1_5.new(rsa_key)
-            return b64encode(cipher.encrypt(password.encode("utf-8")))
+            return b64encode(cipher.encrypt(password.encode("utf-8"))).decode("utf-8")
         except Exception as e:
             _LOGGER.error(f"Encryption error: {e}")
             raise
@@ -182,9 +175,9 @@ class RenphoWeight:
 
     async def auth(self):
         """Authenticate with the Renpho API."""
+
         if self.auth_in_progress:
-            _LOGGER.warning("Authentication already in progress.")
-            return
+            return False  # Avoid re-entry if already in progress
 
         self.auth_in_progress = True
 
@@ -200,29 +193,29 @@ class RenphoWeight:
         data = {"secure_flag": "1", "email": self.email,
                 "password": encrypted_password}
 
+        _LOGGER.error(f"Authentication data: {data}")
+
         try:
 
-            parsed = await self._request("POST", API_AUTH_URL, json=data, skip_auth=False)
+            parsed = await self._request("POST", API_AUTH_URL, json=data, skip_auth=True)
+
+            _LOGGER.warning(f"Authentication response: {parsed}")
 
             if parsed is None:
-                _LOGGER.error("Authentication failed.")
-                self.auth_in_progress = False
-                raise AuthenticationError("Authentication failed.")
+                _LOGGER.error("Authentication failed. No response received.")
+                raise AuthenticationError("Authentication failed. No response received.")
 
             if parsed.get("status_code") == "50000" and parsed.get("status_message") == "Email was not registered":
                 _LOGGER.warning("Email was not registered.")
-                self.auth_in_progress = False
                 raise AuthenticationError("Email was not registered.")
 
             if parsed.get("status_code") == "500" and parsed.get("status_message") == "Internal Server Error":
                 _LOGGER.warning("Bad Password or Internal Server Error.")
-                self.auth_in_progress = False
                 raise AuthenticationError("Bad Password or Internal Server Error.")
 
             if "terminal_user_session_key" not in parsed:
                 _LOGGER.error(
                     "'terminal_user_session_key' not found in parsed object.")
-                self.auth_in_progress = False
                 raise AuthenticationError(f"Authentication failed: {parsed}")
 
             if parsed.get("status_code") == "20000" and parsed.get("status_message") == "ok":
@@ -238,11 +231,10 @@ class RenphoWeight:
                 self.login_data = UserResponse(**parsed)
                 if self.user_id is None:
                     self.user_id = self.login_data.get("id", None)
-                self.auth_in_progress = False
                 return True
         except Exception as e:
             _LOGGER.error(f"Authentication failed: {e}")
-            raise AuthenticationError("Authentication failed.") from e
+            raise AuthenticationError("Authentication failed due to an error. {e}") from e
         finally:
             self.auth_in_progress = False
 
@@ -293,6 +285,7 @@ class RenphoWeight:
                     self.weight_info = self.weight_history[0] if self.weight_history else None
                     self.weight = self.weight_info.weight if self.weight_info else None
                     self.time_stamp = self.weight_info.time_stamp if self.weight_info else None
+                    self._last_updated_weight = time.time()
                     return self.weight_info
                 else:
                     _LOGGER.error("No weight measurements found in the response.")
@@ -312,10 +305,11 @@ class RenphoWeight:
     async def get_weight(self) -> Union[float, None]:
         if self.weight and self.weight_info:
             return self.weight, self.weight_info
-        else:
-            return self.weight, await self.get_measurements()
+        self._last_updated_weight = time.time()
+        return self.weight, await self.get_measurements()
 
     async def get_info(self):
+        self._last_updated_weight = time.time()
         return await self.get_measurements()
 
     async def get_device_info(self) -> Optional[List[DeviceBind]]:
@@ -404,6 +398,7 @@ class RenphoWeight:
             if "status_code" in parsed and parsed["status_code"] == "20000":
                 response = GirthGoalsResponse(**parsed)
                 self.girth_goal = GirthGoal(**response.get("girth_goals", {}))
+                self._last_updated_girth_goal = time.time()
                 return parsed
             else:
                 _LOGGER.error(f"Error fetching girth goal: {parsed.get('status_message')}")
@@ -427,6 +422,7 @@ class RenphoWeight:
 
             if "status_code" in parsed and parsed["status_code"] == "20000":
                 self.growth_record = parsed
+                self._last_updated_growth_record = time.time()
                 return parsed
             else:
                 _LOGGER.error(f"Error fetching growth record: {parsed.get('status_message')}")
@@ -496,7 +492,6 @@ class RenphoWeight:
             _LOGGER.error(f"Failed to reach goal: {e}")
             return None
 
-
     async def get_specific_metric(self, metric_type: str, metric: str, user_id: Optional[str] = None):
         """
         Fetch a specific metric for a particular user ID based on the type specified.
@@ -515,18 +510,20 @@ class RenphoWeight:
             if metric_type == METRIC_TYPE_WEIGHT:
                 if self.weight_info:
                     return self.weight_info.get(metric, None)
-                last_measurement = await self.get_weight()
-                if last_measurement and self.weight is not None:
-                    return last_measurement[1].get(metric, None) if last_measurement[1] else None
+                if self._last_updated_weight is None or time.time() - self._last_updated_weight > self.refresh:
+                    last_measurement = await self.get_weight()
+                    if last_measurement and self.weight is not None:
+                        return last_measurement[1].get(metric, None) if last_measurement[1] else None
             elif metric_type == METRIC_TYPE_GIRTH:
                 if not self.girth_info:
                     return await self.list_girth()
-                last_measurement = (
-                    self.girth_info.get("girths", [])[0]
-                    if self.girth_info.get("girths")
-                    else None
-                )
-                return last_measurement.get(metric, None) if last_measurement else None
+                if self._last_updated_girth is None or time.time() - self._last_updated_girth > self.refresh:
+                    last_measurement = (
+                        self.girth_info.get("girths", [])[0]
+                        if self.girth_info.get("girths")
+                        else None
+                    )
+                    return last_measurement.get(metric, None) if last_measurement else None
             elif metric_type == METRIC_TYPE_GIRTH_GOAL:
                 if not self.girth_goal:
                     return await self.get_specific_girth_goal_metric(metric)
@@ -534,16 +531,18 @@ class RenphoWeight:
                     (goal for goal in self.girth_goal['girth_goals'] if goal['girth_type'] == metric),
                     None
                 )
-                return last_goal.get('goal_value', None)
+                if self._last_updated_girth_goal is None or time.time() - self._last_updated_girth_goal > self.refresh:
+                    return last_goal.get('goal_value', None)
             elif metric_type == METRIC_TYPE_GROWTH_RECORD:
                 if not self.growth_record:
                     return await self.list_growth_record()
-                last_measurement = (
-                    self.growth_record.get("growths", [])[0]
-                    if self.growth_record.get("growths")
-                    else None
-                )
-                return last_measurement.get(metric, None) if last_measurement else None
+                if self._last_updated_growth_record is None or time.time() - self._last_updated_growth_record > self.refresh:
+                    last_measurement = (
+                        self.growth_record.get("growths", [])[0]
+                        if self.growth_record.get("growths")
+                        else None
+                    )
+                    return last_measurement.get(metric, None) if last_measurement else None
             else:
                 _LOGGER.error(f"Invalid metric type: {metric_type}")
                 return None
