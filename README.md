@@ -16,7 +16,10 @@
 
 This custom component allows you to integrate Renpho's weight scale data into Home Assistant. It fetches weight and various other health metrics and displays them as sensors in Home Assistant.
 
-Go to try the API without data: https://hass-renpho.vercel.app/docs
+Go to try the API with your data: https://hass-renpho.vercel.app/docs
+
+Install renpho outdated
+https://github.com/antoinebou12/hass_renpho/assets/13888068/0bf0e48f-0582-462a-b0a2-6572dd63c860
 
 ### Weight
 
