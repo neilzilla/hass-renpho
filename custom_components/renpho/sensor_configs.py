@@ -440,7 +440,7 @@ sensor_configurations: Final = [
     },
     # Girth Measurements
     {
-        "id": "neck_value",
+        "id": "neck",
         "name": "Neck Value",
         "unit": "cm",
         "category": "Measurements",
@@ -448,7 +448,7 @@ sensor_configurations: Final = [
         "metric": METRIC_TYPE_GIRTH,
     },
     {
-        "id": "shoulder_value",
+        "id": "shoulder",
         "name": "Shoulder Value",
         "unit": "cm",
         "category": "Measurements",
@@ -456,7 +456,7 @@ sensor_configurations: Final = [
         "metric": METRIC_TYPE_GIRTH,
     },
     {
-        "id": "left_arm_value",
+        "id": "left_arm",
         "name": "Left Arm Value",
         "unit": "cm",
         "category": "Measurements",
@@ -464,7 +464,7 @@ sensor_configurations: Final = [
         "metric": METRIC_TYPE_GIRTH,
     },
     {
-        "id": "right_arm_value",
+        "id": "right_arm",
         "name": "Right Arm Value",
         "unit": "cm",
         "category": "Measurements",
@@ -472,7 +472,7 @@ sensor_configurations: Final = [
         "metric": METRIC_TYPE_GIRTH,
     },
     {
-        "id": "chest_value",
+        "id": "chest",
         "name": "Chest Value",
         "unit": "cm",
         "category": "Measurements",
@@ -480,7 +480,7 @@ sensor_configurations: Final = [
         "metric": METRIC_TYPE_GIRTH,
     },
     {
-        "id": "waist_value",
+        "id": "waist",
         "name": "Waist Value",
         "unit": "cm",
         "category": "Measurements",
@@ -488,7 +488,7 @@ sensor_configurations: Final = [
         "metric": METRIC_TYPE_GIRTH,
     },
     {
-        "id": "hip_value",
+        "id": "hip",
         "name": "Hip Value",
         "unit": "cm",
         "category": "Measurements",
@@ -496,7 +496,7 @@ sensor_configurations: Final = [
         "metric": METRIC_TYPE_GIRTH,
     },
     {
-        "id": "left_thigh_value",
+        "id": "left_thigh",
         "name": "Left Thigh Value",
         "unit": "cm",
         "category": "Measurements",
@@ -504,7 +504,7 @@ sensor_configurations: Final = [
         "metric": METRIC_TYPE_GIRTH,
     },
     {
-        "id": "right_thigh_value",
+        "id": "right_thigh",
         "name": "Right Thigh Value",
         "unit": "cm",
         "category": "Measurements",
@@ -512,7 +512,7 @@ sensor_configurations: Final = [
         "metric": METRIC_TYPE_GIRTH,
     },
     {
-        "id": "left_calf_value",
+        "id": "left_calf",
         "name": "Left Calf Value",
         "unit": "cm",
         "category": "Measurements",
@@ -520,7 +520,7 @@ sensor_configurations: Final = [
         "metric": METRIC_TYPE_GIRTH,
     },
     {
-        "id": "right_calf_value",
+        "id": "right_calf",
         "name": "Right Calf Value",
         "unit": "cm",
         "category": "Measurements",
@@ -528,7 +528,7 @@ sensor_configurations: Final = [
         "metric": METRIC_TYPE_GIRTH,
     },
     {
-        "id": "whr_value",
+        "id": "whr",
         "name": "WHR Value",
         "unit": "ratio",
         "category": "Measurements",
@@ -536,7 +536,7 @@ sensor_configurations: Final = [
         "metric": METRIC_TYPE_GIRTH,
     },
     {
-        "id": "abdomen_value",
+        "id": "abdomen",
         "name": "Abdomen Value",
         "unit": "cm",
         "category": "Measurements",
@@ -561,14 +561,6 @@ sensor_configurations: Final = [
         "metric": METRIC_TYPE_GIRTH_GOAL,
     },
     {
-        "id": "arm",
-        "name": "Arm Goal Value",
-        "unit": "cm",
-        "category": "Goals",
-        "label": "Girth Goals",
-        "metric": METRIC_TYPE_GIRTH_GOAL,
-    },
-    {
         "id": "chest",
         "name": "Chest Goal Value",
         "unit": "cm",
@@ -587,22 +579,6 @@ sensor_configurations: Final = [
     {
         "id": "hip",
         "name": "Hip Goal Value",
-        "unit": "cm",
-        "category": "Goals",
-        "label": "Girth Goals",
-        "metric": METRIC_TYPE_GIRTH_GOAL,
-    },
-    {
-        "id": "thigh",
-        "name": "Thigh Goal Value",
-        "unit": "cm",
-        "category": "Goals",
-        "label": "Girth Goals",
-        "metric": METRIC_TYPE_GIRTH_GOAL,
-    },
-    {
-        "id": "calf",
-        "name": "Calf Goal Value",
         "unit": "cm",
         "category": "Goals",
         "label": "Girth Goals",

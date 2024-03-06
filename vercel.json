@@ -1,0 +1,19 @@
+{
+    "version": 2,
+    "builds": [
+        {
+            "src": "api/app.py",
+            "use": "@vercel/python",
+            "config": {
+                "buildCommand": "pip install --upgrade pip && cd api && pip install -r requirements.txt  && uvicorn app:app --host 0.0.0.0 --port 3000",
+                "debug": true
+            }
+        }
+    ],
+    "routes": [
+        {
+            "src": "/(.*)",
+            "dest": "api/app.py"
+        }
+    ]
+}

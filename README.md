@@ -1,6 +1,6 @@
 # Renpho Weight Home Assistant Component
 
-![Version](https://img.shields.io/badge/version-0.2.0-blue)
+![Version](https://img.shields.io/badge/version-v2.0.2.1-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
 ![HACS Integration](https://img.shields.io/badge/Category-Integration-blue)
@@ -15,6 +15,11 @@
 ## Overview
 
 This custom component allows you to integrate Renpho's weight scale data into Home Assistant. It fetches weight and various other health metrics and displays them as sensors in Home Assistant.
+
+Go to try the API with your data: https://hass-renpho.vercel.app/docs
+
+Install renpho outdated
+https://github.com/antoinebou12/hass_renpho/assets/13888068/0bf0e48f-0582-462a-b0a2-6572dd63c860
 
 ### Weight
 
@@ -44,6 +49,10 @@ This custom component allows you to integrate Renpho's weight scale data into Ho
 ## Installation
 
 ```
+Stable
+Use the latest release
+
+Not stable
 git clone https://github.com/antoinebou12/hass_renpho
 ```
 
@@ -228,6 +237,7 @@ Certainly, you can expand the existing table to include the "Unit of Measurement
 | abdomen_goal_value     | Abdomen Goal Value     | Numeric   | cm                  | Goals    | Girth Goals |
 
 ## Roadmap
+
 
 1. Add support for all user information.
    ```yaml

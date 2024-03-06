@@ -1,6 +1,8 @@
 import asyncio
 import logging
 
+from httpcore import TimeoutException
+
 from .const import (
     CONF_EMAIL,
     CONF_PASSWORD,
@@ -51,33 +53,31 @@ async def async_unload_entry(hass, entry):
 
 # ------------------- Helper Methods -------------------
 
-
 async def setup_renpho(hass, conf):
     """Common setup logic for YAML and UI."""
     email = conf[CONF_EMAIL]
     password = conf[CONF_PASSWORD]
     unit_of_measurement = conf.get(CONF_UNIT_OF_MEASUREMENT, "kg")
-    user_id = conf.get(CONF_USER_ID, None)
-    refresh = conf.get(CONF_REFRESH, 600)
-    renpho = RenphoWeight(CONF_PUBLIC_KEY, email, password, user_id, refresh)
-    await renpho.get_info()
+    user_id = conf.get(CONF_USER_ID)
+    refresh = conf.get(CONF_REFRESH, 60)
+    renpho = RenphoWeight(
+        email=email,
+        password=password,
+        user_id=user_id,
+        refresh=refresh,
+    )
+
+    hass.data[DOMAIN] = renpho
+
     hass.data[DOMAIN] = renpho
     hass.data[CONF_EMAIL] = email
     hass.data[CONF_USER_ID] = user_id
     hass.data[CONF_REFRESH] = refresh
     hass.data[CONF_UNIT_OF_MEASUREMENT] = unit_of_measurement
 
-
-async def async_prepare(hass, renpho, refresh):
-    """Prepare and start polling."""
-    await renpho.start_polling(refresh)
-    await renpho.get_info()
-    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, async_cleanup(renpho))
+    return True
 
 
-async def async_cleanup(renpho):
-    """Cleanup logic."""
-    await renpho.close()
 
 # ------------------- Main Method for Testing -------------------
 

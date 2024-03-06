@@ -1,8 +1,11 @@
 """Platform for sensor integration."""
 
 from __future__ import annotations
+import asyncio
 
-from datetime import datetime, timedelta
+from datetime import datetime
+
+from .coordinator import create_coordinator
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
@@ -24,21 +27,27 @@ from .sensor_configs import sensor_configurations
 
 
 async def sensors_list(
-    hass: HomeAssistant, config_entry: ConfigEntry
+    hass: HomeAssistant, config_entry: ConfigEntry, coordinator
 ) -> list[RenphoSensor]:
-    """Return a list of sensors."""
+    """Return a list of sensors, initialized with the coordinator."""
     return [
-        RenphoSensor(hass.data[DOMAIN], **sensor, unit_of_measurement=hass.data[CONF_UNIT_OF_MEASUREMENT])
+        RenphoSensor(coordinator, **sensor, unit_of_measurement=hass.data[CONF_UNIT_OF_MEASUREMENT])
         for sensor in sensor_configurations
     ]
-
 
 async def async_setup(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ):
-    sensor_entities = await sensors_list(hass, config_entry)
+    # Create the coordinator
+    coordinator = create_coordinator(hass, hass.data[DOMAIN], config_entry)
+
+    # Fetch initial data so we have data when entities subscribe
+    await coordinator.async_config_entry_first_refresh()
+
+    # Create sensor entities and pass them the coordinator
+    sensor_entities = await sensors_list(hass, config_entry, coordinator)
     async_add_entities(sensor_entities)
 
 
@@ -47,10 +56,15 @@ async def async_setup_entry(
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ):
+    # Create the coordinator
+    coordinator = create_coordinator(hass, hass.data[DOMAIN], config_entry)
 
-    sensor_entities = await sensors_list(hass, config_entry)
+    # Fetch initial data so we have data when entities subscribe
+    await coordinator.async_config_entry_first_refresh()
+
+    # Create sensor entities and pass them the coordinator
+    sensor_entities = await sensors_list(hass, config_entry, coordinator)
     async_add_entities(sensor_entities)
-    return True
 
 
 async def async_setup_platform(
@@ -60,8 +74,20 @@ async def async_setup_platform(
     discovery_info: DiscoveryInfoType = None,
 ):
     """Set up the sensor platform asynchronously."""
-    sensor_entities = await sensors_list(hass, discovery_info)
-    async_add_entities(sensor_entities)
+    try:
+        # Create the coordinator
+        coordinator = create_coordinator(hass, hass.data[DOMAIN], discovery_info)
+
+        # Fetch initial data so we have data when entities subscribe
+        await coordinator.async_config_entry_first_refresh()
+
+        # Create sensor entities and pass them the coordinator
+        sensor_entities = await sensors_list(hass, config, coordinator)
+        async_add_entities(sensor_entities)
+    except ConnectionError as ex:
+        _LOGGER.error(f"Error: {ex}")
+        return False
+
 
 
 class RenphoSensor(SensorEntity):
@@ -69,7 +95,7 @@ class RenphoSensor(SensorEntity):
 
     def __init__(
         self,
-        renpho: RenphoWeight,
+        coordinator,
         id: str,
         name: str,
         unit: str,
@@ -78,8 +104,8 @@ class RenphoSensor(SensorEntity):
         metric: str,
         unit_of_measurement: str,
     ) -> None:
-        """Initialize the sensor."""
-        self._renpho = renpho
+        """Initialize the sensor with the coordinator."""
+        self.coordinator = coordinator
         self._metric = metric
         self._id = id
         self._name = f"Renpho {name}"
@@ -87,8 +113,8 @@ class RenphoSensor(SensorEntity):
         self._category = category
         self._label = label
         self._unit_of_measurement = unit_of_measurement
-        self._timestamp = None
         self._state = None
+        self._timestamp = None
 
     @property
     def unique_id(self) -> str:
@@ -118,9 +144,14 @@ class RenphoSensor(SensorEntity):
         return self._name
 
     @property
-    def state(self):
-        """Return the current state of the sensor."""
-        return self._state
+    def category(self) -> str:
+        """Return the category of the sensor."""
+        return self._category
+
+    @property
+    def label(self) -> str:
+        """Return the label of the sensor."""
+        return self._label
 
     @property
     def unit_of_measurement(self) -> str:
@@ -147,18 +178,14 @@ class RenphoSensor(SensorEntity):
             return self._unit
 
     @property
-    def category(self) -> str:
-        """Return the category of the sensor."""
-        return self._category
+    def state(self):
+        """Return the current state of the sensor."""
+        return self._state 
 
-    @property
-    def label(self) -> str:
-        """Return the label of the sensor."""
-        return self._label
-
-    async def async_update(self) -> None:
+    async def async_update(self):
+        """Request an immediate update of the coordinator data."""
         try:
-            metric_value = await self._renpho.get_specific_metric(
+            metric_value = await self.coordinator.api.get_specific_metric(
                 metric_type=self._metric,
                 metric=self._id,
                 user_id=None

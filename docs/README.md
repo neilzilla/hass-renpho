@@ -647,3 +647,168 @@ This URL is used in the `list_growth_record()` method to fetch the growth record
   ]
 }
 ```
+
+### API Documentation
+
+**Endpoint:** `/api/v3/users/sign_in.json`
+
+**Method:** POST
+
+**Parameters:**
+- `app_id`: Application identifier.
+- `secure_flag`: Indicates secure login.
+- `email`: User's email address.
+- `password`: User's password.
+
+```
+curl -X POST "https://renpho.qnclouds.com/api/v3/users/sign_in.json?app_id=Renpho" \
+     -H "Content-Type: application/json" \
+     -d '{"secure_flag": "1", "email": "your_email@example.com", "password": "your_encrypted_password"}'
+```
+### List Scale Users
+
+**Endpoint:** `/api/v3/scale_users/list_scale_user`
+
+**Method:** GET
+
+**Description:** Retrieves a list of scale users associated with a given Renpho account. This endpoint provides details about each scale user, including their unique identifiers and associated device information.
+
+**Parameters:**
+- `user_id` (required): The user's identifier.
+- `last_updated_at` (required): Timestamp for last update. This parameter can be used to fetch only updates since the last request.
+- `locale` (optional): Locale setting. Defaults to "en" for English.
+- `app_id` (required): Application identifier. This is specific to the Renpho application.
+- `terminal_user_session_key` (required): Session key obtained from signing in.
+
+**Curl Request Example:**
+```bash
+curl "https://renpho.qnclouds.com/api/v3/scale_users/list_scale_user?user_id=user_id&last_updated_at=883630800&locale=en&app_id=Renpho&terminal_user_session_key=terminal_user_session_key"
+```
+
+**Response:**
+- `status_code`: A string indicating the status of the request. "20000" indicates success.
+- `status_message`: A string providing a message corresponding to the status code.
+- `scale_users`: An array of objects, each representing a scale user. Each object contains:
+  - `scale_user_id`: A unique identifier for the scale user.
+  - `user_id`: The user identifier associated with this scale user.
+  - `mac`: The MAC address of the device used by the scale user.
+  - `index`: An index number associated with the scale user, potentially indicating the order of addition or priority.
+  - `key`: A key value associated with the scale user.
+  - `method`: An integer representing the method used for the scale user, potentially indicating the type of measurements or interactions.
+
+**Use Case:**
+This endpoint is useful for applications that need to manage or display information about multiple users within the same Renpho ecosystem, such as family members or individuals using the same scale device with separate profiles. It allows for the aggregation and differentiation of data per user, enhancing personalized health and wellness tracking.
+
+
+### List Girth Goals
+**Endpoint:** `/api/v3/girth_goals/list_girth_goal.json`
+
+**Method:** GET
+
+**Parameters:**
+- `user_id`: The user's identifier.
+- `last_updated_at`: Timestamp for last update.
+- `locale`: Locale setting.
+- `app_id`: Application identifier.
+- `terminal_user_session_key`: Session key obtained from signing in.
+
+```bash
+curl "https://renpho.qnclouds.com/api/v3/girth_goals/list_girth_goal.json?user_id=user_id&last_updated_at=883630800&locale=en&app_id=Renpho&terminal_user_session_key=your_session_key"
+```
+
+### List Girth Measurements
+**Endpoint:** `/api/v3/girths/list_girth.json`
+
+**Method:** GET
+
+**Parameters:**
+- `user_id`: The user's identifier.
+- `last_updated_at`: Timestamp for last update.
+- `locale`: Locale setting.
+- `app_id`: Application identifier.
+- `terminal_user_session_key`: Session key obtained from signing in.
+
+```bash
+curl "https://renpho.qnclouds.com/api/v3/girths/list_girth.json?user_id=user_id&last_updated_at=883630800&locale=en&app_id=Renpho&terminal_user_session_key=your_session_key"
+```
+
+### List Latest Device Model
+**Endpoint:** `/api/v3/devices/list_lastest_model.json`
+
+**Method:** GET (attempted but failed due to parameter issues) and POST
+
+**Parameters:**
+- `user_id`: The user's identifier.
+- `last_updated_at`: Timestamp for last update.
+- `locale`: Locale setting.
+- `app_id`: Application identifier.
+- `terminal_user_session_key`: Session key obtained from signing in.
+- `internal_model_json`: An array of model identifiers.
+
+```bash
+curl  "https://renpho.qnclouds.com/api/v3/devices/list_lastest_model.json?user_id=user_id&last_updated_at=883630800&locale=en&app_id=Renpho&terminal_user_session_key=your_session_key&internal_model_json=%5B%2203DE%22%5D"
+```
+
+### Get Device Information
+**Endpoint:** `/api/v2/device_binds/get_device.json`
+
+**Method:** GET
+
+**Description:** This endpoint is used to retrieve the binding information of devices associated with a user.
+
+**Parameters:**
+- `user_id`: The user's identifier.
+- `last_updated_at`: Timestamp indicating the last update.
+- `locale`: Locale setting, e.g., "en" for English.
+- `app_id`: Application identifier, e.g., "Renpho".
+- `terminal_user_session_key`: Session key obtained from signing in.
+
+**Curl Request:**
+```bash
+curl "https://renpho.qnclouds.com/api/v2/device_binds/get_device.json?user_id=user_id&last_updated_at=883630800&locale=en&app_id=Renpho&terminal_user_session_key=terminal_user_session_key"
+```
+
+**Response:**
+The response includes an array (`device_binds_ary`) with details of devices bound to the user account. Each device in the array contains:
+- `id`: Device identifier.
+- `mac`: MAC address of the device.
+- `scale_name`: Name of the scale or device.
+- `demo`: Demo mode status.
+- `hw_ble_version`: Hardware Bluetooth version.
+- `device_type`: Type of the device.
+- `hw_software_version`: Hardware software version.
+- `created_at`: Timestamp when the device was created or bound.
+- `uuid`: UUID of the device.
+- `b_user_id`: User ID the device is bound to.
+- `internal_model`: Internal model identifier of the device.
+- `wifi_name`: Name of the Wi-Fi network the device is connected to.
+- `product_category`: Category of the product.
+
+This endpoint is useful for applications that need to display or manage devices bound to a user's account, offering insights into the specifics of each device, such as model, connectivity, and identification details.
+
+
+### List Measurements
+**Endpoint:** `/api/v2/measurements/list.json`
+
+**Method:** GET
+
+**Description:** Retrieves a list of body measurements for the specified user, including details on weight, body fat, muscle mass, and more.
+
+**Parameters:**
+- `user_id`: The user's unique identifier.
+- `last_updated_at`: Timestamp indicating the last time data was fetched. This helps in fetching only the new updates since the last fetch.
+- `locale`: Locale setting, e.g., "en" for English.
+- `app_id`: Application identifier, e.g., "Renpho".
+- `terminal_user_session_key`: Session key obtained from signing in.
+
+**Response:**
+- Provides comprehensive data on body measurements recorded by the Renpho scale, including metrics like weight, body fat percentage, muscle mass, BMI, and more.
+- Each measurement includes timestamps and specific details like scale name, model, and measurement types.
+- Supports tracking of historical data and changes over time.
+
+**Curl Request:**
+```bash
+curl "https://renpho.qnclouds.com/api/v2/measurements/list.json?user_id=user_id&last_updated_at=883630800&locale=en&app_id=Renpho&terminal_user_session_key=terminal_user_session_key"
+```
+
+This endpoint is crucial for users and health apps aiming to monitor progress in physical health metrics over time, offering a detailed look at the impact of lifestyle choices, exercise, and diet on body composition.

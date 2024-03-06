@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+httpx
+jinja2
+pydantic
+fastapi
+uvicorn
+aiohttp
+pydantic
+python-multipart
+cryptography
+pyjwt
+python-dotenv
+pycryptodome
