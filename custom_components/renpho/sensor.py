@@ -185,7 +185,6 @@ class RenphoSensor(SensorEntity):
     async def async_update(self):
         """Request an immediate update of the coordinator data."""
         try:
-            await coordinator.async_refresh()
             metric_value = await self.coordinator.api.get_specific_metric(
                 metric_type=self._metric,
                 metric=self._id,

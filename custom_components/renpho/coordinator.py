@@ -50,6 +50,3 @@ class RenphoWeightCoordinator(DataUpdateCoordinator):
     @property
     def last_updated(self):
         return self._last_updated
-
-    async def get_specific_metric(self, metric_type: str, metric: str):
-        return await self.api.get_specific_metric(metric_type = metric_type, metric = metric, user_id = self._user_id)

@@ -339,6 +339,43 @@ class GirthResponse(BaseModel):
         return getattr(self, key, default)
 
 
+import asyncio
+import datetime
+import logging
+import time
+from base64 import b64encode
+from typing import Callable, Dict, Final, List, Optional, Union
+
+import aiohttp
+from Crypto.Cipher import PKCS1_v1_5
+from Crypto.PublicKey import RSA
+
+from .const import CONF_PUBLIC_KEY
+
+METRIC_TYPE_WEIGHT: Final = "weight"
+METRIC_TYPE_GROWTH_RECORD: Final = "growth_record"
+METRIC_TYPE_GIRTH: Final = "girth"
+METRIC_TYPE_GIRTH_GOAL: Final = "girth_goals"
+
+from .api_object import UserResponse, DeviceBind, MeasurementDetail, Users, GirthGoal, GirthGoalsResponse, Girth, GirthResponse, MeasurementResponse
+
+# Initialize logging
+_LOGGER = logging.getLogger(__name__)
+
+# API Endpoints
+API_AUTH_URL = "https://renpho.qnclouds.com/api/v3/users/sign_in.json?app_id=Renpho" # Authentication Post
+API_SCALE_USERS_URL = "https://renpho.qnclouds.com/api/v3/scale_users/list_scale_user" # Scale users
+API_MEASUREMENTS_URL = "https://renpho.qnclouds.com/api/v2/measurements/list.json" # Measurements
+DEVICE_INFO_URL = "https://renpho.qnclouds.com/api/v2/device_binds/get_device.json" # Device info
+LATEST_MODEL_URL = "https://renpho.qnclouds.com/api/v3/devices/list_lastest_model.json" # Latest model
+GIRTH_URL = "https://renpho.qnclouds.com/api/v3/girths/list_girth.json" # Girth
+GIRTH_GOAL_URL = "https://renpho.qnclouds.com/api/v3/girth_goals/list_girth_goal.json" # Girth goal
+GROWTH_RECORD_URL = "https://renpho.qnclouds.com/api/v3/growth_records/list_growth_record.json" # Growth record
+MESSAGE_LIST_URL = "https://renpho.qnclouds.com/api/v2/messages/list.json" # message to support
+USER_REQUEST_URL = "https://renpho.qnclouds.com/api/v2/users/request_user.json" # error
+USERS_REACH_GOAL = "https://renpho.qnclouds.com/api/v3/users/reach_goal.json" # error 404
+
+
 class RenphoWeight:
     """
     A class to interact with Renpho's weight scale API.
@@ -412,7 +449,6 @@ class RenphoWeight:
             )
 
 
-
     async def _request(self, method: str, url: str, retries: int = 3, skip_auth=False, **kwargs):
         """
         Perform an API request and return the parsed JSON response.
@@ -427,42 +463,43 @@ class RenphoWeight:
         Returns:
             Union[Dict, List]: The parsed JSON response from the API request.
         """
+        token = self.token
+        while retries > 0:
+            session = aiohttp.ClientSession(
+                headers={"Content-Type": "application/json", "Accept": "application/json",
+                        "User-Agent": "Renpho/2.1.0 (iPhone; iOS 14.4; Scale/2.1.0; en-US)"
+                        }
+            )
 
-        if retries < 1:
-            _LOGGER.error("Max retries exceeded for API request.")
-            raise APIError("Max retries exceeded for API request.")
+            if not token and not url.endswith("sign_in.json") and not skip_auth:
+                auth_success = await self.auth()
+                token = self.token
+                if not auth_success:
+                    raise AuthenticationError("Authentication failed. Unable to proceed with the request.")
 
-        session = aiohttp.ClientSession(
-            headers={"Content-Type": "application/json", "Accept": "application/json",
-                     "User-Agent": "Renpho/2.1.0 (iPhone; iOS 14.4; Scale/2.1.0; en-US)"
-                    }
-        )
+            kwargs = self.prepare_data(kwargs)
 
-        if not self.token and not url.endswith("sign_in.json"):
-            auth_success = await self.auth()
-            if not auth_success:
-                raise AuthenticationError("Authentication failed. Unable to proceed with the request.")
+            try:
+                async with session.request(method, url, **kwargs) as response:
+                    response.raise_for_status()
+                    parsed_response = await response.json()
 
-        kwargs = self.prepare_data(kwargs)
-
-        try:
-            async with session.request(method, url, **kwargs) as response:
-                response.raise_for_status()
-                parsed_response = await response.json()
-
-                if parsed_response.get("status_code") == "40302":
-                    pass
-                if parsed_response.get("status_code") == "50000":
-                    raise APIError(f"Internal server error: {parsed_response.get('status_message')}")
-                if parsed_response.get("status_code") == "20000" and parsed_response.get("status_message") == "ok":
-                    return parsed_response
-                else:
-                    raise APIError(f"API request failed {method} {url}: {parsed_response.get('status_message')}")
-        except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError) as e:
-            _LOGGER.error(f"Client error: {e}")
-            raise APIError(f"API request failed {method} {url}") from e
-        finally:
-            await session.close()
+                    if parsed_response.get("status_code") == "40302":
+                        token = None
+                        skip_auth = False
+                        retries -= 1
+                        continue # Retry the request
+                    if parsed_response.get("status_code") == "50000":
+                        raise APIError(f"Internal server error: {parsed_response.get('status_message')}")
+                    if parsed_response.get("status_code") == "20000" and parsed_response.get("status_message") == "ok":
+                        return parsed_response
+                    else:
+                        raise APIError(f"API request failed {method} {url}: {parsed_response.get('status_message')}")
+            except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError) as e:
+                _LOGGER.error(f"Client error: {e}")
+                raise APIError(f"API request failed {method} {url}") from e
+            finally:
+                await session.close()
 
     @staticmethod
     def encrypt_password(public_key_str, password):
@@ -609,7 +646,7 @@ class RenphoWeight:
                 if measurements := parsed["last_ary"]:
                     self.weight_history = [MeasurementDetail(**measurement) for measurement in measurements]
                     self.weight_info = self.weight_history[0] if self.weight_history else None
-                    self.weight = self.weight_history[0].weight if self.weight_info else None
+                    self.weight = self.weight_info.weight if self.weight_info else None
                     self.time_stamp = self.weight_info.time_stamp if self.weight_info else None
                     self._last_updated_weight = time.time()
                     return self.weight_info
@@ -652,8 +689,9 @@ class RenphoWeight:
 
             # Check for successful response code
             if parsed.get("status_code") == "20000" and "device_binds_ary" in parsed:
-                self.device_info = parsed["device_binds_ary"]
-                return self.device_info
+                device_info = [DeviceBind(**device) for device in parsed["device_binds_ary"]]
+                self.device_info = device_info
+                return device_info
             else:
                 # Handling different error scenarios
                 if "status_code" not in parsed:
