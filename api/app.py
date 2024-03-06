@@ -339,43 +339,6 @@ class GirthResponse(BaseModel):
         return getattr(self, key, default)
 
 
-import asyncio
-import datetime
-import logging
-import time
-from base64 import b64encode
-from typing import Callable, Dict, Final, List, Optional, Union
-
-import aiohttp
-from Crypto.Cipher import PKCS1_v1_5
-from Crypto.PublicKey import RSA
-
-from .const import CONF_PUBLIC_KEY
-
-METRIC_TYPE_WEIGHT: Final = "weight"
-METRIC_TYPE_GROWTH_RECORD: Final = "growth_record"
-METRIC_TYPE_GIRTH: Final = "girth"
-METRIC_TYPE_GIRTH_GOAL: Final = "girth_goals"
-
-from .api_object import UserResponse, DeviceBind, MeasurementDetail, Users, GirthGoal, GirthGoalsResponse, Girth, GirthResponse, MeasurementResponse
-
-# Initialize logging
-_LOGGER = logging.getLogger(__name__)
-
-# API Endpoints
-API_AUTH_URL = "https://renpho.qnclouds.com/api/v3/users/sign_in.json?app_id=Renpho" # Authentication Post
-API_SCALE_USERS_URL = "https://renpho.qnclouds.com/api/v3/scale_users/list_scale_user" # Scale users
-API_MEASUREMENTS_URL = "https://renpho.qnclouds.com/api/v2/measurements/list.json" # Measurements
-DEVICE_INFO_URL = "https://renpho.qnclouds.com/api/v2/device_binds/get_device.json" # Device info
-LATEST_MODEL_URL = "https://renpho.qnclouds.com/api/v3/devices/list_lastest_model.json" # Latest model
-GIRTH_URL = "https://renpho.qnclouds.com/api/v3/girths/list_girth.json" # Girth
-GIRTH_GOAL_URL = "https://renpho.qnclouds.com/api/v3/girth_goals/list_girth_goal.json" # Girth goal
-GROWTH_RECORD_URL = "https://renpho.qnclouds.com/api/v3/growth_records/list_growth_record.json" # Growth record
-MESSAGE_LIST_URL = "https://renpho.qnclouds.com/api/v2/messages/list.json" # message to support
-USER_REQUEST_URL = "https://renpho.qnclouds.com/api/v2/users/request_user.json" # error
-USERS_REACH_GOAL = "https://renpho.qnclouds.com/api/v3/users/reach_goal.json" # error 404
-
-
 class RenphoWeight:
     """
     A class to interact with Renpho's weight scale API.
