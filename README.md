@@ -1,6 +1,6 @@
 # Renpho Weight Home Assistant Component
 
-![Version](https://img.shields.io/badge/version-v2.0.2.1-blue)
+![Version](https://img.shields.io/badge/version-v3.0.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
 ![HACS Integration](https://img.shields.io/badge/Category-Integration-blue)
