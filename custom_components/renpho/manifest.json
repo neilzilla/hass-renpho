@@ -1,17 +1,18 @@
 {
   "domain": "renpho",
   "name": "Renpho",
-  "documentation": "https://github.com/antoinebou12/hass_renpho",
-  "issue_tracker": "https://github.com/antoinebou12/hass_renpho/issues",
+  "documentation": "https://github.com/neilzilla/hass-renpho",
+  "issue_tracker": "https://github.com/neilzilla/hass-renpho/issues",
   "dependencies": [],
-  "codeowners": ["@antoinebou12"],
+  "codeowners": ["@neilzilla", "@antoinebou12"],
   "requirements": [
     "pycryptodome>=3.3.1",
     "requests>=2.25.0",
     "aiohttp>=3.6.1",
-    "voluptuous>=0.11.7"
+    "voluptuous>=0.11.7",
+    "pydantic"
   ],
   "iot_class": "cloud_polling",
-  "version": "2.0.1",
+  "version": "3.0.0",
   "config_flow": true
 }
