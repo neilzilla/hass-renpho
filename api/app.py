@@ -840,22 +840,16 @@ class RenphoWeight:
                 return self.weight_info.get(metric, None) if self.weight_info else None
             elif metric_type == METRIC_TYPE_GIRTH:
                 if self._last_updated_girth is None or time.time() - self._last_updated_girth > self.refresh:
-                    last_measurement = (
-                        self.girth_info[0]
-                        if self.girth_info
-                        else None
-                    )
-                    return last_measurement.get(metric, None) if last_measurement else None
-                return self.girth_info[0].get(metric, None) if self.girth_info else None
+                    await self.list_girth()
+                for girth_entry in self.girth_info:
+                    if hasattr(girth_entry, f"{metric}_value"):
+                        return getattr(girth_entry, f"{metric}_value", None)
             elif metric_type == METRIC_TYPE_GIRTH_GOAL:
-                last_goal = next(
-                    (goal for goal in self.girth_goal if goal.girth_type == metric),
-                    None
-                )
                 if self._last_updated_girth_goal is None or time.time() - self._last_updated_girth_goal > self.refresh:
-                    return last_goal.get('goal_value', None)
-                else:
-                    return last_goal.get('goal_value', None)
+                    await self.list_girth_goal()
+                for goal in self.girth_goal:
+                    if goal.girth_type == metric:
+                        return goal.goal_value
             elif metric_type == METRIC_TYPE_GROWTH_RECORD:
                 if self._last_updated_growth_record is None or time.time() - self._last_updated_growth_record > self.refresh:
                     last_measurement = (
