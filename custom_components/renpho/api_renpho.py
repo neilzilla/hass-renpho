@@ -147,6 +147,7 @@ class RenphoWeight:
                         token = None
                         skip_auth = False
                         retries -= 1
+                        await session.close()
                         continue # Retry the request
                     if parsed_response.get("status_code") == "50000":
                         raise APIError(f"Internal server error: {parsed_response.get('status_message')}")

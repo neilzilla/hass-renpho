@@ -12,3 +12,4 @@ cryptography
 pyjwt
 python-dotenv
 pycryptodome
+starlette
