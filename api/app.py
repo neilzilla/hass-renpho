@@ -837,6 +837,7 @@ class RenphoWeight:
                     last_measurement = await self.get_weight()
                     if last_measurement and self.weight is not None:
                         return last_measurement[1].get(metric, None) if last_measurement[1] else None
+                return self.weight_info.get(metric, None) if self.weight_info else None
             elif metric_type == METRIC_TYPE_GIRTH:
                 if self._last_updated_girth is None or time.time() - self._last_updated_girth > self.refresh:
                     last_measurement = (
@@ -845,12 +846,15 @@ class RenphoWeight:
                         else None
                     )
                     return last_measurement.get(metric, None) if last_measurement else None
+                return self.girth_info[0].get(metric, None) if self.girth_info else None
             elif metric_type == METRIC_TYPE_GIRTH_GOAL:
                 last_goal = next(
-                    (goal for goal in self.girth_goal if goal['girth_type'] == metric),
+                    (goal for goal in self.girth_goal if goal.girth_type == metric),
                     None
                 )
                 if self._last_updated_girth_goal is None or time.time() - self._last_updated_girth_goal > self.refresh:
+                    return last_goal.get('goal_value', None)
+                else:
                     return last_goal.get('goal_value', None)
             elif metric_type == METRIC_TYPE_GROWTH_RECORD:
                 if self._last_updated_growth_record is None or time.time() - self._last_updated_growth_record > self.refresh:
@@ -865,60 +869,6 @@ class RenphoWeight:
                 return None
         except Exception as e:
             _LOGGER.error(f"Failed to fetch specific metric: {e}")
-            return None
-
-    async def get_specific_girth_goal_metric(self, metric: str, user_id: Optional[str] = None):
-        """
-        Fetch a specific girth goal metric for a particular user ID from the most recent girth goal information.
-
-        Parameters:
-            metric (str): The specific metric to fetch.
-            user_id (str, optional): The user ID for whom to fetch the metric. Defaults to None.
-
-        """
-        try:
-            if user_id:
-                self.user_id = user_id
-            if not self.girth_goal:
-                await self.list_girth_goal()
-
-            if self.girth_goal:
-                last_goal = next(
-                    (goal for goal in self.girth_goal['girth_goals'] if goal['girth_type'] == metric),
-                    None
-                )
-
-                return last_goal.get('goal_value', None)
-            else:
-                return None
-        except Exception as e:
-            _LOGGER.error(f"Failed to fetch girth goal metric: {e}")
-            return None
-
-    async def get_specific_growth_metric(self, metric: str, user_id: Optional[str] = None):
-        """
-        Fetch a specific growth metric for a particular user ID from the most recent growth measurement.
-
-        Parameters:
-            metric (str): The specific metric to fetch (e.g., "height", "growth_rate").
-            user_id (str, optional): The user ID for whom to fetch the metric. Defaults to None.
-        """
-        try:
-            if user_id:
-                self.user_id = user_id
-            if not self.growth_record:
-                await self.list_growth_record()
-
-            if not self.growth_record:
-                return None
-            last_measurement = (
-                self.growth_record.get("growths", [])[0]
-                if self.growth_record.get("growths")
-                else None
-            )
-            return last_measurement.get(metric, None) if last_measurement else None
-        except Exception as e:
-            _LOGGER.error(f"Failed to fetch growth metric: {e}")
             return None
 
     async def poll_data(self):

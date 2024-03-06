@@ -117,22 +117,6 @@ class RenphoSensor(SensorEntity):
         self._timestamp = None
 
     @property
-    def should_poll(self) -> bool:
-        """Sensor should not poll for updates; it will receive updates from the coordinator."""
-        return False
-
-    async def async_added_to_hass(self):
-        """When entity is added to hass."""
-        self.async_on_remove(
-            self.coordinator.async_add_listener(self.async_write_ha_state)
-        )
-
-    @property
-    def available(self):
-        """Return if sensor is available."""
-        return self.coordinator.last_update_success
-
-    @property
     def unique_id(self) -> str:
         """Return a unique ID."""
         return f"renpho_{slugify(self._name)}"
@@ -198,10 +182,11 @@ class RenphoSensor(SensorEntity):
         """Return the current state of the sensor."""
         return self._state 
 
-    async def async_update_data(self):
+    async def async_update(self):
         """Request an immediate update of the coordinator data."""
         try:
-            metric_value = await self.coordinator.get_specific_metric(
+            await coordinator.async_refresh()
+            metric_value = await self.coordinator.api.get_specific_metric(
                 metric_type=self._metric,
                 metric=self._id,
                 user_id=None
