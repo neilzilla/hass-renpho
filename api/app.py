@@ -1153,27 +1153,3 @@ async def message_list(request: Request, renpho: RenphoWeight = Depends(get_curr
     except Exception as e:
         _LOGGER.error(f"Error fetching message list: {e}")
         return APIResponse(status="error", message=str(e))
-
-@app.middleware("http")
-async def forward_proxy(request: Request, call_next):
-    if "proxy" in request.query_params:
-        # Extract the target URL from the query parameters
-        target_url = request.query_params.get("proxy")
-        method = request.method
-
-        # Include additional headers as needed
-        headers = {key: value for key, value in request.headers.items()}
-        
-        # Create a client session to send the request
-        async with httpx.AsyncClient() as client:
-            try:
-                # Forward the request to the target URL
-                resp = await client.request(method, target_url, headers=headers, content=await request.body())
-                
-                # Return the response from the target URL
-                return Response(content=resp.content, status_code=resp.status_code, headers=dict(resp.headers))
-            except httpx.RequestError as exc:
-                raise HTTPException(status_code=500, detail=f"Request to {target_url} failed.") from exc
-
-    # If not a proxy request, just call the next request in the middleware stack
-    return await call_next(request)

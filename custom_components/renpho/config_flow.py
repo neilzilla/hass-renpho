@@ -7,6 +7,8 @@ import voluptuous as vol
 from homeassistant import config_entries, exceptions
 from homeassistant.core import HomeAssistant
 
+from homeassistant.helpers import translation
+
 from .const import (
     CONF_EMAIL,
     CONF_PASSWORD,
@@ -23,10 +25,11 @@ from .api_renpho import RenphoWeight
 _LOGGER = logging.getLogger(__name__)
 
 DATA_SCHEMA = vol.Schema({
-    vol.Required(CONF_EMAIL, description={"suggested_value": "example@email.com"}): str,
-    vol.Required(CONF_PASSWORD, description={"suggested_value": "Password"}): str,
-    vol.Optional(CONF_REFRESH, description={"suggested_value": 60}): int,
+    vol.Required(CONF_EMAIL): str,
+    vol.Required(CONF_PASSWORD): str,
+    vol.Optional(CONF_REFRESH, default=60): int,
     vol.Optional(CONF_UNIT_OF_MEASUREMENT, default=MASS_KILOGRAMS): vol.In([MASS_KILOGRAMS, MASS_POUNDS]),
+    vol.Optional("proxy"): str
 })
 
 async def async_validate_input(hass: HomeAssistant, data: dict) -> dict[str, Any]:
@@ -35,7 +38,8 @@ async def async_validate_input(hass: HomeAssistant, data: dict) -> dict[str, Any
     renpho = RenphoWeight(
         email=data[CONF_EMAIL],
         password=data[CONF_PASSWORD],
-        refresh=data.get(CONF_REFRESH, 60)
+        refresh=data.get(CONF_REFRESH, 60),
+        proxy=data.get("proxy", None)
     )
     is_valid = await renpho.validate_credentials()
     if not is_valid:
@@ -67,9 +71,9 @@ class RenphoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             try:
                 info = await async_validate_input(self.hass, user_input)
-                self.renpho_temp_data = user_input  # Temporarily store to use in the next step
-                self.renpho_instance = info["renpho_instance"]  # Store the RenphoWeight instance
-                self.user_ids = info["user_ids"]  # Store fetched user IDs
+                self.renpho_temp_data = user_input
+                self.renpho_instance = info["renpho_instance"]
+                self.user_ids = info["user_ids"]
 
                 if len(self.user_ids) > 1:
                     return await self.async_step_select_user()
@@ -87,14 +91,14 @@ class RenphoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="user",
             data_schema=DATA_SCHEMA,
-            errors=errors,
-            description_placeholders={"additional_info": "Please provide your Renpho login details."}
+            errors=errors
         )
 
     async def async_step_select_user(self, user_input=None):
         errors = {}
         if user_input is not None:
             self.renpho_temp_data[CONF_USER_ID] = user_input[CONF_USER_ID]
+            data[CONF_USER_ID] = user_input[CONF_USER_ID]
             return self.async_create_entry(title=self.renpho_temp_data[CONF_EMAIL], data=self.renpho_temp_data)
 
         user_id_schema = vol.Schema({

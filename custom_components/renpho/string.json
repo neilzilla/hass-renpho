@@ -1,0 +1,23 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "data": {
+                    "email": "Enter your Renpho Outdated account email address.",
+                    "password": "Enter your Renpho account password.",
+                    "refresh": "Set the data refresh rate in seconds. Default is 60 seconds.",
+                    "unit_of_measurement": "Choose the unit of measurement for weight. Options are kilograms (kg) or pounds (lbs).",
+                    "proxy": "Optional: Specify a proxy server to use (e.g., 'http://127.0.0.1:8080')."
+                }
+            }
+        },
+        "error": {
+            "cannot_connect": "Cannot connect to the service",
+            "invalid_auth": "Invalid authentication",
+            "unknown": "An unknown error occurred"
+        },
+        "abort": {
+            "already_configured": "Device is already configured"
+        }
+    }
+}

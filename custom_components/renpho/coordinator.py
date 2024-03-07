@@ -8,6 +8,8 @@ from homeassistant.helpers.update_coordinator import (
     UpdateFailed,
 )
 
+import asyncio
+
 from .const import CONF_EMAIL, CONF_REFRESH, CONF_USER_ID, DOMAIN, CONF_UNIT_OF_MEASUREMENT
 
 _LOGGER = logging.getLogger(__name__)
@@ -41,12 +43,22 @@ class RenphoWeightCoordinator(DataUpdateCoordinator):
         try:
             with async_timeout.timeout(self._refresh):
                 await self.api.get_info()
+                await asyncio.sleep(5)
                 await self.api.list_girth()
+                await asyncio.sleep(5)
                 await self.api.list_girth_goal()
-                self._last_updated = datetime.now()
+                await asyncio.sleep(5)
+            self._last_updated = datetime.now()
+        except asyncio.TimeoutError:
+            _LOGGER.error("Timeout error fetching data from Renpho API.")
+            raise UpdateFailed("Timeout error occurred while fetching data.")
+        except asyncio.CancelledError:
+            _LOGGER.error("Task was cancelled, possibly during shutdown.")
+            # Don't raise UpdateFailed for CancelledError as it's a normal part of operation
         except Exception as e:
             _LOGGER.error(f"Error fetching data from Renpho API: {e}")
             raise UpdateFailed(f"Error fetching data: {e}") from e
+
     @property
     def last_updated(self):
         return self._last_updated

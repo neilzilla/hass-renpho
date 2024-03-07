@@ -6,6 +6,7 @@ from base64 import b64encode
 from typing import Callable, Dict, Final, List, Optional, Union
 
 import aiohttp
+from aiohttp_socks import ProxyConnector
 from Crypto.Cipher import PKCS1_v1_5
 from Crypto.PublicKey import RSA
 
@@ -45,7 +46,7 @@ class RenphoWeight:
         user_id (str, optional): The ID of the user for whom weight data should be fetched.
     """
 
-    def __init__(self, email, password, user_id=None, refresh=60):
+    def __init__(self, email, password, user_id=None, refresh=60, proxy=None):
         """Initialize a new RenphoWeight instance."""
         self.public_key: str = CONF_PUBLIC_KEY
         self.email: str = email
@@ -75,6 +76,7 @@ class RenphoWeight:
         self._last_updated_growth_record = None
         self.auth_in_progress = False
         self.is_polling_active = False
+        self.proxy = proxy
 
     @staticmethod
     def get_timestamp() -> int:
@@ -124,42 +126,42 @@ class RenphoWeight:
         """
         token = self.token
         while retries > 0:
-            session = aiohttp.ClientSession(
-                headers={"Content-Type": "application/json", "Accept": "application/json",
-                        "User-Agent": "Renpho/2.1.0 (iPhone; iOS 14.4; Scale/2.1.0; en-US)"
-                        }
-            )
+            async with aiohttp.ClientSession(connector=ProxyConnector.from_url(self.proxy), headers={
+                            "Content-Type": "application/json",
+                            "Accept": "application/json",
+                            "User-Agent": "Renpho/2.1.0 (iPhone; iOS 14.4; Scale/2.1.0; en-US)"
+                        }) as session:
 
-            if not token and not url.endswith("sign_in.json") and not skip_auth:
-                auth_success = await self.auth()
-                token = self.token
-                if not auth_success:
-                    raise AuthenticationError("Authentication failed. Unable to proceed with the request.")
+                if not token and not url.endswith("sign_in.json") and not skip_auth:
+                    auth_success = await self.auth()
+                    token = self.token
+                    if not auth_success:
+                        raise AuthenticationError("Authentication failed. Unable to proceed with the request.")
 
-            kwargs = self.prepare_data(kwargs)
+                kwargs = self.prepare_data(kwargs)
 
-            try:
-                async with session.request(method, url, **kwargs) as response:
-                    response.raise_for_status()
-                    parsed_response = await response.json()
+                try:
+                    async with session.request(method, url, **kwargs) as response:
+                        response.raise_for_status()
+                        parsed_response = await response.json()
+                        
 
-                    if parsed_response.get("status_code") == "40302":
-                        token = None
-                        skip_auth = False
-                        retries -= 1
-                        await session.close()
-                        continue # Retry the request
-                    if parsed_response.get("status_code") == "50000":
-                        raise APIError(f"Internal server error: {parsed_response.get('status_message')}")
-                    if parsed_response.get("status_code") == "20000" and parsed_response.get("status_message") == "ok":
-                        return parsed_response
-                    else:
-                        raise APIError(f"API request failed {method} {url}: {parsed_response.get('status_message')}")
-            except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError) as e:
-                _LOGGER.error(f"Client error: {e}")
-                raise APIError(f"API request failed {method} {url}") from e
-            finally:
-                await session.close()
+                        if parsed_response.get("status_code") == "40302":
+                            token = None
+                            skip_auth = False
+                            retries -= 1
+                            await asyncio.sleep(5)
+                            await session.close()
+                            continue # Retry the request
+                        if parsed_response.get("status_code") == "50000":
+                            raise APIError(f"Internal server error: {parsed_response.get('status_message')}")
+                        if parsed_response.get("status_code") == "20000" and parsed_response.get("status_message") == "ok":
+                            return parsed_response
+                        else:
+                            raise APIError(f"API request failed {method} {url}: {parsed_response.get('status_message')}")
+                except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError) as e:
+                    _LOGGER.error(f"Client error: {e}")
+                    raise APIError(f"API request failed {method} {url}") from e
 
     @staticmethod
     def encrypt_password(public_key_str, password):
@@ -208,51 +210,52 @@ class RenphoWeight:
 
         try:
             self.token = None
-            session = aiohttp.ClientSession(
-                headers={"Content-Type": "application/json", "Accept": "application/json", "User-Agent": "Renpho/2.1.0 (iPhone; iOS 14.4; Scale/2.1.0; en-US)"},
-            )
+            async with aiohttp.ClientSession(connector=ProxyConnector.from_url(self.proxy), headers={
+                            "Content-Type": "application/json",
+                            "Accept": "application/json",
+                            "User-Agent": "Renpho/2.1.0 (iPhone; iOS 14.4; Scale/2.1.0; en-US)"
+                        }) as session:
 
-            async with session.request("POST", API_AUTH_URL, json=data) as response:
-                response.raise_for_status()
-                parsed = await response.json()
+                async with session.request("POST", API_AUTH_URL, json=data) as response:
+                    response.raise_for_status()
+                    parsed = await response.json()
 
-                if parsed is None:
-                    _LOGGER.error("Authentication failed. No response received.")
-                    raise AuthenticationError("Authentication failed. No response received.")
+                    if parsed is None:
+                        _LOGGER.error("Authentication failed. No response received.")
+                        raise AuthenticationError("Authentication failed. No response received.")
 
-                if parsed.get("status_code") == "50000" and parsed.get("status_message") == "Email was not registered":
-                    _LOGGER.warning("Email was not registered.")
-                    raise AuthenticationError("Email was not registered.")
+                    if parsed.get("status_code") == "50000" and parsed.get("status_message") == "Email was not registered":
+                        _LOGGER.warning("Email was not registered.")
+                        raise AuthenticationError("Email was not registered.")
 
-                if parsed.get("status_code") == "500" and parsed.get("status_message") == "Internal Server Error":
-                    _LOGGER.warning("Bad Password or Internal Server Error.")
-                    raise AuthenticationError("Bad Password or Internal Server Error.")
+                    if parsed.get("status_code") == "500" and parsed.get("status_message") == "Internal Server Error":
+                        _LOGGER.warning("Bad Password or Internal Server Error.")
+                        raise AuthenticationError("Bad Password or Internal Server Error.")
 
-                if "terminal_user_session_key" not in parsed:
-                    _LOGGER.error(
-                        "'terminal_user_session_key' not found in parsed object.")
-                    raise AuthenticationError(f"Authentication failed: {parsed}")
+                    if "terminal_user_session_key" not in parsed:
+                        _LOGGER.error(
+                            "'terminal_user_session_key' not found in parsed object.")
+                        raise AuthenticationError(f"Authentication failed: {parsed}")
 
-                if parsed.get("status_code") == "20000" and parsed.get("status_message") == "ok":
-                    if 'terminal_user_session_key' in parsed:
-                        self.token = parsed["terminal_user_session_key"]
-                    else:
-                        self.token = None
-                        raise AuthenticationError("Session key not found in response.")
-                    if 'device_binds_ary' in parsed:
-                        parsed['device_binds_ary'] = [DeviceBind(**device) for device in parsed['device_binds_ary']]
-                    else:
-                        parsed['device_binds_ary'] = []
-                    self.login_data = UserResponse(**parsed)
-                    if self.user_id is None:
-                        self.user_id = self.login_data.get("id", None)
-                    return True
-        except Exception as e:
+                    if parsed.get("status_code") == "20000" and parsed.get("status_message") == "ok":
+                        if 'terminal_user_session_key' in parsed:
+                            self.token = parsed["terminal_user_session_key"]
+                        else:
+                            self.token = None
+                            raise AuthenticationError("Session key not found in response.")
+                        if 'device_binds_ary' in parsed:
+                            parsed['device_binds_ary'] = [DeviceBind(**device) for device in parsed['device_binds_ary']]
+                        else:
+                            parsed['device_binds_ary'] = []
+                        self.login_data = UserResponse(**parsed)
+                        if self.user_id is None:
+                            self.user_id = self.login_data.get("id", None)
+                        return True
+        except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError) as e:
             _LOGGER.error(f"Authentication failed: {e}")
             raise AuthenticationError("Authentication failed due to an error. {e}") from e
         finally:
             self.auth_in_progress = False
-            await session.close()
 
     async def get_scale_users(self):
         """
