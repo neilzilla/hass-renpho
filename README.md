@@ -23,6 +23,8 @@ Go to try the API with your data: https://hass-renpho.vercel.app/docs
 Install renpho outdated
 https://github.com/antoinebou12/hass_renpho/assets/13888068/0bf0e48f-0582-462a-b0a2-6572dd63c860
 
+Use http proxy for the app here a list https://hidemy.io/en/proxy-list/?type=s#list
+
 ### Weight
 
 ![Weight Sensor](docs/images/weight.png)
