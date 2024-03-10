@@ -119,6 +119,19 @@ class RenphoSensor(SensorEntity):
         self._state = None
         self._timestamp = None
 
+        self.async_on_remove(
+            coordinator.async_add_listener(self._schedule_update)
+        )
+
+    def _schedule_update(self):
+        """Schedule an update of the coordinator."""
+        self.hass.async_add_job(self._handle_coordinator_update)
+
+    async def _handle_coordinator_update(self):
+        """Handle updated data from the coordinator."""
+        await self.async_update()
+        self.async_write_ha_state()
+
     @property
     def unique_id(self) -> str:
         """Return a unique ID."""

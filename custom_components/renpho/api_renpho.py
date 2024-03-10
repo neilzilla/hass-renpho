@@ -6,6 +6,7 @@ from base64 import b64encode
 from typing import Callable, Dict, Final, List, Optional, Union
 
 import aiohttp
+from aiohttp import ClientTimeout
 from aiohttp_socks import ProxyConnector
 from Crypto.Cipher import PKCS1_v1_5
 from Crypto.PublicKey import RSA
@@ -109,6 +110,20 @@ class RenphoWeight:
                 headers={"Content-Type": "application/json", "Accept": "application/json"},
             )
 
+    async def check_proxy(self):
+        """
+        Checks if the proxy is working by making a request to httpbin.org.
+        """
+        test_url = 'https://renpho.qnclouds.com/api/v3/girths/list_girth.json?app_id=Renpho&terminal_user_session_key='
+        try:
+            async with aiohttp.ClientSession(connector=ProxyConnector.from_url(self.proxy)) as session:
+                async with session.get(test_url) as response:
+                    _LOGGER.error("Proxy connection successful.")
+                    return True
+        except Exception as e:
+            _LOGGER.error(f"Proxy connection failed: {e}")
+            return False
+
 
     async def _request(self, method: str, url: str, retries: int = 3, skip_auth=False, **kwargs):
         """
@@ -124,17 +139,19 @@ class RenphoWeight:
         Returns:
             Union[Dict, List]: The parsed JSON response from the API request.
         """
-        token = self.token
+        if not await self.check_proxy():
+            _LOGGER.error("Proxy check failed. Aborting authentication.")
+            raise APIError("Proxy check failed. Aborting authentication.")
         while retries > 0:
-            async with aiohttp.ClientSession(connector=ProxyConnector.from_url(self.proxy), headers={
+            connector = ProxyConnector.from_url(self.proxy) if self.proxy else None
+            async with aiohttp.ClientSession(connector=connector, headers={
                             "Content-Type": "application/json",
                             "Accept": "application/json",
                             "User-Agent": "Renpho/2.1.0 (iPhone; iOS 14.4; Scale/2.1.0; en-US)"
-                        }) as session:
+                        }, timeout=ClientTimeout(total=60)) as session:
 
-                if not token and not url.endswith("sign_in.json") and not skip_auth:
+                if not self.token and not url.endswith("sign_in.json") or not skip_auth:
                     auth_success = await self.auth()
-                    token = self.token
                     if not auth_success:
                         raise AuthenticationError("Authentication failed. Unable to proceed with the request.")
 
@@ -145,13 +162,12 @@ class RenphoWeight:
                         response.raise_for_status()
                         parsed_response = await response.json()
                         
-
                         if parsed_response.get("status_code") == "40302":
-                            token = None
                             skip_auth = False
+                            auth_success = await self.auth()
+                            if not auth_success:
+                                raise AuthenticationError("Authentication failed. Unable to proceed with the request.")
                             retries -= 1
-                            await asyncio.sleep(5)
-                            await session.close()
                             continue # Retry the request
                         if parsed_response.get("status_code") == "50000":
                             raise APIError(f"Internal server error: {parsed_response.get('status_message')}")
@@ -208,54 +224,64 @@ class RenphoWeight:
         data = self.prepare_data({"secure_flag": "1", "email": self.email,
                 "password": encrypted_password})
 
-        try:
-            self.token = None
-            async with aiohttp.ClientSession(connector=ProxyConnector.from_url(self.proxy), headers={
-                            "Content-Type": "application/json",
-                            "Accept": "application/json",
-                            "User-Agent": "Renpho/2.1.0 (iPhone; iOS 14.4; Scale/2.1.0; en-US)"
-                        }) as session:
+        for attempt in range(3):
+            try:
+                self.token = None
+                if not await self.check_proxy():
+                    _LOGGER.error("Proxy check failed. Aborting authentication.")
+                    raise APIError("Proxy check failed. Aborting authentication.")
+                
+                connector = ProxyConnector.from_url(self.proxy) if self.proxy else None
+                async with aiohttp.ClientSession(connector=connector, headers={
+                                "Content-Type": "application/json",
+                                "Accept": "application/json",
+                                "User-Agent": "Renpho/2.1.0 (iPhone; iOS 14.4; Scale/2.1.0; en-US)"
+                            }, timeout=ClientTimeout(total=60)) as session:
 
-                async with session.request("POST", API_AUTH_URL, json=data) as response:
-                    response.raise_for_status()
-                    parsed = await response.json()
+                    async with session.request("POST", API_AUTH_URL, json=data) as response:
+                        response.raise_for_status()
+                        parsed = await response.json()
 
-                    if parsed is None:
-                        _LOGGER.error("Authentication failed. No response received.")
-                        raise AuthenticationError("Authentication failed. No response received.")
+                        if parsed is None:
+                            _LOGGER.error("Authentication failed. No response received.")
+                            raise AuthenticationError("Authentication failed. No response received.")
 
-                    if parsed.get("status_code") == "50000" and parsed.get("status_message") == "Email was not registered":
-                        _LOGGER.warning("Email was not registered.")
-                        raise AuthenticationError("Email was not registered.")
+                        if parsed.get("status_code") == "50000" and parsed.get("status_message") == "Email was not registered":
+                            _LOGGER.warning("Email was not registered.")
+                            raise AuthenticationError("Email was not registered.")
 
-                    if parsed.get("status_code") == "500" and parsed.get("status_message") == "Internal Server Error":
-                        _LOGGER.warning("Bad Password or Internal Server Error.")
-                        raise AuthenticationError("Bad Password or Internal Server Error.")
+                        if parsed.get("status_code") == "500" and parsed.get("status_message") == "Internal Server Error":
+                            _LOGGER.warning("Bad Password or Internal Server Error.")
+                            raise AuthenticationError("Bad Password or Internal Server Error.")
 
-                    if "terminal_user_session_key" not in parsed:
-                        _LOGGER.error(
-                            "'terminal_user_session_key' not found in parsed object.")
-                        raise AuthenticationError(f"Authentication failed: {parsed}")
+                        if "terminal_user_session_key" not in parsed:
+                            _LOGGER.error(
+                                "'terminal_user_session_key' not found in parsed object.")
+                            raise AuthenticationError(f"Authentication failed: {parsed}")
 
-                    if parsed.get("status_code") == "20000" and parsed.get("status_message") == "ok":
-                        if 'terminal_user_session_key' in parsed:
+                        if parsed.get("status_code") == "20000" and parsed.get("status_message") == "ok":
+                            if 'terminal_user_session_key' in parsed:
+                                self.token = parsed["terminal_user_session_key"]
+                            else:
+                                self.token = None
+                                raise AuthenticationError("Session key not found in response.")
+                            if 'device_binds_ary' in parsed:
+                                parsed['device_binds_ary'] = [DeviceBind(**device) for device in parsed['device_binds_ary']]
+                            else:
+                                parsed['device_binds_ary'] = []
+                            self.login_data = UserResponse(**parsed)
                             self.token = parsed["terminal_user_session_key"]
-                        else:
-                            self.token = None
-                            raise AuthenticationError("Session key not found in response.")
-                        if 'device_binds_ary' in parsed:
-                            parsed['device_binds_ary'] = [DeviceBind(**device) for device in parsed['device_binds_ary']]
-                        else:
-                            parsed['device_binds_ary'] = []
-                        self.login_data = UserResponse(**parsed)
-                        if self.user_id is None:
-                            self.user_id = self.login_data.get("id", None)
-                        return True
-        except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError) as e:
-            _LOGGER.error(f"Authentication failed: {e}")
-            raise AuthenticationError("Authentication failed due to an error. {e}") from e
-        finally:
-            self.auth_in_progress = False
+                            if self.user_id is None:
+                                self.user_id = self.login_data.get("id", None)
+                            return True
+            except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError) as e:
+                _LOGGER.error(f"Authentication failed: {e}")
+                if attempt < 3 - 1:
+                    await asyncio.sleep(5)  # Wait before retrying
+                else:
+                    raise AuthenticationError(f"Authentication failed after retries. {e}") from e
+            finally:
+                self.auth_in_progress = False
 
     async def get_scale_users(self):
         """
@@ -399,6 +425,7 @@ class RenphoWeight:
 
             if "status_code" in parsed and parsed["status_code"] == "20000":
                 response = GirthResponse(**parsed)
+                self._last_updated_girth = time.time()
                 self.girth_info = response.girths
                 return self.girth_info
             else:
@@ -534,31 +561,24 @@ class RenphoWeight:
 
         try:
             if metric_type == METRIC_TYPE_WEIGHT:
-                if self._last_updated_weight is None or time.time() - self._last_updated_weight > self.refresh:
-                    last_measurement = await self.get_weight()
-                    if last_measurement and self.weight is not None:
-                        return last_measurement[1].get(metric, None) if last_measurement[1] else None
+                if self._last_updated_weight is None or self.weight:
+                    if self.weight_info is not None:
+                        return self.weight_info.get(metric, None)
                 return self.weight_info.get(metric, None) if self.weight_info else None
             elif metric_type == METRIC_TYPE_GIRTH:
-                if self._last_updated_girth is None or time.time() - self._last_updated_girth > self.refresh:
+                if self._last_updated_girth is None or self.girth_info is None:
                     await self.list_girth()
-                for girth_entry in self.girth_info:
-                    if hasattr(girth_entry, f"{metric}_value"):
-                        return getattr(girth_entry, f"{metric}_value", None)
+                if self.girth_info:
+                    for girth_entry in self.girth_info:
+                        if hasattr(girth_entry, f"{metric}_value"):
+                            return getattr(girth_entry, f"{metric}_value", None)
             elif metric_type == METRIC_TYPE_GIRTH_GOAL:
-                if self._last_updated_girth_goal is None or time.time() - self._last_updated_girth_goal > self.refresh:
+                if self._last_updated_girth_goal is None or self.girth_goal is None:
                     await self.list_girth_goal()
-                for goal in self.girth_goal:
-                    if goal.girth_type == metric:
-                        return goal.goal_value
-            elif metric_type == METRIC_TYPE_GROWTH_RECORD:
-                if self._last_updated_growth_record is None or time.time() - self._last_updated_growth_record > self.refresh:
-                    last_measurement = (
-                        self.growth_record.get("growths", [])[0]
-                        if self.growth_record.get("growths")
-                        else None
-                    )
-                    return last_measurement.get(metric, None) if last_measurement else None
+                if self.girth_goal:
+                    for goal in self.girth_goal:
+                        if goal.girth_type == metric:
+                            return goal.goal_value
             else:
                 _LOGGER.error(f"Invalid metric type: {metric_type}")
                 return None

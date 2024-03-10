@@ -42,12 +42,10 @@ class RenphoWeightCoordinator(DataUpdateCoordinator):
         """Fetch data from API."""
         try:
             with async_timeout.timeout(self._refresh):
-                await self.api.get_info()
-                await asyncio.sleep(5)
+                await self.api.get_measurements()
                 await self.api.list_girth()
-                await asyncio.sleep(5)
                 await self.api.list_girth_goal()
-                await asyncio.sleep(5)
+
             self._last_updated = datetime.now()
         except asyncio.TimeoutError:
             _LOGGER.error("Timeout error fetching data from Renpho API.")
