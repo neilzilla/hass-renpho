@@ -451,6 +451,7 @@ class RenphoWeight:
                         token = None
                         skip_auth = False
                         retries -= 1
+                        await session.close()
                         continue # Retry the request
                     if parsed_response.get("status_code") == "50000":
                         raise APIError(f"Internal server error: {parsed_response.get('status_message')}")
@@ -613,6 +614,41 @@ class RenphoWeight:
                     self.time_stamp = self.weight_info.time_stamp if self.weight_info else None
                     self._last_updated_weight = time.time()
                     return self.weight_info
+                else:
+                    _LOGGER.error("No weight measurements found in the response.")
+                    return None
+            else:
+                # Handling different error scenarios
+                if "status_code" not in parsed:
+                    _LOGGER.error("Invalid response format received from weight measurements endpoint.")
+                else:
+                    _LOGGER.error(f"Error fetching weight measurements: Status Code {parsed.get('status_code')} - {parsed.get('status_message')}")
+                return None
+
+        except Exception as e:
+            _LOGGER.error(f"Failed to fetch weight measurements: {e}")
+            return None
+
+
+    async def get_measurements_history(self):
+        """
+        Fetch the most recent weight measurements_history for the user.
+        """
+        url = f"{API_MEASUREMENTS_URL}?user_id={self.user_id}&last_at={self.get_timestamp()}&locale=en&app_id=Renpho&terminal_user_session_key={self.token}"
+        try:
+            parsed = await self._request("GET", url, skip_auth=True)
+
+            if not parsed:
+                _LOGGER.error("Failed to fetch weight measurements.")
+                return
+
+            if "status_code" in parsed and parsed["status_code"] == "20000":
+                if "last_ary" not in parsed:
+                    _LOGGER.error("No weight measurements found in the response.")
+                    return
+                if measurements := parsed["last_ary"]:
+                    self.weight_history = [MeasurementDetail(**measurement) for measurement in measurements]
+                    return self.weight_history
                 else:
                     _LOGGER.error("No weight measurements found in the response.")
                     return None
@@ -941,6 +977,9 @@ class APIError(Exception):
 class ClientSSLError(Exception):
     pass
 
+from starlette.responses import Response
+import httpx
+
 # Initialize FastAPI and Jinja2
 app = FastAPI(docs_url="/docs", redoc_url=None)
 
@@ -1014,6 +1053,17 @@ async def get_measurements(request: Request, renpho: RenphoWeight = Depends(get_
         raise HTTPException(status_code=404, detail="Measurements not found")
     except Exception as e:
         _LOGGER.error(f"Error fetching measurements: {e}")
+        return APIResponse(status="error", message=str(e))
+
+@app.get("/measurements_history", response_model=APIResponse)
+async def get_measurements_history(request: Request, renpho: RenphoWeight = Depends(get_current_user)):
+    try:
+        measurements_history = await renpho.get_measurements_history()
+        if measurements_history:
+            return APIResponse(status="success", message="Fetched measurements_history.", data={"measurements_history": measurements_history})
+        raise HTTPException(status_code=404, detail="Measurements not found")
+    except Exception as e:
+        _LOGGER.error(f"Error fetching measurements_history: {e}")
         return APIResponse(status="error", message=str(e))
 
 @app.get("/weight", response_model=APIResponse)

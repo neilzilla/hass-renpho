@@ -6,6 +6,7 @@ import asyncio
 from datetime import datetime
 
 from .coordinator import create_coordinator
+import warnings
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
@@ -13,6 +14,8 @@ from homeassistant.util import slugify
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
+
+warnings.filterwarnings("ignore", message="Setup of sensor platform renpho is taking over 10 seconds.")
 
 from .const import (
     CONF_REFRESH,
@@ -48,7 +51,7 @@ async def async_setup(
 
     # Create sensor entities and pass them the coordinator
     sensor_entities = await sensors_list(hass, config_entry, coordinator)
-    async_add_entities(sensor_entities)
+    async_add_entities(sensor_entities, update_before_add=True)
 
 
 async def async_setup_entry(
@@ -64,7 +67,7 @@ async def async_setup_entry(
 
     # Create sensor entities and pass them the coordinator
     sensor_entities = await sensors_list(hass, config_entry, coordinator)
-    async_add_entities(sensor_entities)
+    async_add_entities(sensor_entities, update_before_add=True)
 
 
 async def async_setup_platform(
@@ -83,7 +86,7 @@ async def async_setup_platform(
 
         # Create sensor entities and pass them the coordinator
         sensor_entities = await sensors_list(hass, config, coordinator)
-        async_add_entities(sensor_entities)
+        async_add_entities(sensor_entities, update_before_add=True)
     except ConnectionError as ex:
         _LOGGER.error(f"Error: {ex}")
         return False
@@ -115,6 +118,19 @@ class RenphoSensor(SensorEntity):
         self._unit_of_measurement = unit_of_measurement
         self._state = None
         self._timestamp = None
+
+        self.async_on_remove(
+            coordinator.async_add_listener(self._schedule_update)
+        )
+
+    def _schedule_update(self):
+        """Schedule an update of the coordinator."""
+        self.hass.async_add_job(self._handle_coordinator_update)
+
+    async def _handle_coordinator_update(self):
+        """Handle updated data from the coordinator."""
+        await self.async_update()
+        self.async_write_ha_state()
 
     @property
     def unique_id(self) -> str:

@@ -60,15 +60,14 @@ async def setup_renpho(hass, conf):
     unit_of_measurement = conf.get(CONF_UNIT_OF_MEASUREMENT, "kg")
     user_id = conf.get(CONF_USER_ID)
     refresh = conf.get(CONF_REFRESH, 60)
+    proxy = conf.get("proxy", None)
     renpho = RenphoWeight(
         email=email,
         password=password,
         user_id=user_id,
         refresh=refresh,
+        proxy=proxy
     )
-
-    hass.data[DOMAIN] = renpho
-
     hass.data[DOMAIN] = renpho
     hass.data[CONF_EMAIL] = email
     hass.data[CONF_USER_ID] = user_id
@@ -93,7 +92,7 @@ if __name__ == "__main__":
         password = os.environ.get("PASSWORD")
         user_id = os.environ.get("USER_ID", None)
 
-        renpho = RenphoWeight(CONF_PUBLIC_KEY, email, password, user_id)
+        renpho = RenphoWeight(email, password, user_id)
 
         try:
             await renpho.auth()
