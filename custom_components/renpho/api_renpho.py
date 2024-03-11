@@ -116,7 +116,8 @@ class RenphoWeight:
         """
         test_url = 'https://renpho.qnclouds.com/api/v3/girths/list_girth.json?app_id=Renpho&terminal_user_session_key='
         try:
-            async with aiohttp.ClientSession(connector=ProxyConnector.from_url(self.proxy)) as session:
+            connector = ProxyConnector.from_url(self.proxy) if self.proxy else None
+            async with aiohttp.ClientSession(connector=connector) as session:
                 async with session.get(test_url) as response:
                     return True
         except Exception as e:
