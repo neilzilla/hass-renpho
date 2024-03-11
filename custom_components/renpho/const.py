@@ -24,7 +24,7 @@ CONF_USER_ID: Final = (
 )
 CONF_UNIT_OF_MEASUREMENT = "unit_of_measurement"
 
-KG_TO_LBS: Final = 2.20462
+KG_TO_LBS: Final = 2.2046226218
 CM_TO_INCH: Final = 0.393701
 
 # General Information Metrics
