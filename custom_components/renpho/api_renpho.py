@@ -118,7 +118,6 @@ class RenphoWeight:
         try:
             async with aiohttp.ClientSession(connector=ProxyConnector.from_url(self.proxy)) as session:
                 async with session.get(test_url) as response:
-                    _LOGGER.error("Proxy connection successful.")
                     return True
         except Exception as e:
             _LOGGER.error(f"Proxy connection failed: {e}")
@@ -161,7 +160,7 @@ class RenphoWeight:
                     async with session.request(method, url, **kwargs) as response:
                         response.raise_for_status()
                         parsed_response = await response.json()
-                        
+
                         if parsed_response.get("status_code") == "40302":
                             skip_auth = False
                             auth_success = await self.auth()
@@ -569,16 +568,22 @@ class RenphoWeight:
                 if self._last_updated_girth is None or self.girth_info is None:
                     await self.list_girth()
                 if self.girth_info:
-                    for girth_entry in self.girth_info:
-                        if hasattr(girth_entry, f"{metric}_value"):
-                            return getattr(girth_entry, f"{metric}_value", None)
+                    valid_girths = sorted([g for g in self.girth_info if getattr(g, f"{metric}_value", 0) not in (None, 0.0)], key=lambda x: x.time_stamp, reverse=True)
+                    for girth in valid_girths:
+                        value = getattr(girth, f"{metric}_value", None)
+                        if value not in (None, 0.0):
+                            return value
+                    return None
             elif metric_type == METRIC_TYPE_GIRTH_GOAL:
                 if self._last_updated_girth_goal is None or self.girth_goal is None:
                     await self.list_girth_goal()
                 if self.girth_goal:
-                    for goal in self.girth_goal:
-                        if goal.girth_type == metric:
+                    valid_goals = sorted([g for g in self.girth_goal if g.girth_type == metric and g.goal_value not in (None, 0.0)], key=lambda x: x.setup_goal_at, reverse=True)
+                    # Iterate to find the first valid goal
+                    for goal in valid_goals:
+                        if goal.goal_value not in (None, 0.0):
                             return goal.goal_value
+                    return None
             else:
                 _LOGGER.error(f"Invalid metric type: {metric_type}")
                 return None
