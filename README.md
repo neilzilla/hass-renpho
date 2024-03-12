@@ -24,6 +24,9 @@ https://github.com/antoinebou12/hass_renpho/assets/13888068/0bf0e48f-0582-462a-b
 
 Use http proxy for the app here a list https://hidemy.io/en/proxy-list/?type=s#list
 
+## Install config
+![image](https://github.com/antoinebou12/hass_renpho/assets/13888068/b1a90a12-9f57-42ad-adf8-008a6de92880)
+
 ### Weight
 
 ![Weight Sensor](docs/images/weight.png)
