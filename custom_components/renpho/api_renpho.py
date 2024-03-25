@@ -79,6 +79,8 @@ class RenphoWeight:
         self.is_polling_active = False
         self.proxy = proxy
 
+        _LOGGER.info(f"Initializing RenphoWeight instance. Proxy is {'enabled: ' + proxy if proxy else 'disabled.'}")
+
     @staticmethod
     def get_timestamp() -> int:
         start_date = datetime.date(1998, 1, 1)
@@ -112,14 +114,25 @@ class RenphoWeight:
 
     async def check_proxy(self):
         """
-        Checks if the proxy is working by making a request to httpbin.org.
+        Checks if the proxy is working by making a request to a Renpho API endpoint.
         """
         test_url = 'https://renpho.qnclouds.com/api/v3/girths/list_girth.json?app_id=Renpho&terminal_user_session_key='
+    
+        if not self.proxy:
+            _LOGGER.info("No proxy configured. Proceeding without proxy.")
+        else:
+            _LOGGER.info(f"Checking proxy connectivity using proxy: {self.proxy}")
+    
         try:
             connector = ProxyConnector.from_url(self.proxy) if self.proxy else None
             async with aiohttp.ClientSession(connector=connector) as session:
                 async with session.get(test_url) as response:
-                    return True
+                    if response.status == 200:
+                        _LOGGER.info("Proxy check successful." if self.proxy else "Direct connection successful.")
+                        return True
+                    else:
+                        _LOGGER.error(f"Failed to connect using {'proxy' if self.proxy else 'direct connection'}. HTTP Status: {response.status}")
+                        return False
         except Exception as e:
             _LOGGER.error(f"Proxy connection failed: {e}")
             return False
@@ -198,11 +211,13 @@ class RenphoWeight:
         Validate the current credentials by attempting to authenticate.
         Returns True if authentication succeeds, False otherwise.
         """
+        _LOGGER.debug("Validating credentials for user: %s", self.email)
         try:
             return await self.auth()
         except Exception as e:
-            _LOGGER.error(f"Validation failed: {e}")
-            return False
+            _LOGGER.error("Failed to validate credentials for user: %s. Error: %s", self.email, e)
+            raise AuthenticationError(f"Invalid credentials for user {self.email}. Error details: {e}") from e
+
 
     async def auth(self):
         """Authenticate with the Renpho API."""
