@@ -34,33 +34,54 @@ DATA_SCHEMA = vol.Schema({
 
 async def async_validate_input(hass: HomeAssistant, data: dict) -> dict[str, Any]:
     """Validate the user input allows us to connect."""
-    _LOGGER.debug("Starting to validate input: %s", data)
+    _LOGGER.debug("Starting to validate input for Renpho integration: %s", data)
+    
+    # Initialize RenphoWeight instance
     renpho = RenphoWeight(
         email=data[CONF_EMAIL],
         password=data[CONF_PASSWORD],
         refresh=data.get(CONF_REFRESH, 60),
         proxy=data.get("proxy", None)
     )
+
+    # Check if a proxy is set and validate it
+    if renpho.proxy:
+        _LOGGER.info(f"Proxy is configured, checking proxy: {renpho.proxy}")
+        proxy_is_valid = await renpho.check_proxy()
+        if not proxy_is_valid:
+            _LOGGER.error(f"Proxy check failed for proxy: {renpho.proxy}")
+            raise CannotConnect(reason="Proxy check failed", details={"proxy": renpho.proxy})
+        else:
+            _LOGGER.info("Proxy check passed successfully.")
+    else:
+        _LOGGER.info("No proxy configured, skipping proxy check.")
+
+    _LOGGER.info(f"Attempting to validate credentials for {data[CONF_EMAIL]}")
+    
+    # Validate credentials
     is_valid = await renpho.validate_credentials()
     if not is_valid:
+        _LOGGER.error(f"Failed to validate credentials for user: {data[CONF_EMAIL]}. Invalid credentials.")
         raise CannotConnect(
             reason="Invalid credentials",
-            details={
-                "email": data[CONF_EMAIL],
-            },
+            details={"email": data[CONF_EMAIL]},
         )
+    else:
+        _LOGGER.info(f"Credentials validated successfully for {data[CONF_EMAIL]}")
 
+    # Fetch and validate scale users
+    _LOGGER.info("Fetching scale users associated with the account.")
     await renpho.get_scale_users()
-
-    user_ids = [
-        user.get("user_id", None)
-        for user in renpho.users
-    ]
+    user_ids = [user.user_id for user in renpho.users if user.user_id is not None]
 
     if not user_ids:
+        _LOGGER.error(f"No users found associated with the account {data[CONF_EMAIL]}")
         raise CannotConnect(reason="No users found", details={"email": data[CONF_EMAIL]})
+    else:
+        _LOGGER.info(f"Found users with IDs: {user_ids} for the account {data[CONF_EMAIL]}")
 
     return {"title": data[CONF_EMAIL], "user_ids": user_ids, "renpho_instance": renpho}
+
 
 class RenphoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
