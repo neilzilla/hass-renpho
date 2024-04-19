@@ -116,7 +116,7 @@ class RenphoWeight:
         """
         Checks if the proxy is working by making a request to a Renpho API endpoint.
         """
-        test_url = 'https://renpho.qnclouds.com/api/v3/girths/list_girth.json?app_id=Renpho&terminal_user_session_key='
+        test_url = 'http://httpbin.org/get'
     
         if not self.proxy:
             _LOGGER.info("No proxy configured. Proceeding without proxy.")
@@ -125,17 +125,20 @@ class RenphoWeight:
     
         try:
             connector = ProxyConnector.from_url(self.proxy) if self.proxy else None
-            async with aiohttp.ClientSession(connector=connector) as session:
-                async with session.get(test_url) as response:
-                    if response.status == 200:
-                        _LOGGER.info("Proxy check successful." if self.proxy else "Direct connection successful.")
-                        return True
-                    else:
-                        _LOGGER.error(f"Failed to connect using {'proxy' if self.proxy else 'direct connection'}. HTTP Status: {response.status}")
-                        return False
+            session = aiohttp.ClientSession(connector=connector)
+            async with session.get(test_url) as response:
+                if response.status == 200:
+                    _LOGGER.info("Proxy check successful." if self.proxy else "Direct connection successful.")
+                    return True
+                else:
+                    _LOGGER.error(f"Failed to connect using {'proxy' if self.proxy else 'direct connection'}. HTTP Status: {response.status}")
+                    return False
         except Exception as e:
             _LOGGER.error(f"Proxy connection failed: {e}")
             return False
+        finally:
+            await session.close()
+
 
 
     async def _request(self, method: str, url: str, retries: int = 3, skip_auth=False, **kwargs):
