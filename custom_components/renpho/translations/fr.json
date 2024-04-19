@@ -1,0 +1,23 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "data": {
+                    "email": "Entrez votre adresse e-mail de compte Renpho obsolète.",
+                    "password": "Entrez votre mot de passe de compte Renpho.",
+                    "refresh": "Définissez le taux de rafraîchissement des données en secondes. La valeur par défaut est de 60 secondes.",
+                    "unit_of_measurement": "Choisissez l'unité de mesure pour le poids. Les options sont kilogrammes (kg) ou livres (lbs).",
+                    "proxy": "Optionnel : Spécifiez un serveur proxy à utiliser (par exemple, 'http://127.0.0.1:8080')."
+                }
+            }
+        },
+        "error": {
+            "cannot_connect": "Impossible de se connecter au service",
+            "invalid_auth": "Authentification invalide",
+            "unknown": "Une erreur inconnue s'est produite"
+        },
+        "abort": {
+            "already_configured": "L'appareil est déjà configuré"
+        }
+    }
+}
