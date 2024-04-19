@@ -1059,17 +1059,6 @@ def load_rsa_keys():
 PRIVATE_KEY, PUBLIC_KEY = load_rsa_keys()
 
 
-def load_rsa_keys():
-    try:
-        # Environment variables should be set securely
-        private_key = RSA.import_key(os.environ["PRIVATE_RSA_KEY"])
-        public_key = RSA.import_key(os.environ["PUBLIC_RSA_KEY"])
-        return private_key, public_key
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to load RSA keys: {str(e)}")
-
-PRIVATE_KEY, PUBLIC_KEY = load_rsa_keys()
-
 def generate_api_key(email: str, password: str) -> str:
     """Generate a signed and encrypted API key."""
     timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S%f")
