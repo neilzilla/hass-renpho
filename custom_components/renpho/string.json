@@ -19,5 +19,70 @@
         "abort": {
             "already_configured": "Device is already configured"
         }
+    },
+    "sensor": {
+        "weight": "Weight",
+        "bmi": "BMI",
+        "muscle": "Muscle Mass",
+        "bone": "Bone Mass",
+        "waistline": "Waistline",
+        "hip": "Hip",
+        "stature": "Stature",
+        "bodyfat": "Body Fat",
+        "water": "Water Content",
+        "subfat": "Subcutaneous Fat",
+        "visfat": "Visceral Fat",
+        "bmr": "Basal Metabolic Rate",
+        "protein": "Protein Content",
+        "bodyage": "Body Age",
+        "neck": "Neck",
+        "shoulder": "Shoulder",
+        "left_arm": "Left Arm",
+        "right_arm": "Right Arm",
+        "chest": "Chest",
+        "waist": "Waist",
+        "hip": "Hip",
+        "left_thigh": "Left Thigh",
+        "right_thigh": "Right Thigh",
+        "left_calf": "Left Calf",
+        "right_calf": "Right Calf",
+        "whr": "Waist-Hip Ratio",
+        "abdomen": "Abdomen",
+        "unit": {
+            "kg": "kg",
+            "percent": "%",
+            "cm": "cm",
+            "bpm": "bpm"
+        },
+        "category": {
+            "measurements": "Measurements",
+            "body_composition": "Body Composition",
+            "metabolic_metrics": "Metabolic Metrics",
+            "age_metrics": "Age Metrics",
+            "device_information": "Device Information",
+            "miscellaneous": "Miscellaneous",
+            "meta_information": "Meta Information",
+            "user_profile": "User Profile",
+            "electrical_measurements": "Electrical Measurements",
+            "cardiovascular_metrics": "Cardiovascular Metrics",
+            "other_metrics": "Other Metrics",
+            "girth_measurements": "Girth Measurements",
+            "girth_goals": "Girth Goals"
+        },
+        "label": {
+            "physical_metrics": "Physical Metrics",
+            "body_composition": "Body Composition",
+            "metabolic_metrics": "Metabolic Metrics",
+            "age_metrics": "Age Metrics",
+            "device_information": "Device Information",
+            "miscellaneous": "Miscellaneous",
+            "meta_information": "Meta Information",
+            "user_profile": "User Profile",
+            "electrical_measurements": "Electrical Measurements",
+            "cardiovascular_metrics": "Cardiovascular Metrics",
+            "other_metrics": "Other Metrics",
+            "girth_measurements": "Girth Measurements",
+            "girth_goals": "Girth Goals"
+        }
     }
 }
