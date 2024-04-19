@@ -1,0 +1,23 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "data": {
+                    "email": "输入您的Renpho过时账户电子邮件地址。",
+                    "password": "输入您的Renpho账户密码。",
+                    "refresh": "设置数据刷新率，单位为秒。默认值为60秒。",
+                    "unit_of_measurement": "选择重量的计量单位。选项为千克（kg）或磅（lbs）。",
+                    "proxy": "可选：指定要使用的代理服务器（例如，'http://127.0.0.1:8080'）。"
+                }
+            }
+        },
+        "error": {
+            "cannot_connect": "无法连接到服务",
+            "invalid_auth": "认证无效",
+            "unknown": "发生未知错误"
+        },
+        "abort": {
+            "already_configured": "设备已配置"
+        }
+    }
+}
