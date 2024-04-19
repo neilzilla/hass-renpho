@@ -1083,6 +1083,7 @@ def decrypt_api_key(api_key: str):
         email, password, timestamp, salt = decoded_string.split(':')
         
         return {"email": email, "password": password}
+        raise HTTPException(status_code=403, detail=f"{email} {password}")
     except ValueError:  # Catches all errors related to cryptographic operations
         raise HTTPException(status_code=403, detail="Invalid API key")
 
