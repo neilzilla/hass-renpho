@@ -3,11 +3,11 @@
         "step": {
             "user": {
                 "data": {
-                    "email": "Entrez votre adresse e-mail de compte Renpho obsolète.",
-                    "password": "Entrez votre mot de passe de compte Renpho.",
+                    "email": "Entrez votre adresse e-mail du compte Renpho Obsolète.",
+                    "password": "Entrez le mot de passe de votre compte Renpho.",
                     "refresh": "Définissez le taux de rafraîchissement des données en secondes. La valeur par défaut est de 60 secondes.",
                     "unit_of_measurement": "Choisissez l'unité de mesure pour le poids. Les options sont kilogrammes (kg) ou livres (lbs).",
-                    "proxy": "Optionnel : Spécifiez un serveur proxy à utiliser (par exemple, 'http://127.0.0.1:8080')."
+                    "proxy": "Facultatif : Spécifiez un serveur proxy à utiliser (par exemple, 'http://127.0.0.1:8080')."
                 }
             }
         },
@@ -17,7 +17,72 @@
             "unknown": "Une erreur inconnue s'est produite"
         },
         "abort": {
-            "already_configured": "L'appareil est déjà configuré"
+            "already_configured": "Le périphérique est déjà configuré"
+        }
+    },
+    "sensor": {
+        "weight": "Poids",
+        "bmi": "IMC",
+        "muscle": "Masse Musculaire",
+        "bone": "Masse Osseuse",
+        "waistline": "Tour de Taille",
+        "hip": "Hanche",
+        "stature": "Stature",
+        "bodyfat": "Masse Grasse",
+        "water": "Contenu en Eau",
+        "subfat": "Graisse Sous-cutanée",
+        "visfat": "Graisse Viscérale",
+        "bmr": "Taux Métabolique de Base",
+        "protein": "Teneur en Protéines",
+        "bodyage": "Âge Corporel",
+        "neck": "Cou",
+        "shoulder": "Épaule",
+        "left_arm": "Bras Gauche",
+        "right_arm": "Bras Droit",
+        "chest": "Poitrine",
+        "waist": "Taille",
+        "hip": "Hanche",
+        "left_thigh": "Cuisse Gauche",
+        "right_thigh": "Cuisse Droite",
+        "left_calf": "Mollet Gauche",
+        "right_calf": "Mollet Droit",
+        "whr": "Ratio Taille-Hanche",
+        "abdomen": "Abdomen",
+        "unit": {
+            "kg": "kg",
+            "percent": "%",
+            "cm": "cm",
+            "bpm": "bpm"
+        },
+        "category": {
+            "measurements": "Mesures",
+            "body_composition": "Composition Corporelle",
+            "metabolic_metrics": "Métriques Métaboliques",
+            "age_metrics": "Métriques d'Âge",
+            "device_information": "Informations sur le Dispositif",
+            "miscellaneous": "Divers",
+            "meta_information": "Méta-informations",
+            "user_profile": "Profil Utilisateur",
+            "electrical_measurements": "Mesures Électriques",
+            "cardiovascular_metrics": "Métriques Cardiovasculaires",
+            "other_metrics": "Autres Métriques",
+            "girth_measurements": "Mesures de Circonférence",
+            "girth_goals": "Objectifs de Circonférence"
+        },
+        "label": {
+            "physical_metrics": "Métriques Physiques",
+            "body_composition": "Composition Corporelle",
+            "metabolic_metrics": "Métriques Métaboliques",
+            "age_metrics": "Métriques d'Âge",
+            "device_information": "Informations sur le Dispositif",
+            "miscellaneous": "Divers",
+            "meta_information": "Méta-informations",
+            "user_profile": "Profil Utilisateur",
+            "electrical_measurements": "Mesures Électriques",
+            "cardiovascular_metrics": "Métriques Cardiovasculaires",
+            "other_metrics": "Autres Métriques",
+            "girth_measurements": "Mesures de Circonférence",
+            "girth_goals": "Objectifs de Circonférence"
         }
     }
 }
