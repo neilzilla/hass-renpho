@@ -1083,7 +1083,6 @@ def decrypt_api_key(api_key: str):
         email, password, timestamp, salt = decoded_string.split(':')
         
         return {"email": email, "password": password}
-        raise HTTPException(status_code=403, detail=f"{email} {password}")
     except ValueError:  # Catches all errors related to cryptographic operations
         raise HTTPException(status_code=403, detail="Invalid API key")
 
@@ -1141,6 +1140,17 @@ def generate_key(request: Request, email: str, password: str):
         return APIResponse(status="success", message="API key generated.", data={"api_key": api_key})
     except Exception as e:
         return APIResponse(status="error", message="Failed to generate API key.", data=str(e))
+
+@app.get("/decrypt_api_key", response_model=dict)
+def decrypt_key(api_key: str = Depends(api_key_header)):
+    """
+    Decrypts an API key to extract the email and password.
+    This endpoint should be secured and limited to administrative use.
+    """
+    if not api_key or not verify_api_key(api_key):
+        raise HTTPException(status_code=403, detail="Invalid or missing API key")
+    
+    return decrypt_api_key(api_key)
 
 @app.get("/info", response_model=APIResponse)
 async def get_info(renpho: RenphoWeight = Depends(get_current_user)):
