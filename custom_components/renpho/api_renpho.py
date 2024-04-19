@@ -139,8 +139,6 @@ class RenphoWeight:
         finally:
             await session.close()
 
-
-
     async def _request(self, method: str, url: str, retries: int = 3, skip_auth=False, **kwargs):
         """
         Perform an API request and return the parsed JSON response.
