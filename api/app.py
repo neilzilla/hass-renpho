@@ -1095,19 +1095,32 @@ def verify_api_key(api_key: str) -> bool:
     except Exception:
         return False
 
-def get_api_key(api_key: str = Depends(api_key_header)):
-    if verify_api_key(api_key):
-        return api_key
+def get_credentials_or_api_key(credentials: Optional[HTTPBasicCredentials] = Depends(security_basic), api_key: Optional[str] = Depends(api_key_header)):
+    if api_key:
+        if verify_api_key(api_key):
+            return api_key
+        else:
+            raise HTTPException(status_code=403, detail="Invalid API key")
+    elif credentials:
+        if credentials.username and credentials.password:
+            return credentials
+        else:
+            raise HTTPException(status_code=403, detail="Invalid HTTP Basic credentials")
     else:
-        raise HTTPException(status_code=403, detail="Invalid API key")
+        raise HTTPException(status_code=401, detail="Authentication credentials were not provided")
 
+async def get_current_user(auth: Union[HTTPBasicCredentials, str] = Depends(get_credentials_or_api_key)) -> RenphoWeight:
+    if isinstance(auth, HTTPBasicCredentials):
+        email, password = auth.username, auth.password
+    elif isinstance(auth, str):  # auth is an API key
+        user_info = decrypt_api_key(auth)
+        email, password = user_info['email'], user_info['password']
+    else:
+        raise HTTPException(status_code=401, detail="Invalid authentication method")
 
-def get_current_user(credentials: Optional[HTTPBasicCredentials] = Depends(security_basic), api_key: Optional[str] = Depends(get_api_key)):
-    email = credentials.username if credentials else decrypt_api_key(api_key)['email']
-    password = credentials.password if credentials else decrypt_api_key(api_key)['password']
     user = RenphoWeight(email=email, password=password)
-    if not user.auth():
-        raise HTTPException(status_code=403, detail="Invalid credentials")
+    if not await user.auth():
+        raise HTTPException(status_code=403, detail="Invalid email or password")
     return user
 
 @app.get("/")
@@ -1118,11 +1131,6 @@ def read_root(request: Request):
 async def auth(renpho: RenphoWeight = Depends(get_current_user)):
     # If this point is reached, authentication was successful
     return APIResponse(status="success", message="Authentication successful.")
-
-@app.get("/auth/apikey", response_model=APIResponse)
-async def auth_api_key(api_key: str = Depends(get_api_key)):
-    """Endpoint to authenticate using an API key."""
-    return APIResponse(status="success", message="Authenticated using API key.")
 
 @app.get("/generate_api_key", response_model=APIResponse)
 def generate_key(request: Request, email: str, password: str):
