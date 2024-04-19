@@ -1,5 +1,5 @@
 # Renpho Weight Home Assistant Component
-# IN DEVELOPPEMENT
+# IN DEVELOPPEMENT (Not Working)
 
 ![Version](https://img.shields.io/badge/version-v3.0.1-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
@@ -23,6 +23,9 @@ Install renpho outdated
 https://github.com/antoinebou12/hass_renpho/assets/13888068/0bf0e48f-0582-462a-b0a2-6572dd63c860
 
 Use http proxy for the app here a list https://hidemy.io/en/proxy-list/?type=s#list
+
+## Install config
+![image](https://github.com/antoinebou12/hass_renpho/assets/13888068/b1a90a12-9f57-42ad-adf8-008a6de92880)
 
 ### Weight
 

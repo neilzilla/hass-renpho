@@ -1,0 +1,88 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "data": {
+                    "email": "Ingrese su dirección de correo electrónico de la cuenta Renpho Obsoleta.",
+                    "password": "Ingrese la contraseña de su cuenta Renpho.",
+                    "refresh": "Establezca la frecuencia de actualización de los datos en segundos. El valor predeterminado es de 60 segundos.",
+                    "unit_of_measurement": "Seleccione la unidad de medida para el peso. Las opciones son kilogramos (kg) o libras (lbs).",
+                    "proxy": "Opcional: Especifique un servidor proxy para usar (por ejemplo, 'http://127.0.0.1:8080')."
+                }
+            }
+        },
+        "error": {
+            "cannot_connect": "No se puede conectar al servicio",
+            "invalid_auth": "Autenticación inválida",
+            "unknown": "Se produjo un error desconocido"
+        },
+        "abort": {
+            "already_configured": "El dispositivo ya está configurado"
+        }
+    },
+    "sensor": {
+        "weight": "Peso",
+        "bmi": "IMC",
+        "muscle": "Masa Muscular",
+        "bone": "Masa Ósea",
+        "waistline": "Circunferencia de la Cintura",
+        "hip": "Cadera",
+        "stature": "Estatura",
+        "bodyfat": "Grasa Corporal",
+        "water": "Contenido de Agua",
+        "subfat": "Grasa Subcutánea",
+        "visfat": "Grasa Visceral",
+        "bmr": "Tasa Metabólica Basal",
+        "protein": "Contenido de Proteína",
+        "bodyage": "Edad Corporal",
+        "neck": "Cuello",
+        "shoulder": "Hombro",
+        "left_arm": "Brazo Izquierdo",
+        "right_arm": "Brazo Derecho",
+        "chest": "Pecho",
+        "waist": "Cintura",
+        "hip": "Cadera",
+        "left_thigh": "Muslo Izquierdo",
+        "right_thigh": "Muslo Derecho",
+        "left_calf": "Pantorrilla Izquierda",
+        "right_calf": "Pantorrilla Derecha",
+        "whr": "Ratio Cintura-Cadera",
+        "abdomen": "Abdomen",
+        "unit": {
+            "kg": "kg",
+            "percent": "%",
+            "cm": "cm",
+            "bpm": "bpm"
+        },
+        "category": {
+            "measurements": "Mediciones",
+            "body_composition": "Composición Corporal",
+            "metabolic_metrics": "Métricas Metabólicas",
+            "age_metrics": "Métricas de Edad",
+            "device_information": "Información del Dispositivo",
+            "miscellaneous": "Misceláneo",
+            "meta_information": "Meta Información",
+            "user_profile": "Perfil de Usuario",
+            "electrical_measurements": "Mediciones Eléctricas",
+            "cardiovascular_metrics": "Métricas Cardiovasculares",
+            "other_metrics": "Otras Métricas",
+            "girth_measurements": "Mediciones de Circunferencia",
+            "girth_goals": "Objetivos de Circunferencia"
+        },
+        "label": {
+            "physical_metrics": "Métricas Físicas",
+            "body_composition": "Composición Corporal",
+            "metabolic_metrics": "Métricas Metabólicas",
+            "age_metrics": "Métricas de Edad",
+            "device_information": "Información del Dispositivo",
+            "miscellaneous": "Misceláneo",
+            "meta_information": "Meta Información",
+            "user_profile": "Perfil de Usuario",
+            "electrical_measurements": "Mediciones Eléctricas",
+            "cardiovascular_metrics": "Métricas Cardiovasculares",
+            "other_metrics": "Otras Métricas",
+            "girth_measurements": "Mediciones de Circunferencia",
+            "girth_goals": "Objetivos de Circunferencia"
+        }
+    }
+}

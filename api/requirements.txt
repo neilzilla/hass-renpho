@@ -13,3 +13,4 @@ pyjwt
 python-dotenv
 pycryptodome
 starlette
+aiohttp_socks

@@ -15,12 +15,12 @@ from typing import Callable, Dict, Final, List, Optional, Union, Any
 from contextlib import asynccontextmanager
 
 import aiohttp
+from aiohttp import ClientTimeout
+from aiohttp_socks import ProxyConnector
 from Crypto.Cipher import PKCS1_v1_5
 from Crypto.PublicKey import RSA
 
 from pydantic import BaseModel
-import logging
-
 
 METRIC_TYPE_WEIGHT: Final = "weight"
 METRIC_TYPE_GROWTH_RECORD: Final = "growth_record"
@@ -53,8 +53,6 @@ USERS_REACH_GOAL = "https://renpho.qnclouds.com/api/v3/users/reach_goal.json" # 
 
 
 from dataclasses import dataclass
-from typing import List, Optional
-
 from pydantic import BaseModel
 
 class DeviceBind(BaseModel):
@@ -349,7 +347,7 @@ class RenphoWeight:
         user_id (str, optional): The ID of the user for whom weight data should be fetched.
     """
 
-    def __init__(self, email, password, user_id=None, refresh=60):
+    def __init__(self, email, password, user_id=None, refresh=60, proxy=None):
         """Initialize a new RenphoWeight instance."""
         self.public_key: str = CONF_PUBLIC_KEY
         self.email: str = email
@@ -379,6 +377,7 @@ class RenphoWeight:
         self._last_updated_growth_record = None
         self.auth_in_progress = False
         self.is_polling_active = False
+        self.proxy = proxy
 
     @staticmethod
     def get_timestamp() -> int:
@@ -411,6 +410,20 @@ class RenphoWeight:
                 headers={"Content-Type": "application/json", "Accept": "application/json"},
             )
 
+    async def check_proxy(self):
+        """
+        Checks if the proxy is working by making a request to httpbin.org.
+        """
+        test_url = 'https://renpho.qnclouds.com/api/v3/girths/list_girth.json?app_id=Renpho&terminal_user_session_key='
+        try:
+            connector = ProxyConnector.from_url(self.proxy) if self.proxy else None
+            async with aiohttp.ClientSession(connector=connector) as session:
+                async with session.get(test_url) as response:
+                    return True
+        except Exception as e:
+            _LOGGER.error(f"Proxy connection failed: {e}")
+            return False
+
 
     async def _request(self, method: str, url: str, retries: int = 3, skip_auth=False, **kwargs):
         """
@@ -426,44 +439,45 @@ class RenphoWeight:
         Returns:
             Union[Dict, List]: The parsed JSON response from the API request.
         """
-        token = self.token
+        if not await self.check_proxy():
+            _LOGGER.error("Proxy check failed. Aborting authentication.")
+            raise APIError("Proxy check failed. Aborting authentication.")
         while retries > 0:
-            session = aiohttp.ClientSession(
-                headers={"Content-Type": "application/json", "Accept": "application/json",
-                        "User-Agent": "Renpho/2.1.0 (iPhone; iOS 14.4; Scale/2.1.0; en-US)"
-                        }
-            )
+            connector = ProxyConnector.from_url(self.proxy) if self.proxy else None
+            async with aiohttp.ClientSession(connector=connector, headers={
+                            "Content-Type": "application/json",
+                            "Accept": "application/json",
+                            "User-Agent": "Renpho/2.1.0 (iPhone; iOS 14.4; Scale/2.1.0; en-US)"
+                        }, timeout=ClientTimeout(total=60)) as session:
 
-            if not token and not url.endswith("sign_in.json") and not skip_auth:
-                auth_success = await self.auth()
-                token = self.token
-                if not auth_success:
-                    raise AuthenticationError("Authentication failed. Unable to proceed with the request.")
+                if not self.token and not url.endswith("sign_in.json") or not skip_auth:
+                    auth_success = await self.auth()
+                    if not auth_success:
+                        raise AuthenticationError("Authentication failed. Unable to proceed with the request.")
 
-            kwargs = self.prepare_data(kwargs)
+                kwargs = self.prepare_data(kwargs)
 
-            try:
-                async with session.request(method, url, **kwargs) as response:
-                    response.raise_for_status()
-                    parsed_response = await response.json()
+                try:
+                    async with session.request(method, url, **kwargs) as response:
+                        response.raise_for_status()
+                        parsed_response = await response.json()
 
-                    if parsed_response.get("status_code") == "40302":
-                        token = None
-                        skip_auth = False
-                        retries -= 1
-                        await session.close()
-                        continue # Retry the request
-                    if parsed_response.get("status_code") == "50000":
-                        raise APIError(f"Internal server error: {parsed_response.get('status_message')}")
-                    if parsed_response.get("status_code") == "20000" and parsed_response.get("status_message") == "ok":
-                        return parsed_response
-                    else:
-                        raise APIError(f"API request failed {method} {url}: {parsed_response.get('status_message')}")
-            except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError) as e:
-                _LOGGER.error(f"Client error: {e}")
-                raise APIError(f"API request failed {method} {url}") from e
-            finally:
-                await session.close()
+                        if parsed_response.get("status_code") == "40302":
+                            skip_auth = False
+                            auth_success = await self.auth()
+                            if not auth_success:
+                                raise AuthenticationError("Authentication failed. Unable to proceed with the request.")
+                            retries -= 1
+                            continue # Retry the request
+                        if parsed_response.get("status_code") == "50000":
+                            raise APIError(f"Internal server error: {parsed_response.get('status_message')}")
+                        if parsed_response.get("status_code") == "20000" and parsed_response.get("status_message") == "ok":
+                            return parsed_response
+                        else:
+                            raise APIError(f"API request failed {method} {url}: {parsed_response.get('status_message')}")
+                except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError) as e:
+                    _LOGGER.error(f"Client error: {e}")
+                    raise APIError(f"API request failed {method} {url}") from e
 
     @staticmethod
     def encrypt_password(public_key_str, password):
@@ -510,53 +524,64 @@ class RenphoWeight:
         data = self.prepare_data({"secure_flag": "1", "email": self.email,
                 "password": encrypted_password})
 
-        try:
-            self.token = None
-            session = aiohttp.ClientSession(
-                headers={"Content-Type": "application/json", "Accept": "application/json", "User-Agent": "Renpho/2.1.0 (iPhone; iOS 14.4; Scale/2.1.0; en-US)"},
-            )
+        for attempt in range(3):
+            try:
+                self.token = None
+                if not await self.check_proxy():
+                    _LOGGER.error("Proxy check failed. Aborting authentication.")
+                    raise APIError("Proxy check failed. Aborting authentication.")
+                
+                connector = ProxyConnector.from_url(self.proxy) if self.proxy else None
+                async with aiohttp.ClientSession(connector=connector, headers={
+                                "Content-Type": "application/json",
+                                "Accept": "application/json",
+                                "User-Agent": "Renpho/2.1.0 (iPhone; iOS 14.4; Scale/2.1.0; en-US)"
+                            }, timeout=ClientTimeout(total=60)) as session:
 
-            async with session.request("POST", API_AUTH_URL, json=data) as response:
-                response.raise_for_status()
-                parsed = await response.json()
+                    async with session.request("POST", API_AUTH_URL, json=data) as response:
+                        response.raise_for_status()
+                        parsed = await response.json()
 
-                if parsed is None:
-                    _LOGGER.error("Authentication failed. No response received.")
-                    raise AuthenticationError("Authentication failed. No response received.")
+                        if parsed is None:
+                            _LOGGER.error("Authentication failed. No response received.")
+                            raise AuthenticationError("Authentication failed. No response received.")
 
-                if parsed.get("status_code") == "50000" and parsed.get("status_message") == "Email was not registered":
-                    _LOGGER.warning("Email was not registered.")
-                    raise AuthenticationError("Email was not registered.")
+                        if parsed.get("status_code") == "50000" and parsed.get("status_message") == "Email was not registered":
+                            _LOGGER.warning("Email was not registered.")
+                            raise AuthenticationError("Email was not registered.")
 
-                if parsed.get("status_code") == "500" and parsed.get("status_message") == "Internal Server Error":
-                    _LOGGER.warning("Bad Password or Internal Server Error.")
-                    raise AuthenticationError("Bad Password or Internal Server Error.")
+                        if parsed.get("status_code") == "500" and parsed.get("status_message") == "Internal Server Error":
+                            _LOGGER.warning("Bad Password or Internal Server Error.")
+                            raise AuthenticationError("Bad Password or Internal Server Error.")
 
-                if "terminal_user_session_key" not in parsed:
-                    _LOGGER.error(
-                        "'terminal_user_session_key' not found in parsed object.")
-                    raise AuthenticationError(f"Authentication failed: {parsed}")
+                        if "terminal_user_session_key" not in parsed:
+                            _LOGGER.error(
+                                "'terminal_user_session_key' not found in parsed object.")
+                            raise AuthenticationError(f"Authentication failed: {parsed}")
 
-                if parsed.get("status_code") == "20000" and parsed.get("status_message") == "ok":
-                    if 'terminal_user_session_key' in parsed:
-                        self.token = parsed["terminal_user_session_key"]
-                    else:
-                        self.token = None
-                        raise AuthenticationError("Session key not found in response.")
-                    if 'device_binds_ary' in parsed:
-                        parsed['device_binds_ary'] = [DeviceBind(**device) for device in parsed['device_binds_ary']]
-                    else:
-                        parsed['device_binds_ary'] = []
-                    self.login_data = UserResponse(**parsed)
-                    if self.user_id is None:
-                        self.user_id = self.login_data.get("id", None)
-                    return True
-        except Exception as e:
-            _LOGGER.error(f"Authentication failed: {e}")
-            raise AuthenticationError("Authentication failed due to an error. {e}") from e
-        finally:
-            self.auth_in_progress = False
-            await session.close()
+                        if parsed.get("status_code") == "20000" and parsed.get("status_message") == "ok":
+                            if 'terminal_user_session_key' in parsed:
+                                self.token = parsed["terminal_user_session_key"]
+                            else:
+                                self.token = None
+                                raise AuthenticationError("Session key not found in response.")
+                            if 'device_binds_ary' in parsed:
+                                parsed['device_binds_ary'] = [DeviceBind(**device) for device in parsed['device_binds_ary']]
+                            else:
+                                parsed['device_binds_ary'] = []
+                            self.login_data = UserResponse(**parsed)
+                            self.token = parsed["terminal_user_session_key"]
+                            if self.user_id is None:
+                                self.user_id = self.login_data.get("id", None)
+                            return True
+            except (aiohttp.ClientResponseError, aiohttp.ClientConnectionError) as e:
+                _LOGGER.error(f"Authentication failed: {e}")
+                if attempt < 3 - 1:
+                    await asyncio.sleep(5)  # Wait before retrying
+                else:
+                    raise AuthenticationError(f"Authentication failed after retries. {e}") from e
+            finally:
+                self.auth_in_progress = False
 
     async def get_scale_users(self):
         """
@@ -628,7 +653,6 @@ class RenphoWeight:
         except Exception as e:
             _LOGGER.error(f"Failed to fetch weight measurements: {e}")
             return None
-
 
     async def get_measurements_history(self):
         """
@@ -735,6 +759,7 @@ class RenphoWeight:
 
             if "status_code" in parsed and parsed["status_code"] == "20000":
                 response = GirthResponse(**parsed)
+                self._last_updated_girth = time.time()
                 self.girth_info = response.girths
                 return self.girth_info
             else:
@@ -870,31 +895,30 @@ class RenphoWeight:
 
         try:
             if metric_type == METRIC_TYPE_WEIGHT:
-                if self._last_updated_weight is None or time.time() - self._last_updated_weight > self.refresh:
-                    last_measurement = await self.get_weight()
-                    if last_measurement and self.weight is not None:
-                        return last_measurement[1].get(metric, None) if last_measurement[1] else None
+                if self._last_updated_weight is None or self.weight:
+                    if self.weight_info is not None:
+                        return self.weight_info.get(metric, None)
                 return self.weight_info.get(metric, None) if self.weight_info else None
             elif metric_type == METRIC_TYPE_GIRTH:
-                if self._last_updated_girth is None or time.time() - self._last_updated_girth > self.refresh:
+                if self._last_updated_girth is None or self.girth_info is None:
                     await self.list_girth()
-                for girth_entry in self.girth_info:
-                    if hasattr(girth_entry, f"{metric}_value"):
-                        return getattr(girth_entry, f"{metric}_value", None)
+                if self.girth_info:
+                    valid_girths = sorted([g for g in self.girth_info if getattr(g, f"{metric}_value", 0) not in (None, 0.0)], key=lambda x: x.time_stamp, reverse=True)
+                    for girth in valid_girths:
+                        value = getattr(girth, f"{metric}_value", None)
+                        if value not in (None, 0.0):
+                            return value
+                    return None
             elif metric_type == METRIC_TYPE_GIRTH_GOAL:
-                if self._last_updated_girth_goal is None or time.time() - self._last_updated_girth_goal > self.refresh:
+                if self._last_updated_girth_goal is None or self.girth_goal is None:
                     await self.list_girth_goal()
-                for goal in self.girth_goal:
-                    if goal.girth_type == metric:
-                        return goal.goal_value
-            elif metric_type == METRIC_TYPE_GROWTH_RECORD:
-                if self._last_updated_growth_record is None or time.time() - self._last_updated_growth_record > self.refresh:
-                    last_measurement = (
-                        self.growth_record.get("growths", [])[0]
-                        if self.growth_record.get("growths")
-                        else None
-                    )
-                    return last_measurement.get(metric, None) if last_measurement else None
+                if self.girth_goal:
+                    valid_goals = sorted([g for g in self.girth_goal if g.girth_type == metric and g.goal_value not in (None, 0.0)], key=lambda x: x.setup_goal_at, reverse=True)
+                    # Iterate to find the first valid goal
+                    for goal in valid_goals:
+                        if goal.goal_value not in (None, 0.0):
+                            return goal.goal_value
+                    return None
             else:
                 _LOGGER.error(f"Invalid metric type: {metric_type}")
                 return None
@@ -979,6 +1003,23 @@ class ClientSSLError(Exception):
 
 from starlette.responses import Response
 import httpx
+from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi.security import HTTPBasic, HTTPBasicCredentials, APIKeyHeader
+from fastapi.responses import JSONResponse
+from starlette.middleware.cors import CORSMiddleware
+from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_404_NOT_FOUND
+from datetime import datetime
+import hashlib
+from Crypto.PublicKey import RSA
+from Crypto.Signature import pkcs1_15
+from Crypto.Hash import SHA256
+from Crypto.Cipher import PKCS1_OAEP
+import binascii
+from base64 import b64encode, b64decode
+
+security_basic = HTTPBasic()
+API_KEY_NAME = "access_token"
+api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
 
 # Initialize FastAPI and Jinja2
 app = FastAPI(docs_url="/docs", redoc_url=None)
@@ -994,24 +1035,100 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-security = HTTPBasic()
-
 
 class APIResponse(BaseModel):
     status: str
     message: str
     data: Optional[Any] = None
 
-
-async def get_current_user(credentials: HTTPBasicCredentials = Depends(security)):
+def load_rsa_keys():
     try:
-        user = RenphoWeight(email=credentials.username, password=credentials.password)
-        await user.auth()  # Ensure that user can authenticate
-        return user
+        private_key = RSA.import_key(os.getenv("RSA_PRIVATE_KEY"))
+        public_key = RSA.import_key(os.getenv("RSA_PUBLIC_KEY"))
+        return private_key, public_key
     except Exception as e:
-        _LOGGER.error(f"Authentication failed: {e}")
-        raise HTTPException(status_code=401, detail="Authentication failed") from e
+        print(f"Error loading RSA keys: {e}")
+        raise HTTPException(status_code=500, detail="Failed to load RSA keys")
 
+PRIVATE_KEY, PUBLIC_KEY = load_rsa_keys()
+
+
+def generate_api_key(email: str, password: str) -> str:
+    """Generate a signed and encrypted API key."""
+    timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S%f")
+    payload = f"{email}:{password}:{timestamp}"
+    # Encrypt the payload
+    cipher = PKCS1_OAEP.new(PUBLIC_KEY)
+    encrypted_payload = cipher.encrypt(payload.encode())
+    encrypted_hex = binascii.hexlify(encrypted_payload).decode()
+
+    # Sign the encrypted payload
+    hash_obj = SHA256.new(encrypted_payload)
+    signature = pkcs1_15.new(PRIVATE_KEY).sign(hash_obj)
+    signature_hex = binascii.hexlify(signature).decode()
+
+    return f"{encrypted_hex}:{signature_hex}"
+
+def decrypt_api_key(api_key: str) -> dict:
+    """Verify and decrypt an API key."""
+    try:
+        encrypted_payload_hex, signature_hex = api_key.split(':')
+        encrypted_payload = binascii.unhexlify(encrypted_payload_hex)
+        signature = binascii.unhexlify(signature_hex)
+
+        # Verify the signature
+        hash_obj = SHA256.new(encrypted_payload)
+        pkcs1_15.new(PUBLIC_KEY).verify(hash_obj, signature)
+
+        # Decrypt the payload
+        cipher = PKCS1_OAEP.new(PRIVATE_KEY)
+        payload = cipher.decrypt(encrypted_payload)
+        email, password, timestamp = payload.decode().split(':')
+
+        return {"email": email, "password": password, "timestamp": timestamp}
+    except (ValueError, IndexError, TypeError, binascii.Error) as e:
+        raise HTTPException(status_code=403, detail="Invalid API key")
+
+def verify_api_key(api_key: str) -> bool:
+    try:
+        encrypted_payload_hex, signature_hex = api_key.split(':')
+        encrypted_payload = binascii.unhexlify(encrypted_payload_hex)
+        signature = binascii.unhexlify(signature_hex)
+
+        # Verify the signature
+        hash_obj = SHA256.new(encrypted_payload)
+        pkcs1_15.new(PUBLIC_KEY).verify(hash_obj, signature)
+        return True
+    except Exception:
+        return False
+
+def get_credentials_or_api_key(credentials: Optional[HTTPBasicCredentials] = Depends(security_basic), api_key: Optional[str] = Depends(api_key_header)):
+    if api_key:
+        if verify_api_key(api_key):
+            return api_key
+        else:
+            raise HTTPException(status_code=403, detail="Invalid API key")
+    elif credentials:
+        if credentials.username and credentials.password:
+            return credentials
+        else:
+            raise HTTPException(status_code=403, detail="Invalid HTTP Basic credentials")
+    else:
+        raise HTTPException(status_code=401, detail="Authentication credentials were not provided")
+
+async def get_current_user(auth: Union[HTTPBasicCredentials, str] = Depends(get_credentials_or_api_key)) -> RenphoWeight:
+    if isinstance(auth, HTTPBasicCredentials):
+        email, password = auth.username, auth.password
+    elif isinstance(auth, str):  # auth is an API key
+        user_info = decrypt_api_key(auth)
+        email, password = user_info['email'], user_info['password']
+    else:
+        raise HTTPException(status_code=401, detail="Invalid authentication method")
+
+    user = RenphoWeight(email=email, password=password)
+    if not await user.auth():
+        raise HTTPException(status_code=403, detail="Invalid email or password")
+    return user
 
 @app.get("/")
 def read_root(request: Request):
@@ -1021,6 +1138,15 @@ def read_root(request: Request):
 async def auth(renpho: RenphoWeight = Depends(get_current_user)):
     # If this point is reached, authentication was successful
     return APIResponse(status="success", message="Authentication successful.")
+
+@app.get("/generate_api_key", response_model=APIResponse)
+def generate_key(request: Request, email: str, password: str, renpho: RenphoWeight = Depends(get_current_user)):
+    """Generate API key for a user."""
+    try:
+        api_key = generate_api_key(email, password)
+        return APIResponse(status="success", message="API key generated.", data={"api_key": api_key})
+    except Exception as e:
+        return APIResponse(status="error", message="Failed to generate API key.", data=str(e))
 
 @app.get("/info", response_model=APIResponse)
 async def get_info(renpho: RenphoWeight = Depends(get_current_user)):
