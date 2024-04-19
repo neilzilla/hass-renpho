@@ -53,8 +53,6 @@ USERS_REACH_GOAL = "https://renpho.qnclouds.com/api/v3/users/reach_goal.json" # 
 
 
 from dataclasses import dataclass
-from typing import List, Optional
-
 from pydantic import BaseModel
 
 class DeviceBind(BaseModel):
@@ -1012,16 +1010,12 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_404_NOT_FOUND
 from datetime import datetime
 import hashlib
-import os
 from Crypto.PublicKey import RSA
 from Crypto.Signature import pkcs1_15
 from Crypto.Hash import SHA256
 from Crypto.Cipher import PKCS1_OAEP
 import binascii
 from base64 import b64encode, b64decode
-
-from pydantic import BaseModel
-from typing import Optional
 
 security_basic = HTTPBasic()
 API_KEY_NAME = "access_token"
@@ -1153,17 +1147,6 @@ def generate_key(request: Request, email: str, password: str, renpho: RenphoWeig
         return APIResponse(status="success", message="API key generated.", data={"api_key": api_key})
     except Exception as e:
         return APIResponse(status="error", message="Failed to generate API key.", data=str(e))
-
-@app.get("/decrypt_api_key", response_model=dict)
-def decrypt_key(api_key: str = Depends(api_key_header)):
-    """
-    Decrypts an API key to extract the email and password.
-    This endpoint should be secured and limited to administrative use.
-    """
-    if not api_key or not verify_api_key(api_key):
-        raise HTTPException(status_code=403, detail="Invalid or missing API key")
-    
-    return decrypt_api_key(api_key)
 
 @app.get("/info", response_model=APIResponse)
 async def get_info(renpho: RenphoWeight = Depends(get_current_user)):
