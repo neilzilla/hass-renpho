@@ -1,5 +1,5 @@
 # Renpho Weight Home Assistant Component
-# IN DEVELOPPEMENT (Not Working)
+# IN DEVELOPPEMENT
 
 ![Version](https://img.shields.io/badge/version-v3.0.1-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
