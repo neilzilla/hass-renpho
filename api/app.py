@@ -583,34 +583,26 @@ class RenphoWeight:
             finally:
                 self.auth_in_progress = False
 
-    async def get_scale_users(self):
+    async def get_scale_users(self) -> List[Users]:
         """
         Fetch the list of users associated with the scale.
         """
         url = f"{API_SCALE_USERS_URL}?locale=en&app_id=Renpho&terminal_user_session_key={self.token}"
-        # Perform the API request
         try:
             parsed = await self._request("GET", url, skip_auth=True)
 
             if not parsed:
                 _LOGGER.error("Failed to fetch scale users.")
-                return Users(
-                    scale_user_id=None,
-                    user_id=None,
-                    mac=None,
-                    index=None,
-                    key=None,
-                    method=None
-                )
+                return []
 
-            # Check if the response is valid and contains 'scale_users'
-            if "scale_users" in parsed:
-                # Update the 'users' attribute with parsed and validated ScaleUser objects
-                self.users = [Users(**user) for user in parsed["scale_users"]]
-            else:
+            if "scale_users" not in parsed:
                 _LOGGER.error("Failed to fetch scale users or no scale users found in the response.")
+                return []
 
-            self.user_id = self.users[0].user_id
+            _LOGGER.error(f"{parsed}")
+            self.users = [Users(**user) for user in parsed["scale_users"]]
+            if self.users:
+                self.user_id = self.users[0].user_id  # Update user_id only if users list is not empty
             return self.users
         except Exception as e:
             _LOGGER.error(f"Failed to fetch scale users: {e}")
