@@ -599,7 +599,6 @@ class RenphoWeight:
                 _LOGGER.error("Failed to fetch scale users or no scale users found in the response.")
                 return []
 
-            _LOGGER.error(f"{parsed}")
             self.users = [Users(**user) for user in parsed["scale_users"]]
             if self.users:
                 self.user_id = self.users[0].user_id  # Update user_id only if users list is not empty
