@@ -6,7 +6,6 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 import os
 
 import asyncio
-import datetime
 import logging
 import time
 from base64 import b64encode
@@ -90,28 +89,28 @@ class UserResponse(BaseModel):
     hip: int
     person_type: int
     category_type: int
-    weight_unit: int
-    current_goal_weight: float
-    weight_goal_unit: int
-    weight_goal: float
+    _unit: int
+    current_goal_: float
+    _goal_unit: int
+    _goal: float
     locale: str
     birthday: str
-    weight_goal_date: str
+    _goal_date: str
     avatar_url: str
-    weight: float
+    : float
     facebook_account: str
     twitter_account: str
     line_account: str
     sport_goal: int
     sleep_goal: int
     bodyfat_goal: float
-    initial_weight: float
+    initial_: float
     initial_bodyfat: float
     area_code: str
     method: int
     user_code: str
     agree_flag: int
-    reach_goal_weight_flag: int
+    reach_goal__flag: int
     reach_goal_bodyfat_flag: int
     set_goal_at: int
     sell_flag: int
@@ -146,11 +145,11 @@ class MeasurementDetail(BaseModel):
     birthday: str
     category_type: int
     person_type: int
-    weight: float
+    : float
     bodyfat: Optional[float] = None
     water: Optional[float] = None
     bmr: Optional[int] = None
-    weight_unit: int
+    _unit: int
     bodyage: Optional[int] = None
     muscle: Optional[float] = None
     bone: Optional[float] = None
@@ -160,7 +159,7 @@ class MeasurementDetail(BaseModel):
     sinew: Optional[float] = None
     protein: Optional[float] = None
     body_shape: int
-    fat_free_weight: Optional[float] = None
+    fat_free_: Optional[float] = None
     resistance: Optional[int] = None
     sec_resistance: Optional[int] = None
     internal_model: str
@@ -170,12 +169,12 @@ class MeasurementDetail(BaseModel):
     cardiac_index: Optional[int] = None
     method: int
     sport_flag: int
-    left_weight: Optional[float] = None
+    left_: Optional[float] = None
     waistline: Optional[float] = None
     hip: Optional[float] = None
     local_created_at: str
     time_zone: Optional[str] = None
-    right_weight: Optional[float] = None
+    right_: Optional[float] = None
     accuracy_flag: int
     bodyfat_left_arm: Optional[float] = None
     bodyfat_left_leg: Optional[float] = None
@@ -337,18 +336,18 @@ class GirthResponse(BaseModel):
         return getattr(self, key, default)
 
 
-class RenphoWeight:
+class Renpho:
     """
-    A class to interact with Renpho's weight scale API.
+    A class to interact with Renpho's  scale API.
 
     Attributes:
         email (str): The email address for the Renpho account.
         password (str): The password for the Renpho account.
-        user_id (str, optional): The ID of the user for whom weight data should be fetched.
+        user_id (str, optional): The ID of the user for whom  data should be fetched.
     """
 
     def __init__(self, email, password, user_id=None, refresh=60, proxy=None):
-        """Initialize a new RenphoWeight instance."""
+        """Initialize a new Renpho instance."""
         self.public_key: str = CONF_PUBLIC_KEY
         self.email: str = email
         self.password: str = password
@@ -361,17 +360,17 @@ class RenphoWeight:
         self.polling = False
         self.login_data = None
         self.users = []
-        self.weight_info = None
-        self.weight_history = []
-        self.weight: float = None
-        self.weight_goal = {}
+        self._info = None
+        self._history = []
+        self.: float = None
+        self._goal = {}
         self.device_info = None
         self.latest_model = None
         self.girth_info = None
         self.girth_goal = None
         self.growth_record = None
         self._last_updated = None
-        self._last_updated_weight = None
+        self._last_updated_ = None
         self._last_updated_girth = None
         self._last_updated_girth_goal = None
         self._last_updated_growth_record = None
@@ -609,7 +608,7 @@ class RenphoWeight:
 
     async def get_measurements(self):
         """
-        Fetch the most recent weight measurements for the user.
+        Fetch the most recent  measurements for the user.
         """
         url = f"{API_MEASUREMENTS_URL}?user_id={self.user_id}&last_at={self.get_timestamp()}&locale=en&app_id=Renpho&terminal_user_session_key={self.token}"
         try:
