@@ -336,6 +336,8 @@ class RenphoWeight:
         """
         Fetch the most recent weight measurements for the user.
         """
+        _LOGGER.error(f"test1")
+        _LOGGER.error(f"{self.get_timestamp()}")
         url = f"{API_MEASUREMENTS_URL}?user_id={self.user_id}&last_at={self.get_timestamp()}&locale=en&app_id=Renpho&terminal_user_session_key={self.token}"
         try:
             parsed = await self._request("GET", url, skip_auth=True)
@@ -349,6 +351,8 @@ class RenphoWeight:
                     _LOGGER.error("No weight measurements found in the response.")
                     return
                 if measurements := parsed["last_ary"]:
+                    _LOGGER.error(f"test2")
+                    _LOGGER.error(f"{measurements}")
                     self.weight_history = [MeasurementDetail(**measurement) for measurement in measurements]
                     self.weight_info = self.weight_history[0] if self.weight_history else None
                     self.weight = self.weight_info.weight if self.weight_info else None
