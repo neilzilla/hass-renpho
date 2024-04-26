@@ -633,6 +633,7 @@ class RenphoWeight:
                     _LOGGER.error("No weight measurements found in the response.")
                     return
                 if measurements := parsed["last_ary"]:
+                    _LOGGER.error(f"{measurements}")
                     self.weight_history = [MeasurementDetail(**measurement) for measurement in measurements]
                     self.weight_info = self.weight_history[0] if self.weight_history else None
                     self.weight = self.weight_info.weight if self.weight_info else None
