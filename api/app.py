@@ -381,7 +381,7 @@ class RenphoWeight:
 
     @staticmethod
     def get_timestamp() -> int:
-        start_date = datetime.date(1998, 1, 1)
+        start_date = datetime.datetime.date(1998, 1, 1)
         return int(time.mktime(start_date.timetuple()))
 
 
