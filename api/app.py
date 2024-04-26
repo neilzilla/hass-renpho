@@ -379,6 +379,8 @@ class RenphoWeight:
         self.is_polling_active = False
         self.proxy = proxy
 
+        _LOGGER.info(f"Initializing RenphoWeight instance. Proxy is {'enabled: ' + proxy if proxy else 'disabled.'}")
+
     @staticmethod
     def get_timestamp() -> int:
         start_date = datetime.date(1998, 1, 1)
@@ -412,18 +414,30 @@ class RenphoWeight:
 
     async def check_proxy(self):
         """
-        Checks if the proxy is working by making a request to httpbin.org.
+        Checks if the proxy is working by making a request to a Renpho API endpoint.
         """
-        test_url = 'https://renpho.qnclouds.com/api/v3/girths/list_girth.json?app_id=Renpho&terminal_user_session_key='
+        test_url = 'http://httpbin.org/get'
+    
+        if not self.proxy:
+            _LOGGER.info("No proxy configured. Proceeding without proxy.")
+        else:
+            _LOGGER.info(f"Checking proxy connectivity using proxy: {self.proxy}")
+    
         try:
             connector = ProxyConnector.from_url(self.proxy) if self.proxy else None
-            async with aiohttp.ClientSession(connector=connector) as session:
-                async with session.get(test_url) as response:
+            session = aiohttp.ClientSession(connector=connector)
+            async with session.get(test_url) as response:
+                if response.status == 200:
+                    _LOGGER.info("Proxy check successful." if self.proxy else "Direct connection successful.")
                     return True
+                else:
+                    _LOGGER.error(f"Failed to connect using {'proxy' if self.proxy else 'direct connection'}. HTTP Status: {response.status}")
+                    return False
         except Exception as e:
             _LOGGER.error(f"Proxy connection failed: {e}")
             return False
-
+        finally:
+            await session.close()
 
     async def _request(self, method: str, url: str, retries: int = 3, skip_auth=False, **kwargs):
         """
@@ -498,11 +512,13 @@ class RenphoWeight:
         Validate the current credentials by attempting to authenticate.
         Returns True if authentication succeeds, False otherwise.
         """
+        _LOGGER.debug("Validating credentials for user: %s", self.email)
         try:
             return await self.auth()
         except Exception as e:
-            _LOGGER.error(f"Validation failed: {e}")
-            return False
+            _LOGGER.error("Failed to validate credentials for user: %s. Error: %s", self.email, e)
+            raise AuthenticationError(f"Invalid credentials for user {self.email}. Error details: {e}") from e
+
 
     async def auth(self):
         """Authenticate with the Renpho API."""
@@ -633,47 +649,12 @@ class RenphoWeight:
                     _LOGGER.error("No weight measurements found in the response.")
                     return
                 if measurements := parsed["last_ary"]:
-                    _LOGGER.error(f"{measurements}")
                     self.weight_history = [MeasurementDetail(**measurement) for measurement in measurements]
                     self.weight_info = self.weight_history[0] if self.weight_history else None
                     self.weight = self.weight_info.weight if self.weight_info else None
                     self.time_stamp = self.weight_info.time_stamp if self.weight_info else None
                     self._last_updated_weight = time.time()
                     return self.weight_info
-                else:
-                    _LOGGER.error("No weight measurements found in the response.")
-                    return None
-            else:
-                # Handling different error scenarios
-                if "status_code" not in parsed:
-                    _LOGGER.error("Invalid response format received from weight measurements endpoint.")
-                else:
-                    _LOGGER.error(f"Error fetching weight measurements: Status Code {parsed.get('status_code')} - {parsed.get('status_message')}")
-                return None
-
-        except Exception as e:
-            _LOGGER.error(f"Failed to fetch weight measurements: {e}")
-            return None
-
-    async def get_measurements_history(self):
-        """
-        Fetch the most recent weight measurements_history for the user.
-        """
-        url = f"{API_MEASUREMENTS_URL}?user_id={self.user_id}&last_at={self.get_timestamp()}&locale=en&app_id=Renpho&terminal_user_session_key={self.token}"
-        try:
-            parsed = await self._request("GET", url, skip_auth=True)
-
-            if not parsed:
-                _LOGGER.error("Failed to fetch weight measurements.")
-                return
-
-            if "status_code" in parsed and parsed["status_code"] == "20000":
-                if "last_ary" not in parsed:
-                    _LOGGER.error("No weight measurements found in the response.")
-                    return
-                if measurements := parsed["last_ary"]:
-                    self.weight_history = [MeasurementDetail(**measurement) for measurement in measurements]
-                    return self.weight_history
                 else:
                     _LOGGER.error("No weight measurements found in the response.")
                     return None
