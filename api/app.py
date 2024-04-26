@@ -5,7 +5,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 import os
 
-from datetime import datetime
+import datetime
 import asyncio
 import logging
 import time
