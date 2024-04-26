@@ -5,8 +5,8 @@ from fastapi.templating import Jinja2Templates
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 import os
 
-import datetime
 import asyncio
+import datetime
 import logging
 import time
 from base64 import b64encode
@@ -90,13 +90,13 @@ class UserResponse(BaseModel):
     hip: int
     person_type: int
     category_type: int
-    _unit: int
-    current_goal_: float
-    _goal_unit: int
-    _goal: float
+    weight_unit: int
+    current_goal_weight: float
+    weight_goal_unit: int
+    weight_goal: float
     locale: str
     birthday: str
-    _goal_date: str
+    weight_goal_date: str
     avatar_url: str
     weight: float
     facebook_account: str
@@ -105,13 +105,13 @@ class UserResponse(BaseModel):
     sport_goal: int
     sleep_goal: int
     bodyfat_goal: float
-    initial_: float
+    initial_weight: float
     initial_bodyfat: float
     area_code: str
     method: int
     user_code: str
     agree_flag: int
-    reach_goal__flag: int
+    reach_goal_weight_flag: int
     reach_goal_bodyfat_flag: int
     set_goal_at: int
     sell_flag: int
@@ -146,11 +146,11 @@ class MeasurementDetail(BaseModel):
     birthday: str
     category_type: int
     person_type: int
-    : float
+    weight: float
     bodyfat: Optional[float] = None
     water: Optional[float] = None
     bmr: Optional[int] = None
-    _unit: int
+    weight_unit: int
     bodyage: Optional[int] = None
     muscle: Optional[float] = None
     bone: Optional[float] = None
@@ -160,7 +160,7 @@ class MeasurementDetail(BaseModel):
     sinew: Optional[float] = None
     protein: Optional[float] = None
     body_shape: int
-    fat_free_: Optional[float] = None
+    fat_free_weight: Optional[float] = None
     resistance: Optional[int] = None
     sec_resistance: Optional[int] = None
     internal_model: str
@@ -170,12 +170,12 @@ class MeasurementDetail(BaseModel):
     cardiac_index: Optional[int] = None
     method: int
     sport_flag: int
-    left_: Optional[float] = None
+    left_weight: Optional[float] = None
     waistline: Optional[float] = None
     hip: Optional[float] = None
     local_created_at: str
     time_zone: Optional[str] = None
-    right_: Optional[float] = None
+    right_weight: Optional[float] = None
     accuracy_flag: int
     bodyfat_left_arm: Optional[float] = None
     bodyfat_left_leg: Optional[float] = None
@@ -337,18 +337,18 @@ class GirthResponse(BaseModel):
         return getattr(self, key, default)
 
 
-class Renpho:
+class RenphoWeight:
     """
-    A class to interact with Renpho's  scale API.
+    A class to interact with Renpho's weight scale API.
 
     Attributes:
         email (str): The email address for the Renpho account.
         password (str): The password for the Renpho account.
-        user_id (str, optional): The ID of the user for whom  data should be fetched.
+        user_id (str, optional): The ID of the user for whom weight data should be fetched.
     """
 
     def __init__(self, email, password, user_id=None, refresh=60, proxy=None):
-        """Initialize a new Renpho instance."""
+        """Initialize a new RenphoWeight instance."""
         self.public_key: str = CONF_PUBLIC_KEY
         self.email: str = email
         self.password: str = password
@@ -361,17 +361,17 @@ class Renpho:
         self.polling = False
         self.login_data = None
         self.users = []
-        self._info = None
-        self._history = []
-        self.: float = None
-        self._goal = {}
+        self.weight_info = None
+        self.weight_history = []
+        self.weight: float = None
+        self.weight_goal = {}
         self.device_info = None
         self.latest_model = None
         self.girth_info = None
         self.girth_goal = None
         self.growth_record = None
         self._last_updated = None
-        self._last_updated_ = None
+        self._last_updated_weight = None
         self._last_updated_girth = None
         self._last_updated_girth_goal = None
         self._last_updated_growth_record = None
@@ -583,25 +583,34 @@ class Renpho:
             finally:
                 self.auth_in_progress = False
 
-    async def get_scale_users(self) -> List[Users]:
+    async def get_scale_users(self):
         """
         Fetch the list of users associated with the scale.
         """
         url = f"{API_SCALE_USERS_URL}?locale=en&app_id=Renpho&terminal_user_session_key={self.token}"
+        # Perform the API request
         try:
             parsed = await self._request("GET", url, skip_auth=True)
 
             if not parsed:
                 _LOGGER.error("Failed to fetch scale users.")
-                return []
+                return Users(
+                    scale_user_id=None,
+                    user_id=None,
+                    mac=None,
+                    index=None,
+                    key=None,
+                    method=None
+                )
 
-            if "scale_users" not in parsed:
+            # Check if the response is valid and contains 'scale_users'
+            if "scale_users" in parsed:
+                # Update the 'users' attribute with parsed and validated ScaleUser objects
+                self.users = [Users(**user) for user in parsed["scale_users"]]
+            else:
                 _LOGGER.error("Failed to fetch scale users or no scale users found in the response.")
-                return []
 
-            self.users = [Users(**user) for user in parsed["scale_users"]]
-            if self.users:
-                self.user_id = self.users[0].user_id  # Update user_id only if users list is not empty
+            self.user_id = self.users[0].user_id
             return self.users
         except Exception as e:
             _LOGGER.error(f"Failed to fetch scale users: {e}")
@@ -609,7 +618,7 @@ class Renpho:
 
     async def get_measurements(self):
         """
-        Fetch the most recent  measurements for the user.
+        Fetch the most recent weight measurements for the user.
         """
         url = f"{API_MEASUREMENTS_URL}?user_id={self.user_id}&last_at={self.get_timestamp()}&locale=en&app_id=Renpho&terminal_user_session_key={self.token}"
         try:
