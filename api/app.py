@@ -6,7 +6,7 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 import os
 
 import asyncio
-import datetime
+from datetime import datetime, date
 import logging
 import time
 from base64 import b64encode
