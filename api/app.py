@@ -98,7 +98,7 @@ class UserResponse(BaseModel):
     birthday: str
     _goal_date: str
     avatar_url: str
-    : float
+    weight: float
     facebook_account: str
     twitter_account: str
     line_account: str
