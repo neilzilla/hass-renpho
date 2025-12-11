@@ -1,9 +1,9 @@
 # Renpho Weight Home Assistant Component
 
 > [!WARNING]
-> I have reverse engineered the new API, and may or may not release it shortly.  This integration is for the old version of the app, so if you are not using the 'outdated' version it will not work.
-> 
-> If I release a new version, it will likely be under a GPL or similar.  I have noticed my initial work being taken without credit, and being a passion project I believe credit is the least I can expect.
+> This integration is for the old version of the app, so if you are not using the 'outdated' version it will not work.  There are also reports of it not working at all now.
+>
+> While I have all intention to release a new version, I haven't used this for a long time and do not currently have the time, so if you're waiting please be patient.
 >
 > Please see original blog posts [Reverse Engineering the Renpho App](https://neilgaryallen.dev/blog/reverse-engineering-the-renpho-app) and [Renpho to Home Assistant](https://neilgaryallen.dev/blog/renpho-to-home-assistant)
 
